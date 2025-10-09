@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "chat": "群聊",
+    "points": "AI积分",
+    "subscription": "AI订阅",
+    "profile": "我的"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出登录",
+    "username": "用户名",
+    "password": "密码",
+    "inviteCode": "邀请码",
+    "welcome": "欢迎回来",
+    "subtitle": "AI智能空投 · 精准捕获每一次机会",
+    "joinUs": "加入我们",
+    "registerSubtitle": "开启你的财富之旅",
+    "placeholders": {
+      "username": "请输入用户名",
+      "password": "请输入密码",
+      "inviteCode": "请输入邀请码"
+    },
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "goRegister": "立即注册",
+    "goLogin": "立即登录",
+    "errors": {
+      "usernameRequired": "用户名不能为空",
+      "usernameTooShort": "用户名至少3个字符",
+      "passwordRequired": "密码不能为空",
+      "passwordTooShort": "密码至少6个字符",
+      "inviteCodeRequired": "邀请码不能为空",
+      "loginFailed": "登录失败，请检查用户名和密码",
+      "registerFailed": "注册失败，请稍后重试"
+    }
+  },
+  "chat": {
+    "title": "群聊大厅",
+    "defaultHall": "默认大厅",
+    "members": "成员",
+    "online": "在线",
+    "inputPlaceholder": "输入消息...",
+    "send": "发送",
+    "deleteAfter": "消息将在10分钟后自动删除",
+    "airdropBot": "空投机器人",
+    "systemMessage": "系统消息"
+  },
+  "points": {
+    "title": "AI积分矿机",
+    "balance": "积分余额",
+    "pointsBalance": "积分余额",
+    "uBalance": "U余额",
+    "myMachines": "我的矿机",
+    "buyMachine": "购买矿机",
+    "dailyRelease": "每日释放",
+    "totalReleased": "累计释放",
+    "baseRate": "基础释放率",
+    "boostRate": "加速释放率",
+    "status": "状态",
+    "active": "运行中",
+    "exited": "已出局",
+    "convertToU": "兑换U",
+    "exchangeRate": "兑换比例：100积分 = 7U",
+    "pointsAmount": "积分数量",
+    "enterAmount": "请输入兑换数量",
+    "willReceive": "将获得",
+    "noMachines": "暂无矿机，快去购买吧！"
+  },
+  "subscription": {
+    "title": "AI空投订阅",
+    "becomeAgent": "成为代理",
+    "agentFee": "代理费用：30U",
+    "benefits": {
+      "title": "代理权益",
+      "spotAward": "见点奖：8U/人",
+      "peerSpotAward": "平级见点奖：3U×5层",
+      "dividend": "直推分红：7U/单",
+      "repurchase": "复购奖励"
+    },
+    "latestAirdrops": "最新空投",
+    "aiScore": "AI评分",
+    "viewDetails": "查看详情",
+    "insufficientBalance": "余额不足",
+    "rewards": "奖励",
+    "ends": "结束",
+    "noAirdrops": "暂无空投信息"
+  },
+  "profile": {
+    "title": "我的",
+    "accountInfo": "账户信息",
+    "inviteCode": "我的邀请码",
+    "inviteLink": "邀请链接",
+    "referralLink": "推荐链接",
+    "copy": "复制",
+    "copied": "已复制",
+    "needAgentToInvite": "成为代理后才能获得邀请码",
+    "myTeam": "我的团队",
+    "directReferrals": "直推人数",
+    "networkMembers": "网体人数",
+    "totalEarnings": "总收益",
+    "balance": "余额",
+    "withdraw": "提现",
+    "transfer": "互转",
+    "transactions": "交易记录",
+    "settings": "设置",
+    "language": "语言",
+    "theme": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "agent": "代理"
+  },
+  "common": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "submit": "提交",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "loading": "加载中...",
+    "success": "操作成功",
+    "error": "操作失败",
+    "retry": "重试"
+  }
+}
+

@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局样式 */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-base-100 text-base-content;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+      'Microsoft YaHei', '微软雅黑', sans-serif;
+  }
+}
+
+/* 自定义组件样式 */
+@layer components {
+  /* 安全区域 */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* 卡片样式 */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  /* 消息气泡 */
+  .message-bubble {
+    @apply rounded-2xl px-4 py-2 max-w-[75%] break-words;
+  }
+
+  .message-bubble.sent {
+    @apply bg-primary text-primary-content ml-auto;
+  }
+
+  .message-bubble.received {
+    @apply bg-base-200 text-base-content mr-auto;
+  }
+
+  /* 滚动条样式 */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-base-200;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-base-300 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-base-content/30;
+  }
+}
+
+/* 工具类 */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .btn-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary text-white border-0;
+  }
+}
+
