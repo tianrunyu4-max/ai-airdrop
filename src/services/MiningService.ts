@@ -236,7 +236,7 @@ export class MiningService extends BaseService {
         .select('*')
         .eq('user_id', userId)
         .in('status', ['active', 'inactive'])
-        .lt('released_points', supabase.raw('total_points')) // 未出局的
+        .lt('released_points', 'total_points') // 未出局的
 
       if (error) throw error
 
@@ -1034,7 +1034,7 @@ export class MiningService extends BaseService {
           released_points: 0,
           status: 'restarted',
           is_active: false,
-          restart_count: supabase.raw('restart_count + 1')
+          restart_count: (machine.restart_count || 0) + 1
         })
         .in('status', ['active', 'inactive', 'exited'])
 
