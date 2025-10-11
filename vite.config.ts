@@ -41,7 +41,9 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        sourcemap: false
+        sourcemap: false,
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ],
