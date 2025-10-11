@@ -236,7 +236,6 @@ export class MiningService extends BaseService {
         .select('*')
         .eq('user_id', userId)
         .in('status', ['active', 'inactive'])
-        .lt('released_points', 'total_points') // 未出局的
 
       if (error) throw error
 
@@ -247,8 +246,18 @@ export class MiningService extends BaseService {
         }
       }
 
+      // 过滤未出局的学习卡
+      const activeCards = cards.filter(card => card.released_points < card.total_points)
+
+      if (activeCards.length === 0) {
+        return {
+          success: false,
+          error: '您没有可签到的学习卡'
+        }
+      }
+
       // 2. 检查今天是否已签到
-      const alreadyCheckedIn = cards.some(card => card.last_checkin_date === today)
+      const alreadyCheckedIn = activeCards.some(card => card.last_checkin_date === today)
       if (alreadyCheckedIn) {
         return {
           success: false,
@@ -263,7 +272,7 @@ export class MiningService extends BaseService {
       let totalReleased = 0
       let checkedInCount = 0
 
-      for (const card of cards) {
+      for (const card of activeCards) {
         // 更新签到状态
         await supabase
           .from('mining_machines')
