@@ -245,3 +245,8 @@ console.log(`   登录后在个人中心查看您的邀请码\n`)
 
 process.exit(0)
 
+
+
+
+
+

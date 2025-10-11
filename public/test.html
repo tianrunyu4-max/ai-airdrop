@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刷新测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        .test-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .status {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #28a745;
+            color: white;
+        }
+        .error {
+            background: #dc3545;
+            color: white;
+        }
+        .info {
+            background: #17a2b8;
+            color: white;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 刷新功能测试</h1>
+        
+        <div class="test-box">
+            <h3>📊 localStorage 状态</h3>
+            <div id="status"></div>
+        </div>
+
+        <div class="test-box">
+            <h3>📝 数据内容</h3>
+            <div id="data"></div>
+        </div>
+
+        <div>
+            <button onclick="testLogin()">🔐 模拟登录</button>
+            <button onclick="testRefresh()">🔄 测试刷新</button>
+            <button onclick="clearData()">🗑️ 清除数据</button>
+            <button onclick="goToApp()">🚀 打开应用</button>
+        </div>
+
+        <div class="test-box" style="margin-top: 30px;">
+            <h3>📖 操作说明</h3>
+            <p style="text-align: left;">
+                1️⃣ 点击 "🔐 模拟登录" 设置测试数据<br>
+                2️⃣ 点击 "🚀 打开应用" 访问主应用<br>
+                3️⃣ 在应用中按 F5 刷新<br>
+                4️⃣ 观察是否停留在当前页面
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const currentUser = localStorage.getItem('current_user');
+            const registeredUsers = localStorage.getItem('registered_users');
+            
+            let statusHtml = '';
+            let dataHtml = '';
+            
+            if (currentUser) {
+                statusHtml += `<div class="status success">✅ 已登录：${currentUser}</div>`;
+                
+                if (registeredUsers) {
+                    const users = JSON.parse(registeredUsers);
+                    if (users[currentUser]) {
+                        const userData = users[currentUser].userData;
+                        dataHtml = `
+                            <div style="text-align: left;">
+                                <strong>用户信息：</strong><br>
+                                • 用户名: ${userData.username}<br>
+                                • 余额: ${userData.u_balance || 0} U<br>
+                                • 是否代理: ${userData.is_agent ? '是' : '否'}<br>
+                                • 是否管理员: ${userData.is_admin ? '是' : '否'}
+                            </div>
+                        `;
+                    } else {
+                        statusHtml = '<div class="status error">❌ 用户数据不匹配</div>';
+                    }
+                }
+            } else {
+                statusHtml = '<div class="status error">❌ 未登录</div>';
+                dataHtml = '<div class="status info">请点击"模拟登录"按钮创建测试账号</div>';
+            }
+            
+            document.getElementById('status').innerHTML = statusHtml;
+            document.getElementById('data').innerHTML = dataHtml;
+        }
+
+        function testLogin() {
+            // 创建测试用户数据
+            const testUser = {
+                username: 'boss',
+                password: '123456',
+                userData: {
+                    id: 'test-' + Date.now(),
+                    username: 'boss',
+                    u_balance: 10000,
+                    transfer_points: 10000,
+                    is_agent: true,
+                    is_admin: true,
+                    direct_referral_count: 5,
+                    total_earnings: 5000,
+                    invite_code: 'ZDUZ52U2',
+                    created_at: new Date().toISOString()
+                }
+            };
+
+            const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
+            registeredUsers['boss'] = testUser;
+            
+            localStorage.setItem('registered_users', JSON.stringify(registeredUsers));
+            localStorage.setItem('current_user', 'boss');
+            
+            alert('✅ 测试账号已创建！\n\n用户名：boss\n密码：123456\n\n现在可以打开应用测试了。');
+            checkStatus();
+        }
+
+        function testRefresh() {
+            const currentUser = localStorage.getItem('current_user');
+            if (!currentUser) {
+                alert('❌ 请先点击"模拟登录"创建测试账号');
+                return;
+            }
+            
+            alert('✅ localStorage 数据正常！\n\n现在请：\n1. 打开应用\n2. 按 F5 刷新\n3. 观察是否停留在当前页面');
+        }
+
+        function clearData() {
+            if (confirm('确定要清除所有数据吗？')) {
+                localStorage.clear();
+                alert('✅ 数据已清除');
+                checkStatus();
+            }
+        }
+
+        function goToApp() {
+            window.open('http://localhost:3000/', '_blank');
+        }
+
+        // 页面加载时检查
+        window.onload = checkStatus;
+
+        // 每2秒自动刷新一次状态
+        setInterval(checkStatus, 2000);
+    </script>
+</body>
+</html>
+

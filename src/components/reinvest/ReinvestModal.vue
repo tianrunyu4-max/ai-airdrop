@@ -72,9 +72,10 @@
           <div class="text-xs text-blue-300">
             <div class="font-bold mb-2">💡 复投规则：</div>
             <ul class="space-y-1">
-              <li>• 每结算<span class="font-bold text-white">300U</span>收益需复投<span class="font-bold text-white">30U</span></li>
+              <li>• 每结算<span class="font-bold text-white">200U</span>收益需复投<span class="font-bold text-white">30U</span></li>
               <li>• 不复投账户将<span class="font-bold text-red-400">冻结</span>，无法使用任何功能</li>
               <li>• 开启自动复投可自动完成，无需手动操作</li>
+              <li>• 滑落机制：弱区自动补贴，加速对碰平衡发展</li>
             </ul>
           </div>
         </div>
@@ -161,11 +162,11 @@ const loadReinvestmentStatus = async () => {
     const user = authStore.user
     if (user) {
       totalEarnings.value = user.total_earnings || 0
-      expectedReinvestments.value = Math.floor(totalEarnings.value / 300)
+      expectedReinvestments.value = Math.floor(totalEarnings.value / 200)  // 更新为200U阈值
       reinvestmentCount.value = 0  // TODO: 需要从数据库获取
       needsReinvestment.value = reinvestmentCount.value < expectedReinvestments.value
       isFrozen.value = false  // TODO: 需要从数据库获取
-      nextThreshold.value = (expectedReinvestments.value + 1) * 300
+      nextThreshold.value = (expectedReinvestments.value + 1) * 200  // 更新为200U阈值
     }
 
     // 加载自动复投设置

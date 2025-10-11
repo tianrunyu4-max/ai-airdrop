@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录状态调试工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .info-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .label {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .value {
+            color: #333;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 登录状态调试工具</h1>
+        
+        <div class="section">
+            <h2>📊 当前登录状态</h2>
+            <div id="loginStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>💾 localStorage 数据</h2>
+            <div id="localStorageData"></div>
+        </div>
+
+        <div class="section">
+            <h2>🌐 环境信息</h2>
+            <div id="envInfo"></div>
+        </div>
+
+        <div class="actions">
+            <button onclick="checkStatus()">🔄 刷新检查</button>
+            <button onclick="clearCache()" class="danger">🗑️ 清除缓存</button>
+            <button onclick="setTestUser()">👤 设置测试用户</button>
+            <button onclick="window.open('http://localhost:3000', '_blank')">🚀 打开应用</button>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            // 检查登录状态
+            const currentUser = localStorage.getItem('current_user');
+            const registeredUsers = localStorage.getItem('registered_users');
+            
+            let statusHtml = '';
+            if (currentUser && registeredUsers) {
+                const users = JSON.parse(registeredUsers);
+                if (users[currentUser]) {
+                    statusHtml = `
+                        <div class="info-item">
+                            <span class="status success">✅ 已登录</span>
+                            <div style="margin-top: 10px;">
+                                <div><span class="label">用户名:</span><span class="value">${currentUser}</span></div>
+                                <div><span class="label">余额:</span><span class="value">${users[currentUser].userData?.u_balance || 0} U</span></div>
+                                <div><span class="label">是否代理:</span><span class="value">${users[currentUser].userData?.is_agent ? '是' : '否'}</span></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusHtml = '<div class="info-item"><span class="status error">❌ 用户数据不匹配</span></div>';
+                }
+            } else {
+                statusHtml = '<div class="info-item"><span class="status error">❌ 未登录</span></div>';
+            }
+            
+            document.getElementById('loginStatus').innerHTML = statusHtml;
+
+            // 显示 localStorage 数据
+            let localStorageHtml = '';
+            if (currentUser) {
+                localStorageHtml += `<div class="info-item"><span class="label">current_user:</span><span class="value">${currentUser}</span></div>`;
+            }
+            if (registeredUsers) {
+                const users = JSON.parse(registeredUsers);
+                localStorageHtml += `<div class="info-item"><span class="label">已注册用户数:</span><span class="value">${Object.keys(users).length}</span></div>`;
+                localStorageHtml += '<pre>' + JSON.stringify(users, null, 2) + '</pre>';
+            }
+            if (!currentUser && !registeredUsers) {
+                localStorageHtml = '<div class="info-item">❌ localStorage 为空</div>';
+            }
+            
+            document.getElementById('localStorageData').innerHTML = localStorageHtml;
+
+            // 环境信息
+            const envHtml = `
+                <div class="info-item"><span class="label">浏览器:</span><span class="value">${navigator.userAgent}</span></div>
+                <div class="info-item"><span class="label">当前URL:</span><span class="value">${window.location.href}</span></div>
+                <div class="info-item"><span class="label">localStorage 支持:</span><span class="value">${typeof(Storage) !== "undefined" ? '✅ 是' : '❌ 否'}</span></div>
+            `;
+            
+            document.getElementById('envInfo').innerHTML = envHtml;
+        }
+
+        function clearCache() {
+            if (confirm('确定要清除所有缓存吗？这将删除登录状态。')) {
+                localStorage.clear();
+                alert('✅ 缓存已清除！请重新登录。');
+                checkStatus();
+            }
+        }
+
+        function setTestUser() {
+            const testUser = {
+                username: 'boss',
+                password: '123456',
+                userData: {
+                    id: 'test-' + Date.now(),
+                    username: 'boss',
+                    u_balance: 10000,
+                    transfer_points: 10000,
+                    is_agent: true,
+                    is_admin: true,
+                    direct_referral_count: 5,
+                    total_earnings: 5000,
+                    invite_code: 'ZDUZ52U2',
+                    created_at: new Date().toISOString()
+                }
+            };
+
+            const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
+            registeredUsers['boss'] = testUser;
+            
+            localStorage.setItem('registered_users', JSON.stringify(registeredUsers));
+            localStorage.setItem('current_user', 'boss');
+            
+            alert('✅ 测试用户已设置！\n用户名: boss\n密码: 123456\n\n请访问应用并刷新页面测试。');
+            checkStatus();
+        }
+
+        // 页面加载时自动检查
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>
+

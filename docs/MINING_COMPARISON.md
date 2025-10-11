@@ -382,3 +382,8 @@
 **相关文档**: `docs/MINING_MACHINE_CONFIG.md`
 
 
+
+
+
+
+

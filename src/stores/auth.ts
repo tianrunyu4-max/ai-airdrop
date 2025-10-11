@@ -20,8 +20,11 @@ export const useAuthStore = defineStore('auth', () => {
       // 开发模式：从localStorage恢复登录状态
       if (isDevMode) {
         const currentUser = localStorage.getItem('current_user')
+        
         if (currentUser) {
-          const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+          const registeredUsersStr = localStorage.getItem('registered_users')
+          const registeredUsers = JSON.parse(registeredUsersStr || '{}')
+          
           if (registeredUsers[currentUser]) {
             user.value = registeredUsers[currentUser].userData
           }

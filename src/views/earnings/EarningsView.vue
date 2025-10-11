@@ -197,7 +197,7 @@
         <ul class="space-y-2 text-gray-600">
           <li class="flex items-start gap-2">
             <span class="text-yellow-500">💰</span>
-            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组7U（会员收益85%）</span>
+            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组10U（会员收益85%）</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-green-500">🎁</span>

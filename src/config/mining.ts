@@ -1,63 +1,71 @@
 /**
- * AI学习机系统配置 V3.0
- * 更新日期：2025-10-07
- * 核心变更：5%释放率 + 2倍出局 + 70%U/30%互转 + 复利滚存机制
+ * AI学习卡系统配置 V4.0
+ * 更新日期：2025-10-11
+ * 核心变更：签到释放 + 2%基础 + 10倍出局 + 直推加速3% + 70%到账30%销毁
  */
 
 export const AILearningConfig = {
-  // ========== AI学习机配置 ==========
+  // ========== AI学习卡配置 ==========
   MACHINE: {
-    NAME: 'AI学习机',
-    COST: 100,                    // 100积分（7U）
-    COST_IN_U: 7,                 // 等于7U
-    EXIT_MULTIPLIER: 2,           // 2倍出局（从10倍改为2倍）
-    TOTAL_OUTPUT: 200,            // 总产出200积分（100×2）
-    MAX_STACK: 10,                // 最多10台/人
-    FIRST_FREE: true              // 第一次免费送
+    NAME: 'AI学习卡',
+    COST: 100,                    // 100积分
+    COST_IN_U: 7,                 // 7U可兑换100积分
+    EXIT_MULTIPLIER: 10,          // 10倍出局
+    TOTAL_OUTPUT: 1000,           // 总产出1000积分（100×10）
+    MAX_STACK: 10,                // 最多10张/人
+    AUTO_GIFT: true,              // 成为AI代理自动送100积分
+    FIRST_FREE: false             // 不再是第一次免费，而是成为代理自动送
   },
   
   // ========== 释放规则 ==========
   RELEASE: {
-    BASE_RATE: 0.10,              // 基础释放率10%/天（2倍出局，20天完成）
-    BOOST_PER_REFERRAL: 0,        // 不再使用直推加速（新逻辑取消加速）
-    MAX_BOOST: 0,                 // 不再加速
-    MAX_REFERRALS: 0,             // 不再加速
+    BASE_RATE: 0.02,              // 基础释放率2%/天
+    BOOST_PER_REFERRAL: 0.03,     // 每直推1个AI代理 +3%
+    MAX_BOOST: 0.18,              // 最高加速18%（6个直推×3%）
+    MAX_RATE: 0.20,               // 最高释放率20%（2%基础 + 18%加速）
+    MAX_REFERRALS: 6,             // 最多计算6个直推（达到20%上限）
+    REQUIRE_CHECKIN: true,        // 必须签到才释放
     TIME: '00:00',                // 每天00:00释放
     TIMEZONE: 'Asia/Shanghai'
   },
   
   // ========== 积分分配 ==========
   DISTRIBUTION: {
-    TO_U_PERCENT: 0.70,           // 70%兑换U（从80%改为70%）
-    TO_TRANSFER_PERCENT: 0.30     // 30%互转积分（从20%改为30%）
+    TO_U_PERCENT: 0.70,           // 70%直接到账U余额
+    TO_BURN_PERCENT: 0.30         // 30%自动销毁清0（不再是互转积分）
   },
   
-  // ========== 复投/复利规则 ==========
+  // ========== 复投规则（取消复利） ==========
   REINVEST: {
     ENABLED: true,                // 允许复投
     AFTER_EXIT: true,             // 出局后可复投
-    COMPOUND_ENABLED: true,       // 允许复利滚存
-    COMPOUND_MULTIPLIERS: [2, 4, 8, 16, 32, 64, 128, 256], // 复利倍数阶梯：2倍→4倍→8倍→16倍...
-    COMPOUND_COST_FREE: true      // 复利滚存免费（无需额外支付）
+    COMPOUND_ENABLED: false,      // 取消复利滚存
+    COMPOUND_MULTIPLIERS: [],     // 清空复利倍数
+    COMPOUND_COST_FREE: false     // 不再有复利
   },
   
-  // ========== 重启机制 ==========
+  // ========== 重启机制（防泡沫） ==========
   RESTART: {
-    AUTO_ENABLED: true,           // 是否开启自动重启
-    MANUAL_ENABLED: true,         // 是否允许手动重启
+    AUTO_ENABLED: true,           // 后端自动检测：总释放 > 新积分时自动重启
+    MANUAL_ENABLED: true,         // 后端可手动重启
     CLEAR_ALL_POINTS: true,       // 重启时所有积分清0销毁
-    EXIT_MULTIPLIER: 2,           // 重启后继续2倍出局
-    QUEUE_ENABLED: true,          // 排队等待机制
-    CONTINUE_LEARNING: true       // 继续学习拿积分
+    CONTINUE_EXCHANGE: true,      // 重启后可继续兑换和释放
+    PREVENT_BUBBLE: true          // 防止泡沫过大
+  },
+  
+  // ========== 签到机制 ==========
+  CHECKIN: {
+    REQUIRED: true,               // 必须签到才释放
+    DAILY_LIMIT: 1,               // 每天签到1次
+    RESET_TIME: '00:00'           // 每天00:00重置
   },
   
   // ========== 状态 ==========
   STATUS: {
-    ACTIVE: 'active',             // 学习中
-    EXITED: 'exited',             // 已出局
-    RESTARTED: 'restarted',       // 已重启
-    QUEUED: 'queued',             // 排队中
-    COMPOUNDING: 'compounding'    // 复利滚存中
+    ACTIVE: 'active',             // 学习中（已签到）
+    EXITED: 'exited',             // 已出局（10倍）
+    INACTIVE: 'inactive',         // 未签到（暂停释放）
+    RESTARTED: 'restarted'        // 已重启（积分清0）
   }
 }
 

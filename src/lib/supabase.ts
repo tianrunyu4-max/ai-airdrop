@@ -5,6 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.su
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
 // 导出是否使用开发模式的标志
+// 只有 URL 是 placeholder 时才使用开发模式（localStorage）
 export const isDevMode = supabaseUrl.includes('placeholder')
 
 if (isDevMode) {

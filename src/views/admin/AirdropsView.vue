@@ -5,10 +5,16 @@
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h3 class="card-title">空投管理</h3>
-          <button class="btn btn-primary" @click="showAddModal = true">
-            <PlusIcon class="w-5 h-5" />
-            手动添加空投
-          </button>
+          <div class="flex gap-2">
+            <button class="btn btn-success" @click="autoCrawl" :disabled="crawling">
+              <span v-if="crawling" class="loading loading-spinner loading-sm"></span>
+              {{ crawling ? '爬取中...' : '🕷️ 自动爬取' }}
+            </button>
+            <button class="btn btn-primary" @click="showAddModal = true">
+              <PlusIcon class="w-5 h-5" />
+              手动添加空投
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -56,6 +62,9 @@
                 </td>
                 <td>
                   <div class="flex gap-2">
+                    <button class="btn btn-xs btn-info" @click="pushToChat(airdrop)" title="推送到群聊">
+                      📢
+                    </button>
                     <button class="btn btn-xs btn-outline" @click="editAirdrop(airdrop)">
                       编辑
                     </button>
@@ -157,10 +166,12 @@ import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import type { Airdrop } from '@/types'
+import { AirdropCrawlerService } from '@/services/AirdropCrawlerService'
 
 const airdrops = ref<Airdrop[]>([])
 const showAddModal = ref(false)
 const editingAirdrop = ref<Airdrop | null>(null)
+const crawling = ref(false)
 
 const form = ref({
   exchange: 'binance',
@@ -266,6 +277,105 @@ const toggleStatus = async (airdrop: Airdrop) => {
     loadAirdrops()
   } catch (error) {
     console.error('Toggle status error:', error)
+  }
+}
+
+// 推送到群聊
+const pushToChat = async (airdrop: Airdrop) => {
+  try {
+    // 1. 获取所有群组
+    const { data: groups, error: groupsError } = await supabase
+      .from('chat_groups')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
+
+    if (groupsError) throw groupsError
+
+    if (!groups || groups.length === 0) {
+      alert('没有可用的群组，请先创建群组')
+      return
+    }
+
+    // 2. 让管理员选择群组（简单版：推送到所有群组）
+    const confirmed = confirm(`确认要将此空投信息推送到所有群组吗？\n\n标题：${airdrop.title}\n群组数量：${groups.length}`)
+    if (!confirmed) return
+
+    // 3. 构建消息内容
+    const message = `━━━━━━━━━━━━━━━━━━━━
+🎁 新空投通知
+
+【标题】${airdrop.title}
+【交易所】${airdrop.exchange.toUpperCase()}
+【奖励】${airdrop.rewards || '待定'}
+【AI评分】${airdrop.ai_score || '--'}/10
+【结束时间】${formatDate(airdrop.end_date)}
+
+${airdrop.description ? `【说明】${airdrop.description}\n\n` : ''}${airdrop.url ? `【链接】${airdrop.url}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━
+💡 立即参与，早鸟有奖！
+━━━━━━━━━━━━━━━━━━━━`
+
+    // 4. 推送到所有群组
+    let successCount = 0
+    let failCount = 0
+
+    for (const group of groups) {
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .insert({
+            group_id: group.id,
+            user_id: null, // 系统消息
+            content: message,
+            message_type: 'system'
+          })
+
+        if (error) {
+          console.error(`推送到群组${group.name}失败:`, error)
+          failCount++
+        } else {
+          successCount++
+        }
+      } catch (err) {
+        console.error(`推送到群组${group.name}异常:`, err)
+        failCount++
+      }
+    }
+
+    // 5. 显示结果
+    alert(`推送完成！\n\n成功：${successCount}个群组\n失败：${failCount}个群组`)
+
+  } catch (error: any) {
+    console.error('Push to chat error:', error)
+    alert(`推送失败：${error.message || '未知错误'}`)
+  }
+}
+
+// 自动爬取空投信息
+const autoCrawl = async () => {
+  if (crawling.value) return
+  
+  const confirmed = confirm('确认要自动爬取最新空投信息吗？\n\n爬取来源：\n- Binance公告\n- CoinMarketCap空投\n\n发现新空投将自动推送到群聊。')
+  if (!confirmed) return
+
+  crawling.value = true
+  
+  try {
+    const result = await AirdropCrawlerService.crawlAll()
+    
+    if (result.success) {
+      const data = result.data as any
+      alert(`✅ 爬取完成！\n\n发现新空投：${data.totalNew} 条\n已自动推送到群聊`)
+      
+      // 刷新列表
+      await loadAirdrops()
+    } else {
+      alert(`❌ 爬取失败：${result.error || '未知错误'}`)
+    }
+  } catch (error: any) {
+    alert(`❌ 爬取异常：${error.message || '未知错误'}`)
+  } finally {
+    crawling.value = false
   }
 }
 

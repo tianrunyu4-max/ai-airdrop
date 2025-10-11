@@ -157,10 +157,16 @@ const menuItems = [
     desc: '群聊分类与群组管理'
   },
   { 
-    path: '/admin/system', 
-    label: '系统配置', 
+    path: '/admin/params', 
+    label: '系统参数', 
     icon: Cog6ToothIcon,
-    desc: '系统参数设置'
+    desc: '配置所有系统参数'
+  },
+  { 
+    path: '/admin/system', 
+    label: '系统管理', 
+    icon: Cog6ToothIcon,
+    desc: '系统功能管理'
   }
 ]
 

@@ -3,7 +3,7 @@
     <!-- 顶部标题 -->
     <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-6 py-8">
       <h1 class="text-3xl font-bold text-white text-center mb-2">💎 双轨制二元系统</h1>
-      <p class="text-center text-yellow-100 text-sm">AI智能排线 · 1:1对碰 · 秒结算</p>
+      <p class="text-center text-yellow-100 text-sm">AI智能排线 · 2:1/1:2对碰 · 秒结算</p>
     </div>
 
     <!-- 未加入提示 -->
@@ -16,7 +16,7 @@
         </div>
         
         <h2 class="text-2xl font-bold text-gray-800 mb-4">立即加入双轨制系统</h2>
-        <p class="text-gray-600 mb-6">AI自动排线 + 1:1对碰 + 8代平级奖</p>
+        <p class="text-gray-600 mb-6">AI自动排线 + 2:1/1:2对碰 + 8代平级奖</p>
         
         <!-- 加入费用 -->
         <div class="bg-yellow-50 rounded-xl p-6 mb-6 border-2 border-yellow-300">
@@ -32,11 +32,11 @@
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
             <div class="text-yellow-600 font-bold mb-1">⚡ 秒结算</div>
-            <div class="text-xs text-gray-600">1:1对碰即时</div>
+            <div class="text-xs text-gray-600">2:1/1:2对碰即时</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
             <div class="text-yellow-600 font-bold mb-1">💰 85%到账</div>
-            <div class="text-xs text-gray-600">每单5.95U</div>
+            <div class="text-xs text-gray-600">每单8.5U</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
             <div class="text-yellow-600 font-bold mb-1">🎁 8代平级</div>
@@ -81,7 +81,7 @@
           <!-- 复投提示 -->
           <div v-if="!binaryInfo.is_active" class="bg-red-50 rounded-xl p-4 mb-4 border-2 border-red-300">
             <div class="text-center text-red-600 font-bold mb-2">⚠️ 需要复投</div>
-            <div class="text-sm text-gray-700 mb-3">累计收益已达300U，请复投30U继续获得奖励</div>
+            <div class="text-sm text-gray-700 mb-3">累计收益已达200U，请复投30U继续获得奖励</div>
             <button 
               @click="handleReinvest"
               class="w-full bg-gradient-to-r from-red-400 to-red-500 text-white py-3 rounded-lg font-bold hover:from-red-500 hover:to-red-600 transition-all"
@@ -225,12 +225,12 @@
         <div class="space-y-3 text-sm text-gray-700">
           <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
             <div class="font-bold text-yellow-700 mb-1">🤖 AI智能排线</div>
-            <div>新单30U自动进入弱区，系统自动保持1:1平衡</div>
+            <div>新单30U自动进入弱区，系统自动保持2:1/1:2平衡</div>
           </div>
 
           <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div class="font-bold text-blue-700 mb-1">⚡ 1:1对碰奖</div>
-            <div>满足1:1配对，每单7U，85%到账（5.95U），秒结算，不封顶</div>
+            <div class="font-bold text-blue-700 mb-1">⚡ 2:1/1:2对碰奖</div>
+            <div>灵活配对：2:1或1:2，每单10U，85%到账（8.5U），秒结算，不封顶</div>
           </div>
           
           <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
@@ -240,7 +240,12 @@
 
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
             <div class="font-bold text-green-700 mb-1">🔄 复投机制</div>
-            <div>总收益达300U提示复投30U，不复投无法互转</div>
+            <div>总收益达200U提示复投30U，不复投无法互转</div>
+          </div>
+          
+          <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
+            <div class="font-bold text-orange-700 mb-1">🎯 滑落机制</div>
+            <div>弱区补贴：自动识别弱区并补贴单量，加速对碰平衡发展</div>
           </div>
 
           <div class="bg-red-50 rounded-lg p-3 border border-red-200">

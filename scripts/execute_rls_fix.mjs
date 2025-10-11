@@ -91,3 +91,8 @@ console.log('2. 复制上面的SQL')
 console.log('3. 粘贴并点击 Run')
 console.log('4. 执行完成后，重新运行: node scripts/fix_and_test_invite.mjs\n')
 
+
+
+
+
+

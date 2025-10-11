@@ -95,6 +95,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/SystemView.vue')
       },
       {
+        path: 'params',
+        name: 'admin-params',
+        component: () => import('@/views/admin/SystemParamsView.vue')
+      },
+      {
         path: 'groups',
         name: 'admin-groups',
         component: () => import('@/views/admin/GroupManagement.vue')
@@ -117,7 +122,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  // 检查用户认证状态
+  // 等待认证状态初始化完成（如果尚未初始化）
   if (!authStore.initialized) {
     await authStore.initialize()
   }

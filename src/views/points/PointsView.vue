@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-yellow-50 pb-20">
     <!-- 顶部标题 -->
     <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-6 py-8">
-      <h1 class="text-3xl font-bold text-white text-center mb-2">🤖 AI学习机</h1>
-      <p class="text-center text-yellow-100 text-sm">持续学习 · 持续创薪</p>
+      <h1 class="text-3xl font-bold text-white text-center mb-2">💳 AI学习卡</h1>
+      <p class="text-center text-yellow-100 text-sm">每日签到 · 持续释放</p>
     </div>
 
     <!-- 我的资产卡片 -->
@@ -20,8 +20,8 @@
             <div class="text-yellow-700 font-bold text-lg">{{ user?.transfer_points.toFixed(2) || '0.00' }}</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">学习机数量</div>
-            <div class="text-yellow-700 font-bold text-lg">{{ myMachines.length }}台</div>
+            <div class="text-gray-600 text-xs mb-1">学习卡数量</div>
+            <div class="text-yellow-700 font-bold text-lg">{{ myMachines.length }}张</div>
           </div>
         </div>
 
@@ -49,57 +49,112 @@
       </div>
     </div>
 
-    <!-- AI学习机购买区 -->
+    <!-- 每日签到区 -->
+    <div class="px-4 mt-6">
+      <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
+        <span class="bg-green-400 w-1 h-6 rounded-full mr-3"></span>
+        📅 每日签到
+      </h3>
+      
+      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-300">
+        <!-- 签到状态 -->
+        <div class="text-center mb-4">
+          <div v-if="isCheckedInToday" class="text-green-600 text-lg font-bold mb-2">
+            ✅ 今日已签到
+          </div>
+          <div v-else class="text-gray-600 text-lg font-bold mb-2">
+            ⏰ 今日未签到
+          </div>
+          
+          <div class="text-sm text-gray-500">
+            {{ activeCardCount }} 张学习卡等待签到
+          </div>
+        </div>
+        
+        <!-- 当前释放率 -->
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4 border border-green-200">
+          <div class="text-center">
+            <div class="text-gray-600 text-sm mb-1">当前释放率</div>
+            <div class="text-green-600 font-bold text-3xl">
+              {{ (releaseRate * 100).toFixed(1) }}%/天
+            </div>
+            <div class="text-xs text-gray-500 mt-2">
+              基础 2% + 直推加速 {{ ((releaseRate - 0.02) * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+        
+        <!-- 签到按钮 -->
+        <button 
+          @click="handleCheckin"
+          :disabled="isCheckedInToday || activeCardCount === 0 || loading"
+          class="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
+          :class="isCheckedInToday || activeCardCount === 0 || loading
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'"
+        >
+          {{ loading ? '签到中...' : isCheckedInToday ? '✅ 今日已签到' : '📅 签到启动释放' }}
+        </button>
+        
+        <div v-if="!isCheckedInToday && activeCardCount > 0" class="text-center text-red-500 text-sm mt-3">
+          ⚠️ 不签到不释放，请记得每天签到！
+        </div>
+        
+        <div v-if="activeCardCount === 0" class="text-center text-gray-500 text-sm mt-3">
+          💡 还没有学习卡，请先兑换学习卡
+        </div>
+      </div>
+    </div>
+
+    <!-- AI学习卡兑换区 -->
     <div class="px-4 mt-6">
       <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
         <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
-        AI学习机
+        💳 兑换学习卡
       </h3>
 
       <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-yellow-300">
-        <!-- 学习机图标 -->
+        <!-- 学习卡图标 -->
         <div class="flex justify-center mb-4">
-          <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-3xl flex items-center justify-center shadow-xl transform hover:scale-105 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
+          <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-3xl flex items-center justify-center shadow-xl transform hover:scale-105 transition-all text-6xl">
+            💳
           </div>
         </div>
 
-        <!-- 学习机信息 -->
+        <!-- 学习卡信息 -->
         <div class="text-center mb-6">
-          <h4 class="text-2xl font-bold text-gray-800 mb-2">AI智能学习机</h4>
-          <p class="text-gray-600 text-sm">自动学习 · 持续收益 · 智能分配</p>
+          <h4 class="text-2xl font-bold text-gray-800 mb-2">AI智能学习卡</h4>
+          <p class="text-gray-600 text-sm">每日签到 · 持续释放 · 智能分配</p>
         </div>
 
-        <!-- V3.0 核心参数 -->
+        <!-- V4.0 核心参数 -->
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
-          <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V3.0 重大升级</div>
+          <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            10%释放 · 2倍出局 · 20天回本 · 持续学习 送积分
+            每日签到 · 2-20%释放 · 10倍出局 · 70%到账30%销毁
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">购买成本</div>
-            <div class="text-yellow-600 font-bold text-xl">100积分</div>
-            <div class="text-gray-500 text-xs mt-1">首次免费送 🎁</div>
+            <div class="text-gray-600 text-xs mb-1">兑换成本</div>
+            <div class="text-yellow-600 font-bold text-xl">7U</div>
+            <div class="text-gray-500 text-xs mt-1">= 100积分</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">出局倍数</div>
-            <div class="text-yellow-600 font-bold text-xl">2倍</div>
-            <div class="text-gray-500 text-xs mt-1">共200积分</div>
+            <div class="text-yellow-600 font-bold text-xl">10倍</div>
+            <div class="text-gray-500 text-xs mt-1">共1000积分</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">基础释放</div>
-            <div class="text-yellow-600 font-bold text-xl">10%/天</div>
-            <div class="text-gray-500 text-xs mt-1">20天出局</div>
+            <div class="text-yellow-600 font-bold text-xl">2%/天</div>
+            <div class="text-gray-500 text-xs mt-1">需要签到</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">持续学习</div>
-            <div class="text-yellow-600 font-bold text-xl">免费</div>
-            <div class="text-gray-500 text-xs mt-1">2→4→8→16倍</div>
+            <div class="text-gray-600 text-xs mb-1">直推加速</div>
+            <div class="text-yellow-600 font-bold text-xl">+3%</div>
+            <div class="text-gray-500 text-xs mt-1">最高20%</div>
           </div>
         </div>
 
@@ -112,8 +167,8 @@
               <span class="text-yellow-600 font-bold">直接到账</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">30% 互转积分</span>
-              <span class="text-yellow-600 font-bold">赠送团队</span>
+              <span class="text-gray-600">30% 自动销毁</span>
+              <span class="text-red-600 font-bold">清0防泡沫</span>
             </div>
           </div>
         </div>
@@ -121,7 +176,7 @@
         <!-- 叠加数量选择 -->
         <div class="mb-6">
           <label class="block text-gray-700 font-bold mb-3 text-center">
-            购买数量（最多10台）
+            兑换数量（最多10张）
           </label>
           <div class="flex items-center justify-center gap-4">
             <button 
@@ -141,35 +196,38 @@
             </button>
           </div>
           <div class="text-center text-sm text-gray-600 mt-2">
-            总成本：{{ myMachines.length === 0 ? `${purchaseCount * 100}积分` : `${(purchaseCount * 7).toFixed(0)}U` }}
+            总成本：{{ (purchaseCount * 7).toFixed(0) }}U = {{ (purchaseCount * 100) }}积分
           </div>
         </div>
 
-        <!-- 购买按钮 -->
+        <!-- 兑换按钮 -->
         <button 
-          @click="purchaseMachine"
-          :disabled="!canPurchase"
+          @click="exchangeCard"
+          :disabled="!canExchange || loading"
           class="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 transition-all shadow-xl"
         >
-          {{ canPurchase ? `🚀 立即购买 ${purchaseCount} 台` : (myMachines.length === 0 ? '积分不足' : 'U余额不足') }}
+          {{ loading ? '兑换中...' : canExchange ? `💳 兑换 ${purchaseCount} 张学习卡` : (!user?.is_agent ? '请先加入Binary系统' : 'U余额不足') }}
         </button>
 
         <!-- 提示信息 -->
         <div class="mt-4 text-xs text-gray-500 text-center">
           <div v-if="!user?.is_agent" class="text-purple-600 font-medium mb-2">
-            💡 需要先加入Binary对碰系统（30U）才能激活第一台学习机
+            💡 需要先加入Binary对碰系统（30U）才能兑换学习卡
           </div>
-          <div>🎁 排队领取 学习机 毕业了可以持续学习送积分</div>
+          <div v-else-if="(user?.u_balance || 0) < purchaseCount * 7" class="text-red-600 font-medium mb-2">
+            余额不足，需要 {{ (purchaseCount * 7).toFixed(2) }}U
+          </div>
+          <div>💳 加入代理自动送100积分，可激活第1张学习卡</div>
         </div>
       </div>
     </div>
 
-    <!-- 我的学习机列表 -->
+    <!-- 我的学习卡列表 -->
     <div class="px-4 mt-6 mb-8">
       <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center justify-between">
         <span class="flex items-center">
           <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
-          我的学习机
+          我的学习卡
         </span>
         <span class="text-sm text-gray-600">{{ myMachines.length }}/10</span>
       </h3>
@@ -340,25 +398,27 @@ const user = computed(() => authStore.user)
 const toast = useToast()
 
 // 状态
+const loading = ref(false)
 const purchaseCount = ref(1)
 const myMachines = ref<MiningMachine[]>([])
 const showRestartInfo = ref(false)
+const isCheckedInToday = ref(false)
+const releaseRate = ref(0.02) // 默认2%
 
-// 是否可以购买（第1台用积分，后续用U）
-const canPurchase = computed(() => {
-  const currentMachineCount = myMachines.value.length
-  
-  // 第1台：需要100互转积分
-  if (currentMachineCount === 0) {
-    const totalCostPoints = purchaseCount.value * 100 // 100积分
-    const transferPoints = user.value?.transfer_points || 0
-    return transferPoints >= totalCostPoints && purchaseCount.value <= 10
-  }
-  
-  // 第2台及以后：需要U余额
-  const totalCostU = purchaseCount.value * 7 // 每台7U
+// 活跃学习卡数量
+const activeCardCount = computed(() => {
+  return myMachines.value.filter(m => 
+    (m as any).status === 'active' || (m as any).status === 'inactive'
+  ).length
+})
+
+// 是否可以兑换（V4.0新逻辑：7U余额）
+const canExchange = computed(() => {
+  if (!user.value?.is_agent) return false
+  const totalCostU = purchaseCount.value * 7
   const uBalance = user.value?.u_balance || 0
-  return uBalance >= totalCostU && currentMachineCount + purchaseCount.value <= 10
+  const currentCount = myMachines.value.length
+  return uBalance >= totalCostU && currentCount + purchaseCount.value <= 10
 })
 
 // 格式化日期
@@ -366,50 +426,87 @@ const formatDate = (date: string) => {
   return format(new Date(date), 'yyyy-MM-dd HH:mm')
 }
 
-// 购买学习机（第1台用积分，后续用U）
-const purchaseMachine = async () => {
-  if (!user.value || !canPurchase.value) {
-    const errorMsg = myMachines.value.length === 0 ? '积分不足或超出数量限制' : 'U余额不足或超出数量限制'
-    toast.error(errorMsg)
+// V4.0签到功能
+const handleCheckin = async () => {
+  if (!user.value?.id) return
+  
+  loading.value = true
+  const loadingToast = toast.info('签到中...', 0)
+  
+  try {
+    const result = await MiningService.checkin(user.value.id)
+    
+    if (result.success) {
+      toast.removeToast(loadingToast)
+      toast.success(result.message || '签到成功！', 3000)
+      isCheckedInToday.value = true
+      releaseRate.value = result.data?.releaseRate || 0.02
+      
+      // 刷新数据
+      await loadMyMachines()
+      await authStore.loadUser()
+    } else {
+      toast.removeToast(loadingToast)
+      toast.error(result.error || '签到失败')
+    }
+  } catch (error: any) {
+    toast.removeToast(loadingToast)
+    toast.error(error.message || '签到失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// V4.0兑换学习卡（7U = 100积分）
+const exchangeCard = async () => {
+  if (!user.value?.id) return
+  
+  // 检查代理身份
+  if (!user.value.is_agent) {
+    toast.error('请先加入Binary对碰系统（30U）')
+    router.push('/agent')
     return
   }
-
-  const isFirstMachine = myMachines.value.length === 0
-  const costText = isFirstMachine 
-    ? `${purchaseCount.value * 100}积分（激活第1台学习机）`
-    : `${purchaseCount.value * 7}U`
   
-  const confirmMsg = `确定购买 ${purchaseCount.value} 台AI学习机吗？\n\n总成本：${costText}\n2倍出局，每日自动释放10%`
-
+  // 检查余额
+  const totalCost = purchaseCount.value * 7
+  if ((user.value.u_balance || 0) < totalCost) {
+    toast.error(`U余额不足，需要${totalCost}U`)
+    return
+  }
+  
+  const confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n总成本：${totalCost}U\n10倍出局，每日签到释放${(releaseRate.value * 100).toFixed(1)}%`
+  
   if (!confirm(confirmMsg)) {
     return
   }
-
-  const loadingToast = toast.info('正在购买AI学习机...', 0)
-
+  
+  loading.value = true
+  const loadingToast = toast.info('兑换中...', 0)
+  
   try {
-    // 批量购买（调用后端服务）
-    for (let i = 0; i < purchaseCount.value; i++) {
-      const result = await MiningService.purchaseMachine(user.value.id, 'type1')
+    const result = await MiningService.purchaseMachine(
+      user.value.id,
+      purchaseCount.value
+    )
+    
+    if (result.success) {
+      toast.removeToast(loadingToast)
+      toast.success(result.message || `成功兑换${purchaseCount.value}张学习卡！`, 3000)
+      purchaseCount.value = 1
       
-      if (!result.success) {
-        toast.removeToast(loadingToast)
-        toast.error(result.error || '购买失败')
-        return
-      }
+      // 刷新数据
+      await loadMyMachines()
+      await authStore.loadUser()
+    } else {
+      toast.removeToast(loadingToast)
+      toast.error(result.error || '兑换失败')
     }
-
-    // 重新加载学习机列表和用户信息
-    await loadMyMachines()
-    await authStore.loadUser()
-
-    toast.removeToast(loadingToast)
-    toast.success(`🎉 成功购买 ${purchaseCount.value} 台AI学习机！`, 3000)
-    purchaseCount.value = 1
   } catch (error: any) {
     toast.removeToast(loadingToast)
-    toast.error(error.message || '购买失败')
-    console.error('购买学习机失败:', error)
+    toast.error(error.message || '兑换失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -534,8 +631,51 @@ const loadMyMachines = async () => {
   }
 }
 
-onMounted(() => {
-  loadMyMachines()
+// 计算释放率
+const calculateReleaseRate = async () => {
+  if (!user.value?.id) return
+  
+  try {
+    // 查询直推AI代理数量
+    const { count, error } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('inviter_id', user.value.id)
+      .eq('is_agent', true)
+    
+    if (error) {
+      console.error('查询直推数量失败:', error)
+      releaseRate.value = 0.02
+      return
+    }
+    
+    // 计算释放率：基础2% + 直推加速3%×人数，最高20%
+    const referralCount = Math.min(count || 0, 6)
+    const rate = Math.min(0.02 + referralCount * 0.03, 0.20)
+    releaseRate.value = rate
+  } catch (error) {
+    console.error('计算释放率失败:', error)
+    releaseRate.value = 0.02
+  }
+}
+
+// 检查签到状态
+const checkCheckinStatus = () => {
+  if (!myMachines.value || myMachines.value.length === 0) {
+    isCheckedInToday.value = false
+    return
+  }
+  
+  const today = new Date().toISOString().split('T')[0]
+  isCheckedInToday.value = myMachines.value.some(
+    m => (m as any).last_checkin_date === today
+  )
+}
+
+onMounted(async () => {
+  await loadMyMachines()
+  await calculateReleaseRate()
+  checkCheckinStatus()
 })
 </script>
 

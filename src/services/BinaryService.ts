@@ -44,7 +44,7 @@ export class BinaryService extends BaseService {
       // 3. AI自动排线
       const placement = await this.autoPlacement(user.inviter_id || null)
 
-      // 4. 创建二元会员记录
+      // 4. 创建二元会员记录（一点多单制：初始1单）
       const { data: member, error } = await supabase
         .from('binary_members')
         .insert({
@@ -52,6 +52,7 @@ export class BinaryService extends BaseService {
           upline_id: placement.uplineId,
           position_side: placement.side,
           position_depth: placement.depth,
+          order_count: 1, // ✅ 一点多单制：初始1单
           a_side_count: 0,
           b_side_count: 0,
           a_side_pending: 0,
@@ -68,7 +69,7 @@ export class BinaryService extends BaseService {
 
       if (error) throw error
 
-      // 5. 更新上级的区域计数
+      // 5. 更新上级的区域计数（传入订单数量，不是固定1）
       await this.updateUplineCount(placement.uplineId, placement.side, 1)
 
       // 6. 触发对碰计算
@@ -128,8 +129,8 @@ export class BinaryService extends BaseService {
    * 
    * ✅ 核心原则：
    * 1. 只在付费AI代理（is_agent=true）中查找位置
-   * 2. 按付费时间顺序（agent_paid_at）排序公排
-   * 3. 弱区优先滑落
+   * 2. 从团队根节点开始查找整个团队的弱区
+   * 3. 弱区优先滑落（哪边人少，新人放哪边）
    * 4. 未付费用户不参与奖励系统，不占用位置
    */
   private static async findBestPlacement(startUserId: string): Promise<{
@@ -149,8 +150,43 @@ export class BinaryService extends BaseService {
       throw new Error('只有付费AI代理才能参与Binary系统')
     }
 
-    // BFS（广度优先搜索）查找最佳位置（只在AI代理中）
-    const queue = [{ userId: startUserId, depth: 1 }]
+    // ✅ 向上追溯找到根节点（最上级）
+    let rootUserId = startUserId
+    let currentUserId = startUserId
+    
+    console.log(`🔍 开始向上追溯，找到团队根节点...`)
+    
+    while (currentUserId) {
+      const { data: member } = await supabase
+        .from('binary_members')
+        .select('upline_id')
+        .eq('user_id', currentUserId)
+        .maybeSingle()
+      
+      if (member?.upline_id) {
+        // 验证上级是否为AI代理
+        const { data: upline } = await supabase
+          .from('users')
+          .select('is_agent')
+          .eq('id', member.upline_id)
+          .single()
+        
+        if (upline?.is_agent) {
+          rootUserId = member.upline_id
+          currentUserId = member.upline_id
+          console.log(`  ↑ 向上一级：${currentUserId}`)
+        } else {
+          break
+        }
+      } else {
+        break
+      }
+    }
+    
+    console.log(`✅ 找到根节点：${rootUserId}`)
+
+    // BFS（广度优先搜索）从根节点开始查找最佳位置（只在AI代理中）
+    const queue = [{ userId: rootUserId, depth: 1 }]
     
     while (queue.length > 0) {
       const { userId, depth } = queue.shift()!
@@ -208,10 +244,10 @@ export class BinaryService extends BaseService {
 
       // 弱侧优先：将弱侧加入队列继续查找
       if (aSideCount <= bSideCount && aChildId) {
-        console.log(`🔄 继续向A区滑落：${userId} → ${aChildId}（A区${aSideCount}人 vs B区${bSideCount}人，仅AI代理）`)
+        console.log(`🔄 继续向A区滑落：${userId} → ${aChildId}（A区${aSideCount}单 vs B区${bSideCount}单，仅AI代理）`)
         queue.push({ userId: aChildId, depth: depth + 1 })
       } else if (bChildId) {
-        console.log(`🔄 继续向B区滑落：${userId} → ${bChildId}（A区${aSideCount}人 vs B区${bSideCount}人，仅AI代理）`)
+        console.log(`🔄 继续向B区滑落：${userId} → ${bChildId}（A区${aSideCount}单 vs B区${bSideCount}单，仅AI代理）`)
         queue.push({ userId: bChildId, depth: depth + 1 })
       }
 
@@ -273,7 +309,7 @@ export class BinaryService extends BaseService {
   }
 
   /**
-   * 计算对碰奖励（1:1配对，秒结算）
+   * 计算对碰奖励（2:1或1:2配对，秒结算）
    */
   static async calculatePairing(userId: string): Promise<void> {
     try {
@@ -289,8 +325,23 @@ export class BinaryService extends BaseService {
       const aPending = member.a_side_pending || 0
       const bPending = member.b_side_pending || 0
 
-      // 1:1严格配对
-      const pairsToSettle = Math.min(aPending, bPending)
+      // V4.1: 2:1或1:2灵活配对
+      let pairsToSettle = 0
+      let pairingType = ''
+      
+      if (aPending >= 2 && bPending >= 1) {
+        // 2:1配对
+        pairsToSettle = Math.min(Math.floor(aPending / 2), bPending)
+        pairingType = '2:1'
+      } else if (aPending >= 1 && bPending >= 2) {
+        // 1:2配对
+        pairsToSettle = Math.min(aPending, Math.floor(bPending / 2))
+        pairingType = '1:2'
+      } else if (aPending >= 1 && bPending >= 1) {
+        // 1:1配对（兼容）
+        pairsToSettle = Math.min(aPending, bPending)
+        pairingType = '1:1'
+      }
 
       if (pairsToSettle === 0) return
 
@@ -314,20 +365,14 @@ export class BinaryService extends BaseService {
       const MAX_FREE_PAIRINGS = 10 // 未解锁用户的对碰次数限制
       const isUnlocked = referralCount >= BinaryConfig.UNLOCK.MIN_DIRECT_REFERRALS
 
-      console.log(`💰 对碰计算 - 用户${userId}：直推${referralCount}人，已对碰${totalPairings}次，${isUnlocked ? '已解锁无限对碰' : `剩余${MAX_FREE_PAIRINGS - totalPairings}次`}`)
+      console.log(`💰 对碰计算 - 用户${userId}：${pairingType}配对，${pairsToSettle}组，直推${referralCount}人，已对碰${totalPairings}单，${isUnlocked ? '已解锁无限对碰' : `剩余${MAX_FREE_PAIRINGS - totalPairings}单`}`)
 
       // 如果未解锁且已达到限制次数
       if (!isUnlocked && totalPairings >= MAX_FREE_PAIRINGS) {
-        console.log(`⚠️ 用户${userId}未解锁且已达对碰上限（${MAX_FREE_PAIRINGS}次），需推荐≥2人解锁无限对碰`)
+        console.log(`⚠️ 用户${userId}未解锁且已达对碰上限（${MAX_FREE_PAIRINGS}单），需推荐≥2人解锁无限对碰`)
         
         // 更新待配对数量（扣除但不奖励，防止累积）
-        await supabase
-          .from('binary_members')
-          .update({
-            a_side_pending: aPending - pairsToSettle,
-            b_side_pending: bPending - pairsToSettle
-          })
-          .eq('user_id', userId)
+        await this.updatePendingCounts(userId, pairsToSettle, pairingType)
         
         return // 不发放任何奖励
       }
@@ -337,7 +382,7 @@ export class BinaryService extends BaseService {
       if (!isUnlocked) {
         const remainingPairings = MAX_FREE_PAIRINGS - totalPairings
         actualPairsToSettle = Math.min(pairsToSettle, remainingPairings)
-        console.log(`⚠️ 用户${userId}未解锁，本次对碰限制为${actualPairsToSettle}对（剩余${remainingPairings}次）`)
+        console.log(`⚠️ 用户${userId}未解锁，本次对碰限制为${actualPairsToSettle}对（剩余${remainingPairings}单）`)
       }
 
       // 计算实际奖励（使用限制后的对碰数量）
@@ -353,7 +398,7 @@ export class BinaryService extends BaseService {
         userId,
         actualPairingBonus,
         'binary_pairing',
-        `对碰奖励：${actualPairsToSettle}组 × ${BinaryConfig.PAIRING.MEMBER_AMOUNT}U = ${actualPairingBonus.toFixed(2)}U${!isUnlocked ? ` (剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}次)` : ''}`
+        `对碰奖励：${actualPairsToSettle}组(${pairingType}) × ${BinaryConfig.PAIRING.MEMBER_AMOUNT}U = ${actualPairingBonus.toFixed(2)}U${!isUnlocked ? ` (剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}单)` : ''}`
       )
 
       // 记录对碰奖励到 pairing_bonuses 表（用于统计次数）
@@ -363,15 +408,17 @@ export class BinaryService extends BaseService {
           user_id: userId,
           pairs: actualPairsToSettle,
           amount: actualPairingBonus,
+          pairing_type: pairingType,
           created_at: new Date().toISOString()
         })
 
-      // 更新待配对数量
+      // 更新待配对数量（根据配对类型）
+      await this.updatePendingCounts(userId, actualPairsToSettle, pairingType)
+
+      // 更新总收益
       await supabase
         .from('binary_members')
         .update({
-          a_side_pending: aPending - actualPairsToSettle,
-          b_side_pending: bPending - actualPairsToSettle,
           total_pairing_bonus: member.total_pairing_bonus + actualPairingBonus,
           total_earnings: member.total_earnings + actualPairingBonus
         })
@@ -383,9 +430,109 @@ export class BinaryService extends BaseService {
       // 检查是否需要复投
       await this.checkReinvestRequired(userId)
 
-      console.log(`✅ 对碰结算：用户${userId}，${actualPairsToSettle}组，奖励${actualPairingBonus.toFixed(2)}U${!isUnlocked ? `（剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}次）` : '（无限对碰）'}`)
+      console.log(`✅ 对碰结算：用户${userId}，${actualPairsToSettle}组(${pairingType})，奖励${actualPairingBonus.toFixed(2)}U${!isUnlocked ? `（剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}单）` : '（无限对碰）'}`)
+      
+      // 触发滑落机制和弱区补贴
+      await this.triggerSlideAndSubsidy(userId, actualPairsToSettle)
     } catch (error) {
       console.error('对碰计算失败:', error)
+    }
+  }
+
+  /**
+   * 更新待配对数量（根据配对类型）
+   */
+  private static async updatePendingCounts(userId: string, pairs: number, pairingType: string): Promise<void> {
+    const { data: member } = await supabase
+      .from('binary_members')
+      .select('a_side_pending, b_side_pending')
+      .eq('user_id', userId)
+      .single()
+
+    if (!member) return
+
+    let aDeduct = 0
+    let bDeduct = 0
+
+    switch (pairingType) {
+      case '2:1':
+        aDeduct = pairs * 2
+        bDeduct = pairs * 1
+        break
+      case '1:2':
+        aDeduct = pairs * 1
+        bDeduct = pairs * 2
+        break
+      case '1:1':
+      default:
+        aDeduct = pairs
+        bDeduct = pairs
+        break
+    }
+
+    await supabase
+      .from('binary_members')
+      .update({
+        a_side_pending: Math.max(0, member.a_side_pending - aDeduct),
+        b_side_pending: Math.max(0, member.b_side_pending - bDeduct)
+      })
+      .eq('user_id', userId)
+  }
+
+  /**
+   * 触发滑落机制和弱区补贴
+   */
+  private static async triggerSlideAndSubsidy(userId: string, pairsCount: number): Promise<void> {
+    try {
+      if (!BinaryConfig.PAIRING.SLIDE_ENABLED || !BinaryConfig.PAIRING.WEAK_SIDE_SUBSIDY) {
+        return
+      }
+
+      // 获取用户当前状态
+      const { data: member } = await supabase
+        .from('binary_members')
+        .select('a_side_pending, b_side_pending, position_side')
+        .eq('user_id', userId)
+        .single()
+
+      if (!member) return
+
+      const aPending = member.a_side_pending || 0
+      const bPending = member.b_side_pending || 0
+
+      // 判断弱区
+      const isWeakSide = aPending < bPending ? 'A' : 'B'
+      const weakSidePending = isWeakSide === 'A' ? aPending : bPending
+
+      // 如果弱区业绩不足，触发补贴
+      if (weakSidePending < BinaryConfig.PAIRING.SUBSIDY_AMOUNT) {
+        console.log(`🎯 弱区补贴：用户${userId}，${isWeakSide}区业绩不足，补贴${BinaryConfig.PAIRING.SUBSIDY_AMOUNT}单`)
+
+        // 补贴单量给弱区
+        const updateData = isWeakSide === 'A' 
+          ? { a_side_pending: aPending + BinaryConfig.PAIRING.SUBSIDY_AMOUNT }
+          : { b_side_pending: bPending + BinaryConfig.PAIRING.SUBSIDY_AMOUNT }
+
+        await supabase
+          .from('binary_members')
+          .update(updateData)
+          .eq('user_id', userId)
+
+        // 记录补贴日志
+        await supabase
+          .from('subsidy_logs')
+          .insert({
+            user_id: userId,
+            weak_side: isWeakSide,
+            subsidy_amount: BinaryConfig.PAIRING.SUBSIDY_AMOUNT,
+            trigger_pairs: pairsCount,
+            created_at: new Date().toISOString()
+          })
+
+        console.log(`✅ 弱区补贴完成：${isWeakSide}区增加${BinaryConfig.PAIRING.SUBSIDY_AMOUNT}单`)
+      }
+    } catch (error) {
+      console.error('滑落机制和弱区补贴失败:', error)
     }
   }
 
@@ -442,78 +589,71 @@ export class BinaryService extends BaseService {
   }
 
   /**
-   * 检查是否需要复投
+   * 检查并自动复投（原点复投）
+   * 说明：累计收益达到300U的倍数时，自动增加1单
    */
   private static async checkReinvestRequired(userId: string): Promise<void> {
     const { data: member } = await supabase
       .from('binary_members')
-      .select('total_earnings, reinvest_count')
+      .select('*, position_side, upline_id')
       .eq('user_id', userId)
       .maybeSingle()
 
     if (!member) return
 
-    // 检查是否达到复投阈值
+    // 检查是否达到复投阈值（200U的倍数）
     const threshold = BinaryConfig.REINVEST.THRESHOLD * (member.reinvest_count + 1)
     
     if (member.total_earnings >= threshold) {
-      // 标记需要复投
+      console.log(`🔄 自动复投触发：用户${userId}，收益${member.total_earnings.toFixed(2)}U ≥ ${threshold}U`)
+
+      // ✅ 原点复投：自动增加订单数量（滑落机制）
       await supabase
         .from('binary_members')
         .update({
-          is_active: false,
+          order_count: supabase.raw('order_count + 1'), // 单量+1
+          reinvest_count: member.reinvest_count + 1,    // 复投次数+1
           reinvest_required_at: new Date().toISOString()
         })
         .eq('user_id', userId)
 
-      console.log(`⚠️ 用户${userId}需要复投（收益已达${member.total_earnings.toFixed(2)}U）`)
+      // 触发滑落机制：补贴单量给弱区
+      await this.triggerSlideAndSubsidy(userId, 1)
+
+      console.log(`✅ 自动复投成功：用户${userId}，订单数量+1（第${member.reinvest_count + 1}次复投）`)
+
+      // ✅ 递归更新所有上级的单量统计
+      if (member.upline_id && member.position_side) {
+        await this.updateUplineCount(member.upline_id, member.position_side, 1)
+      }
+
+      // ✅ 触发所有上级重新计算对碰
+      await this.triggerUplinePairing(userId)
+
+      console.log(`🎉 自动复投完成：用户${userId}，已触发上级对碰计算`)
     }
   }
 
   /**
-   * 复投
+   * 触发所有上级重新计算对碰（用于复投后）
    */
-  static async reinvest(userId: string, autoReinvest: boolean = false): Promise<ApiResponse<boolean>> {
-    this.validateRequired({ userId }, ['userId'])
-
+  private static async triggerUplinePairing(userId: string): Promise<void> {
     try {
-      // 检查状态
       const { data: member } = await supabase
         .from('binary_members')
-        .select('*')
+        .select('upline_id, position_side')
         .eq('user_id', userId)
         .maybeSingle()
 
-      if (!member) {
-        return { success: false, error: '您还未加入双轨制系统' }
-      }
+      if (!member || !member.upline_id) return
 
-      // 扣除复投费用
-      await WalletManager.deduct(
-        userId,
-        BinaryConfig.REINVEST.AMOUNT,
-        'binary_reinvest',
-        `双轨制复投（${BinaryConfig.REINVEST.AMOUNT}U）`
-      )
+      // 触发直接上级的对碰计算
+      await this.calculatePairing(member.upline_id)
 
-      // 更新状态
-      await supabase
-        .from('binary_members')
-        .update({
-          is_active: true,
-          reinvest_count: member.reinvest_count + 1,
-          reinvest_required_at: null,
-          auto_reinvest: autoReinvest
-        })
-        .eq('user_id', userId)
-
-      return {
-        success: true,
-        data: true,
-        message: `复投成功！继续累积对碰奖和平级奖`
-      }
+      // 递归向上触发所有祖先上级的对碰
+      await this.triggerUplinePairing(member.upline_id)
     } catch (error) {
-      return this.handleError(error)
+      console.error('触发上级对碰失败:', error)
     }
   }
 

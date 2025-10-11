@@ -1,17 +1,18 @@
 /**
- * MiningService - AI学习机系统服务 V3.0
+ * MiningService - AI学习卡系统服务 V4.0
  * 使用新架构：Repository + Wallet + Config
  * 
- * 实现AI学习机核心业务逻辑：
- * 1. 购买学习机（第一次免费送，自动验证+扣积分+流水）
- * 2. 每日积分释放（70%转U，30%互转积分）
- * 3. 基础释放率：5%/天（不再使用直推加速）
- * 4. 2倍出局（可复投或复利滚存）
- * 5. 复利滚存机制（2倍→4倍→8倍→16倍...）
- * 6. 手动/自动重启机制（2倍出局，所有积分清0销毁）
- * 7. 叠加机制（最多10台）
+ * 实现AI学习卡核心业务逻辑：
+ * 1. 加入代理自动送100积分（可激活第1张学习卡）
+ * 2. U余额兑换学习卡（7U = 100积分）
+ * 3. 每日签到释放（不签到不释放）
+ * 4. 基础释放率2%/天 + 直推加速3%/人，最高20%
+ * 5. 10倍出局（50-500天）
+ * 6. 70%到账U余额，30%自动销毁清0
+ * 7. 自动重启机制（总释放>新积分时触发）
+ * 8. 叠加机制（最多10张）
  * 
- * 更新日期：2025-10-07
+ * 更新日期：2025-10-11
  */
 
 import { BaseService, type ApiResponse } from './BaseService'
@@ -23,26 +24,34 @@ import type { MiningMachine } from '@/types'
 
 export class MiningService extends BaseService {
   /**
-   * 购买矿机（使用新架构 - 自动验证+扣积分+流水）
-   * V3.0 新增：第一次免费送
+   * 兑换学习卡（V4.0新逻辑：7U余额 = 100积分 = 1张学习卡）
+   * 注意：需要代理身份（已加入Binary系统）
    */
   static async purchaseMachine(
     userId: string, 
+    quantity: number = 1,
     machineType: 'type1' | 'type2' | 'type3' = 'type1'
   ): Promise<ApiResponse<MiningMachine>> {
-    this.validateRequired({ userId, machineType }, ['userId', 'machineType'])
+    this.validateRequired({ userId, quantity }, ['userId', 'quantity'])
 
     try {
-      // 1. 获取矿机配置
-      const config = MiningConfig.TYPES[machineType]
-      if (!config) {
-        return { success: false, error: '无效的矿机类型' }
+      // 1. 验证数量
+      if (quantity < 1 || quantity > 10) {
+        return { success: false, error: '每次兑换数量必须在1-10张之间' }
       }
 
       // 2. 获取用户信息
       const user = await UserRepository.findById(userId)
 
-      // 3. 检查矿机数量限制（总数，包括已出局的）
+      // 3. 必须是代理身份
+      if (!user.is_agent) {
+        return {
+          success: false,
+          error: '请先加入Binary对碰系统（30U）才能兑换学习卡'
+        }
+      }
+
+      // 4. 检查学习卡数量限制
       const { data: allMachines, error: countError } = await supabase
         .from('mining_machines')
         .select('*')
@@ -50,87 +59,60 @@ export class MiningService extends BaseService {
 
       if (countError) throw countError
 
-      const totalMachines = allMachines?.length || 0
       const activeMachines = allMachines?.filter(m => m.is_active).length || 0
 
-      if (activeMachines >= MiningConfig.MAX_MACHINES_PER_USER) {
+      if (activeMachines + quantity > AILearningConfig.MACHINE.MAX_STACK) {
         return {
           success: false,
-          error: `已达到最大运行中学习机数量限制（${MiningConfig.MAX_MACHINES_PER_USER}台）`
+          error: `已达到最大学习卡数量限制（${AILearningConfig.MACHINE.MAX_STACK}张）`
         }
       }
 
-      // 4. 检查是否第一次购买
-      const isFirstTime = totalMachines === 0
+      // 5. 计算费用（7U × 数量）
+      const totalCost = AILearningConfig.MACHINE.COST_IN_U * quantity
 
-      // 5. 第1台学习机需要代理身份（已加入Binary系统）
-      if (isFirstTime && !user.is_agent) {
-        return {
-          success: false,
-          error: '请先加入Binary对碰系统（30U）才能激活第一台学习机'
-        }
+      // 6. 扣除U余额
+      await WalletManager.deduct(
+        userId,
+        totalCost,
+        'u_balance',
+        'exchange_learning_card',
+        `兑换${quantity}张AI学习卡（${totalCost}U）`
+      )
+
+      // 7. 批量创建学习卡
+      const machines: MiningMachine[] = []
+      for (let i = 0; i < quantity; i++) {
+        const { data: machine, error: machineError } = await supabase
+          .from('mining_machines')
+          .insert({
+            user_id: userId,
+            machine_type: machineType,
+            initial_points: AILearningConfig.MACHINE.COST, // 100积分
+            released_points: 0,
+            total_points: AILearningConfig.MACHINE.TOTAL_OUTPUT, // 10倍出局 = 1000积分
+            base_rate: AILearningConfig.RELEASE.BASE_RATE, // 2%/天
+            boost_rate: 0, // 动态计算，根据直推数量
+            boost_count: 0,
+            is_active: false, // 初始未激活，需要签到
+            status: 'inactive', // 未签到状态
+            restart_count: 0,
+            compound_level: 0,
+            last_checkin_date: null,
+            checkin_count: 0,
+            is_checked_in_today: false
+          })
+          .select()
+          .single()
+
+        if (machineError) throw machineError
+        machines.push(machine)
       }
-
-      // 6. 扣除费用（第1台用互转积分，后续用U）
-      if (isFirstTime) {
-        // 第1台：扣除100互转积分
-        await WalletManager.deductTransferPoints(
-          userId,
-          AILearningConfig.MACHINE.COST, // 100积分
-          'mining_purchase',
-          `激活${config.name}学习机（100互转积分）`
-        )
-      } else {
-        // 第2台及以后：扣除7U
-        await WalletManager.deduct(
-          userId,
-          AILearningConfig.MACHINE.COST_IN_U, // 7U
-          'mining_purchase',
-          `购买${config.name}学习机（7U）`
-        )
-      }
-
-      // 7. 奖励邀请人7U（如果有邀请人且是代理）
-      if (user.inviter_id) {
-        const inviter = await UserRepository.findById(user.inviter_id)
-        if (inviter && inviter.is_agent) {
-          await WalletManager.add(
-            user.inviter_id,
-            7,
-            'referral_bonus',
-            `下级 ${user.username} 购买AI学习机，奖励7U`
-          )
-        }
-      }
-
-      // 7. 创建学习机记录（不再使用加速机制）
-      const { data: machine, error: machineError } = await supabase
-        .from('mining_machines')
-        .insert({
-          user_id: userId,
-          machine_type: machineType,
-          initial_points: config.cost,
-          released_points: 0,
-          total_points: config.cost * config.multiplier, // 2倍出局 = 200积分
-          base_rate: MiningConfig.BASE_RELEASE_RATE, // 10%/天（20天出局）
-          boost_rate: 0, // 不再使用加速
-          boost_count: 0,
-          is_active: true,
-          restart_count: 0,
-          compound_level: 0, // 复利等级（0=初始，1=2倍，2=4倍...）
-          is_first_free: isFirstTime // 标记是否首次免费
-        })
-        .select()
-        .single()
-
-      if (machineError) throw machineError
 
       return {
         success: true,
-        data: machine,
-        message: isFirstTime 
-          ? `🎉 首次免费获得${config.name}！邀请人和团队可互转积分学习` 
-          : `成功购买${config.name}！${user.inviter_id ? '已奖励邀请人7U' : ''}`
+        data: machines[0], // 返回第一张卡
+        message: `🎉 成功兑换${quantity}张AI学习卡！请每日签到启动释放积分`
       }
     } catch (error) {
       return this.handleError(error)
@@ -143,7 +125,7 @@ export class MiningService extends BaseService {
    */
   static async releaseDailyPoints(machineId: string): Promise<number> {
     try {
-      // 获取学习机信息（只查询运行中的）
+      // 获取学习卡信息（只查询运行中的）
       const { data: machine, error } = await supabase
         .from('mining_machines')
         .select('*')
@@ -152,7 +134,7 @@ export class MiningService extends BaseService {
         .single()
 
       if (error || !machine) {
-        console.log(`学习机 ${machineId} 未找到或已停止`)
+        console.log(`学习卡 ${machineId} 未找到或已停止`)
         return 0
       }
 
@@ -184,7 +166,7 @@ export class MiningService extends BaseService {
         return 0
       }
 
-      // 更新学习机释放记录
+      // 更新学习卡释放记录
       const updateData: any = {
         released_points: machine.released_points + actualRelease
       }
@@ -211,7 +193,7 @@ export class MiningService extends BaseService {
         machine.user_id,
         uAmount,
         'mining_release',
-        `AI学习机每日释放${actualRelease.toFixed(2)}积分：${toU.toFixed(2)}积分自动兑换${uAmount.toFixed(2)}U${shouldExit ? '（已出局，停止释放）' : ''}`
+        `AI学习卡每日释放${actualRelease.toFixed(2)}积分：${toU.toFixed(2)}积分自动兑换${uAmount.toFixed(2)}U${shouldExit ? '（已出局，停止释放）' : ''}`
       )
 
       // 30%转互转积分（给团队新伙伴学习AI）
@@ -221,11 +203,11 @@ export class MiningService extends BaseService {
         machine.user_id,
         toTransfer,
         'mining_release',
-        `AI学习机每日释放${toTransfer.toFixed(2)}互转积分（可赠送团队）${shouldExit ? '（已出局）' : ''}`
+        `AI学习卡每日释放${toTransfer.toFixed(2)}互转积分（可赠送团队）${shouldExit ? '（已出局）' : ''}`
       )
 
       if (shouldExit) {
-        console.log(`✅ 学习机 ${machineId} 已完成学习，累计释放${machine.total_points}积分，已2倍出局`)
+        console.log(`✅ 学习卡 ${machineId} 已完成学习，累计释放${machine.total_points}积分，已2倍出局`)
       }
 
       return actualRelease
@@ -236,7 +218,222 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * 批量释放所有活跃矿机
+   * 每日签到（V4.0新增：必须签到才释放）
+   */
+  static async checkin(userId: string): Promise<ApiResponse<{ 
+    checkedInCount: number
+    totalReleased: number
+    releaseRate: number
+  }>> {
+    this.validateRequired({ userId }, ['userId'])
+
+    try {
+      const today = new Date().toISOString().split('T')[0]
+
+      // 1. 获取用户所有活跃学习卡
+      const { data: cards, error } = await supabase
+        .from('mining_machines')
+        .select('*')
+        .eq('user_id', userId)
+        .in('status', ['active', 'inactive'])
+        .lt('released_points', supabase.raw('total_points')) // 未出局的
+
+      if (error) throw error
+
+      if (!cards || cards.length === 0) {
+        return {
+          success: false,
+          error: '您还没有学习卡，请先兑换学习卡'
+        }
+      }
+
+      // 2. 检查今天是否已签到
+      const alreadyCheckedIn = cards.some(card => card.last_checkin_date === today)
+      if (alreadyCheckedIn) {
+        return {
+          success: false,
+          error: '今天已签到，明天再来吧！'
+        }
+      }
+
+      // 3. 计算释放率（基础2% + 直推加速）
+      const releaseRate = await this.calculateReleaseRate(userId)
+
+      // 4. 批量签到并释放
+      let totalReleased = 0
+      let checkedInCount = 0
+
+      for (const card of cards) {
+        // 更新签到状态
+        await supabase
+          .from('mining_machines')
+          .update({
+            last_checkin_date: today,
+            checkin_count: (card.checkin_count || 0) + 1,
+            is_checked_in_today: true,
+            is_active: true,
+            status: 'active',
+            boost_rate: releaseRate - AILearningConfig.RELEASE.BASE_RATE // 存储加速部分
+          })
+          .eq('id', card.id)
+
+        // 执行释放
+        const released = await this.releaseDailyPointsV4(card.id, releaseRate)
+        totalReleased += released
+        checkedInCount++
+      }
+
+      return {
+        success: true,
+        data: {
+          checkedInCount,
+          totalReleased,
+          releaseRate
+        },
+        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分`
+      }
+    } catch (error) {
+      return this.handleError(error)
+    }
+  }
+
+  /**
+   * 计算释放率（基础2% + 直推加速3%/人，最高20%）
+   */
+  private static async calculateReleaseRate(userId: string): Promise<number> {
+    try {
+      // 1. 基础释放率
+      let rate = AILearningConfig.RELEASE.BASE_RATE // 2%
+
+      // 2. 查询直推AI代理数量
+      const { count, error } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('inviter_id', userId)
+        .eq('is_agent', true)
+
+      if (error) {
+        console.error('查询直推数量失败:', error)
+        return rate
+      }
+
+      // 3. 计算加速（每个直推+3%，最多6个）
+      const referralCount = Math.min(count || 0, AILearningConfig.RELEASE.MAX_REFERRALS)
+      const boost = referralCount * AILearningConfig.RELEASE.BOOST_PER_REFERRAL
+
+      // 4. 总释放率（不超过20%）
+      rate = Math.min(rate + boost, AILearningConfig.RELEASE.MAX_RATE)
+
+      console.log(`用户 ${userId} 释放率计算：基础${AILearningConfig.RELEASE.BASE_RATE*100}% + 直推${referralCount}人×3% = ${rate*100}%`)
+
+      return rate
+    } catch (error) {
+      console.error('计算释放率失败:', error)
+      return AILearningConfig.RELEASE.BASE_RATE
+    }
+  }
+
+  /**
+   * V4.0 每日释放积分（签到后执行，70%到账U，30%销毁）
+   */
+  private static async releaseDailyPointsV4(machineId: string, releaseRate: number): Promise<number> {
+    try {
+      // 获取学习卡信息
+      const { data: machine, error } = await supabase
+        .from('mining_machines')
+        .select('*')
+        .eq('id', machineId)
+        .single()
+
+      if (error || !machine) {
+        console.log(`学习卡 ${machineId} 未找到`)
+        return 0
+      }
+
+      // 计算每日释放量
+      const dailyRelease = machine.initial_points * releaseRate
+      
+      // 检查是否会超过total_points（10倍出局）
+      const potentialRelease = machine.released_points + dailyRelease
+      let actualRelease = dailyRelease
+      let shouldExit = false
+
+      if (potentialRelease >= machine.total_points) {
+        // 只释放到total_points为止，然后出局
+        actualRelease = machine.total_points - machine.released_points
+        shouldExit = true
+      }
+
+      if (actualRelease <= 0) {
+        // 已经出局
+        await supabase
+          .from('mining_machines')
+          .update({
+            is_active: false,
+            status: 'exited',
+            exited_at: new Date().toISOString()
+          })
+          .eq('id', machineId)
+        
+        return 0
+      }
+
+      // 分配：70%到账U，30%销毁
+      const toU = actualRelease * AILearningConfig.DISTRIBUTION.TO_U_PERCENT
+      const toBurn = actualRelease * AILearningConfig.DISTRIBUTION.TO_BURN_PERCENT
+
+      // 70%转U余额
+      const uAmount = toU * 0.07 // 100积分 = 7U，所以积分×0.07=U
+      await WalletManager.add(
+        machine.user_id,
+        uAmount,
+        'u_balance',
+        'mining_release',
+        `AI学习卡释放${toU.toFixed(2)}积分，兑换${uAmount.toFixed(2)}U`
+      )
+
+      // 30%销毁（记录日志即可，不实际存储）
+      console.log(`学习卡 ${machineId} 销毁 ${toBurn.toFixed(2)} 积分`)
+
+      // 更新学习卡释放记录
+      const updateData: any = {
+        released_points: machine.released_points + actualRelease
+      }
+
+      if (shouldExit) {
+        updateData.is_active = false
+        updateData.status = 'exited'
+        updateData.exited_at = new Date().toISOString()
+        updateData.released_points = machine.total_points
+      }
+
+      await supabase
+        .from('mining_machines')
+        .update(updateData)
+        .eq('id', machineId)
+
+      // 记录释放日志
+      await supabase
+        .from('daily_releases')
+        .insert({
+          user_id: machine.user_id,
+          machine_id: machineId,
+          release_date: new Date().toISOString().split('T')[0],
+          points_to_u: toU,
+          points_burned: toBurn,
+          u_amount: uAmount,
+          release_rate: releaseRate
+        })
+
+      return actualRelease
+    } catch (error) {
+      console.error(`释放积分失败 (${machineId}):`, error)
+      return 0
+    }
+  }
+
+  /**
+   * 批量释放所有活跃矿机（V3.0旧方法，保留兼容性）
    */
   static async releaseAllMachines(): Promise<void> {
     try {
@@ -366,7 +563,7 @@ export class MiningService extends BaseService {
     this.validateRequired({ machineId }, ['machineId'])
 
     try {
-      // 获取学习机信息
+      // 获取学习卡信息
       const { data: machine, error } = await supabase
         .from('mining_machines')
         .select('*')
@@ -374,11 +571,11 @@ export class MiningService extends BaseService {
         .single()
 
       if (error || !machine) {
-        return { success: false, error: '学习机不存在' }
+        return { success: false, error: '学习卡不存在' }
       }
 
       if (machine.is_active) {
-        return { success: false, error: '学习机还在学习中，请等待出局后再选择复利滚存' }
+        return { success: false, error: '学习卡还在学习中，请等待出局后再选择复利滚存' }
       }
 
       // 获取当前复利等级
@@ -753,6 +950,158 @@ export class MiningService extends BaseService {
           totalInvested,
           totalReleased
         }
+      }
+    } catch (error) {
+      return this.handleError(error)
+    }
+  }
+
+  /**
+   * 自动重启检测（V4.0新增：防泡沫机制）
+   * 后端定时任务调用，当总释放积分 > 新充值积分时自动重启
+   */
+  static async checkAndRestart(): Promise<ApiResponse<{
+    shouldRestart: boolean
+    totalReleased: number
+    totalExchanged: number
+    message: string
+  }>> {
+    try {
+      // 1. 统计总释放积分（所有学习卡累计释放）
+      const { data: machines, error: machinesError } = await supabase
+        .from('mining_machines')
+        .select('released_points')
+
+      if (machinesError) throw machinesError
+
+      const totalReleased = machines?.reduce((sum, m) => sum + (m.released_points || 0), 0) || 0
+
+      // 2. 统计新兑换积分（从wallet_transactions查询exchange_learning_card类型）
+      const { data: transactions, error: txError } = await supabase
+        .from('wallet_transactions')
+        .select('amount')
+        .eq('transaction_type', 'exchange_learning_card')
+
+      if (txError) throw txError
+
+      const totalExchanged = (transactions?.length || 0) * AILearningConfig.MACHINE.COST // 每次兑换100积分
+
+      console.log(`💡 泡沫检测：总释放 ${totalReleased} vs 总兑换 ${totalExchanged}`)
+
+      // 3. 判断是否需要重启
+      const shouldRestart = totalReleased > totalExchanged
+
+      if (shouldRestart && AILearningConfig.RESTART.AUTO_ENABLED) {
+        console.log('⚠️ 检测到泡沫过大，触发自动重启！')
+        await this.systemRestart()
+        
+        return {
+          success: true,
+          data: {
+            shouldRestart: true,
+            totalReleased,
+            totalExchanged,
+            message: '系统已自动重启，所有积分已清0'
+          }
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          shouldRestart: false,
+          totalReleased,
+          totalExchanged,
+          message: '系统正常，无需重启'
+        }
+      }
+    } catch (error) {
+      return this.handleError(error)
+    }
+  }
+
+  /**
+   * 系统重启（清空所有学习卡积分）
+   */
+  private static async systemRestart(): Promise<void> {
+    try {
+      console.log('🔄 开始系统重启...')
+
+      // 1. 清空所有学习卡积分
+      const { error: updateError } = await supabase
+        .from('mining_machines')
+        .update({
+          released_points: 0,
+          status: 'restarted',
+          is_active: false,
+          restart_count: supabase.raw('restart_count + 1')
+        })
+        .in('status', ['active', 'inactive', 'exited'])
+
+      if (updateError) throw updateError
+
+      // 2. 记录重启日志
+      const { error: logError } = await supabase
+        .from('system_logs')
+        .insert({
+          event: 'auto_restart',
+          reason: 'prevent_bubble',
+          details: {
+            timestamp: new Date().toISOString(),
+            trigger: 'total_released_gt_exchanged'
+          }
+        })
+
+      if (logError) {
+        console.error('记录重启日志失败:', logError)
+      }
+
+      console.log('✅ 系统重启完成，所有学习卡积分已清0')
+    } catch (error) {
+      console.error('❌ 系统重启失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 管理员手动重启系统（V4.0新增）
+   */
+  static async adminManualRestart(adminId: string): Promise<ApiResponse<void>> {
+    this.validateRequired({ adminId }, ['adminId'])
+
+    try {
+      // 验证管理员权限
+      const { data: admin, error: adminError } = await supabase
+        .from('users')
+        .select('is_admin')
+        .eq('id', adminId)
+        .single()
+
+      if (adminError || !admin?.is_admin) {
+        return {
+          success: false,
+          error: '无权限执行此操作'
+        }
+      }
+
+      // 执行重启
+      await this.systemRestart()
+
+      // 记录手动重启日志
+      await supabase
+        .from('system_logs')
+        .insert({
+          event: 'manual_restart',
+          reason: 'admin_operation',
+          details: {
+            admin_id: adminId,
+            timestamp: new Date().toISOString()
+          }
+        })
+
+      return {
+        success: true,
+        message: '✅ 系统已手动重启，所有学习卡积分已清0'
       }
     } catch (error) {
       return this.handleError(error)

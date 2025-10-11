@@ -192,3 +192,8 @@ console.log(`   4. 邀请他人使用邀请码: ${inviteCode}\n`)
 
 process.exit(0)
 
+
+
+
+
+

@@ -46,3 +46,8 @@ INSERT INTO users (
 -- 验证插入成功
 SELECT id, username, invite_code, is_admin FROM users WHERE username = 'admin';
 
+
+
+
+
+

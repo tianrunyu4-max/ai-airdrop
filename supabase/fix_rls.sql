@@ -18,3 +18,8 @@ ON users FOR UPDATE
 TO authenticated
 USING (auth.uid() = id);
 
+
+
+
+
+

@@ -39,3 +39,8 @@ WHERE table_name = 'users' AND column_name = 'password_hash';
 
 SELECT policyname FROM pg_policies WHERE tablename = 'users';
 
+
+
+
+
+

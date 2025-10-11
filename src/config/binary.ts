@@ -1,21 +1,23 @@
 /**
- * 双轨制二元系统配置 V3.0
- * 更新日期：2025-10-07
- * 核心：AI自动排线 + 1:1对碰 + 8代平级奖 + 分红
+ * 双轨制二元系统配置 V4.1
+ * 更新日期：2025-10-11
+ * 核心：AI自动排线 + 2:1/1:2对碰 + 8代平级奖 + 分红 + 弱区补贴 + 滑落机制
  */
 
 export const BinaryConfig = {
   // ========== 加入费用 ==========
   JOIN_FEE: 30,                    // 入单费用30U
   
-  // ========== 对碰奖励（配对奖励）==========
+  // ========== 对碰奖励（配对奖励）V4.1 ==========
   PAIRING: {
-    BONUS_PER_PAIR: 7,             // 每单对碰奖励7U
+    BONUS_PER_PAIR: 10,            // 每单对碰奖励10U
     MEMBER_RATIO: 0.85,            // 85%自动到账会员
-    MEMBER_AMOUNT: 5.95,           // 会员实际获得：7U × 85% = 5.95U
+    MEMBER_AMOUNT: 8.5,            // 会员实际获得：10U × 85% = 8.5U
     PLATFORM_RATIO: 0.15,          // 15%平台分红池
-    RATIO: '1:1',                  // 对碰比例1:1（严格配对）
-    NO_LIMIT: true,                // 不封顶
+    RATIO: '2:1_OR_1:2',          // 对碰比例2:1或1:2（灵活配对）
+    SLIDE_ENABLED: true,           // 启用滑落机制
+    WEAK_SIDE_SUBSIDY: true,       // 启用弱区补贴
+    SUBSIDY_AMOUNT: 1,             // 弱区补贴单量（每次补贴1单）
     NO_RESET: true,                // 不归零
     INSTANT_SETTLEMENT: true       // 秒结算
   },
@@ -39,13 +41,15 @@ export const BinaryConfig = {
     AUTO_BALANCE: true             // 自动平衡强弱区
   },
   
-  // ========== 复投机制 ==========
+  // ========== 复投机制 V4.1 ==========
   REINVEST: {
-    THRESHOLD: 300,                // 总收益达到300U提示复投
+    THRESHOLD: 200,                // 总收益达到200U提示复投（从300U降低）
     AMOUNT: 30,                    // 复投金额30U
     AUTO_AVAILABLE: true,          // 支持自动复投
     FREEZE_TRANSFER_IF_NOT: true,  // 不复投无法互转
-    CONTINUE_AFTER: true           // 复投后继续累积计算
+    CONTINUE_AFTER: true,          // 复投后继续累积计算
+    SLIDE_MECHANISM: true,         // 启用滑落机制
+    WEAK_SIDE_SUBSIDY: true        // 启用弱区补贴
   },
   
   // ========== 分红结算 ==========

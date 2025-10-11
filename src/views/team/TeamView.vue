@@ -36,14 +36,14 @@
           <div class="text-white text-xs opacity-80">每日凌晨12点结算</div>
         </div>
         <div class="text-white text-3xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }} U</div>
-        <div class="text-white/80 text-xs">{{ pendingPairs }}组 × 7U × 85% = {{ estimatedPairingBonus.toFixed(2) }}U</div>
+        <div class="text-white/80 text-xs">{{ pendingPairs }}组 × 10U × 85% = {{ estimatedPairingBonus.toFixed(2) }}U</div>
       </div>
 
       <!-- A/B区业绩对比 -->
       <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
         <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2">
           <span>双区业绩</span>
-          <span class="text-xs text-gray-500">（弱区优先，1:1平衡）</span>
+          <span class="text-xs text-gray-500">（弱区优先，2:1/1:2灵活配对）</span>
         </h3>
 
         <!-- 可视化对比 -->
@@ -117,35 +117,6 @@
         </div>
       </div>
 
-      <!-- 推荐链接 -->
-      <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
-        <h3 class="text-gray-800 font-bold mb-3">我的推荐</h3>
-        <div class="bg-yellow-50 rounded-xl p-3 mb-3 border border-yellow-200">
-          <div class="text-xs text-gray-600 mb-1">推荐码</div>
-          <div class="flex items-center justify-between">
-            <div class="text-gray-800 font-mono font-bold text-lg">{{ inviteCode }}</div>
-            <button 
-              @click="copyInviteCode"
-              class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm transition-all"
-            >
-              复制
-            </button>
-          </div>
-        </div>
-        <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
-          <div class="text-xs text-gray-600 mb-1">推荐链接</div>
-          <div class="flex items-center justify-between">
-            <div class="text-gray-700 text-sm truncate flex-1 mr-2">{{ inviteLink }}</div>
-            <button 
-              @click="copyInviteLink"
-              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-all"
-            >
-              复制
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- 直推列表 -->
       <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
         <div class="flex items-center justify-between mb-4">
@@ -197,10 +168,11 @@
         <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示</div>
         <ul class="space-y-1">
           <li>• 直推≥2人解锁平级奖，下线触发对碰时你也能获得2U</li>
-          <li>• 系统自动排线，优先补弱区，保持1:1平衡</li>
-          <li>• 对碰奖每组7U（会员收益85%），不封顶</li>
+          <li>• 系统自动排线，优先补弱区，2:1/1:2灵活配对</li>
+          <li>• 对碰奖每组10U（会员收益85%），2:1/1:2灵活配对</li>
           <li>• 直推≥10人可参与分红，每周一三五七结算</li>
-          <li class="text-orange-700 font-bold">• 每结算300U需复投30U，否则账户冻结</li>
+          <li class="text-orange-700 font-bold">• 每结算200U需复投30U，否则账户冻结</li>
+          <li class="text-purple-700 font-bold">• 滑落机制：弱区自动补贴，加速对碰平衡发展</li>
         </ul>
       </div>
     </div>
@@ -245,13 +217,6 @@ const isUnlocked = ref(false)
 const directReferrals = ref(0)
 const referralList = ref<any[]>([])
 
-// 邀请信息
-const inviteCode = ref('--')
-const inviteLink = computed(() => {
-  if (inviteCode.value === '--') return '--'
-  return `${window.location.origin}/register?code=${inviteCode.value}`
-})
-
 // 计算属性
 const totalSales = computed(() => aSideSales.value + bSideSales.value)
 
@@ -262,8 +227,8 @@ const pendingPairs = computed(() => Math.min(aSidePending.value, bSidePending.va
 const settledPairs = computed(() => Math.min(aSideSettled.value, bSideSettled.value))
 
 const estimatedPairingBonus = computed(() => {
-  // 每组7U × 85% = 5.95U
-  return pendingPairs.value * 7 * 0.85
+  // 每组10U × 85% = 8.5U
+  return pendingPairs.value * 10 * 0.85
 })
 
 const totalEarnings = computed(() => 
@@ -327,21 +292,18 @@ const loadNetworkStats = async () => {
       isUnlocked.value = false
     }
 
-    // 获取用户信息（邀请码和直推数）
+    // 获取用户信息（直推数）
     const { data: user, error } = await supabase
       .from('users')
-      .select('invite_code, direct_referral_count, total_dividend')
+      .select('direct_referral_count, total_dividend')
       .eq('id', userId)
       .single()
 
     if (!error && user) {
-      inviteCode.value = user.invite_code || authStore.user?.invite_code || 'NUV7K2MZ'
       directReferrals.value = user.direct_referral_count || 0
       if (!result.data) {
         totalDividend.value = user.total_dividend || 0
       }
-    } else {
-      inviteCode.value = authStore.user?.invite_code || 'NUV7K2MZ'
     }
   } catch (error: any) {
     console.error('加载网络统计失败:', error)
@@ -450,26 +412,6 @@ const checkReinvestment = async () => {
 // 复投成功处理
 const handleReinvestSuccess = () => {
   refreshData()
-}
-
-// 复制邀请码
-const copyInviteCode = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteCode.value)
-    toast.success('邀请码已复制')
-  } catch (error) {
-    toast.error('复制失败')
-  }
-}
-
-// 复制邀请链接
-const copyInviteLink = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteLink.value)
-    toast.success('邀请链接已复制')
-  } catch (error) {
-    toast.error('复制失败')
-  }
 }
 
 onMounted(() => {
