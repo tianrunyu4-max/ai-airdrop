@@ -475,7 +475,7 @@ const exchangeCard = async () => {
     return
   }
   
-  const confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n总成本：${totalCost}U\n10倍出局，每日签到释放${(releaseRate.value * 100).toFixed(1)}%`
+  const confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n总成本：${totalCost}U\n签到送10倍积分学习`
   
   if (!confirm(confirmMsg)) {
     return

@@ -19,7 +19,8 @@ export const RewardsConfig = {
     FREEZE: 'freeze',                    // 冻结
     UNFREEZE: 'unfreeze',                // 解冻
     POINTS_EXCHANGE: 'points_exchange',  // 积分兑换
-    MINING_PURCHASE: 'mining_purchase'   // 购买矿机
+    MINING_PURCHASE: 'mining_purchase',  // 购买矿机
+    EXCHANGE_LEARNING_CARD: 'exchange_learning_card'  // 兑换学习卡
   },
   
   // ========== 奖励描述模板 ==========
@@ -38,7 +39,8 @@ export const RewardsConfig = {
     freeze: () => '余额冻结',
     unfreeze: () => '余额解冻',
     points_exchange: (points: number, u: number) => `兑换 ${points}积分 → ${u}U`,
-    mining_purchase: (type: string) => `购买${type}矿机`
+    mining_purchase: (type: string) => `购买${type}矿机`,
+    exchange_learning_card: (count: number, cost: number) => `兑换${count}张学习卡(${cost}U)`
   },
   
   // ========== 收益记录类型 ==========
@@ -66,7 +68,8 @@ export const RewardsConfig = {
     freeze: '🔒',
     unfreeze: '🔓',
     points_exchange: '🔄',
-    mining_purchase: '🛒'
+    mining_purchase: '🛒',
+    exchange_learning_card: '💳'
   },
   
   // ========== 奖励颜色 ==========
@@ -85,7 +88,8 @@ export const RewardsConfig = {
     freeze: 'error',
     unfreeze: 'success',
     points_exchange: 'primary',
-    mining_purchase: 'warning'
+    mining_purchase: 'warning',
+    exchange_learning_card: 'accent'
   }
 }
 
