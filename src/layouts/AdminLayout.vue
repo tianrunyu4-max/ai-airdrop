@@ -4,7 +4,7 @@
     <aside class="w-64 bg-base-100 shadow-lg hidden lg:block">
       <div class="p-6">
         <h1 class="text-2xl font-bold text-gradient">管理后台</h1>
-        <p class="text-sm text-base-content/60 mt-1">AI智能空投</p>
+        <p class="text-sm text-base-content/60 mt-1">AI智能科技学习集成</p>
       </div>
       
       <!-- 导航菜单 -->

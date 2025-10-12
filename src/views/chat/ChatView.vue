@@ -611,7 +611,7 @@ const startBotSimulation = () => {
       chat_group_id: 'dev-group',
       user_id: 'bot',
       username: 'AI空投机器人',
-      content: '🎉 欢迎来到AI智能空投大厅！\n\n我会每小时为您推送最新的空投信息。\n您也可以在这里和其他用户交流。',
+      content: '🎉 欢迎来到AI智能科技学习集成大厅！\n\n我会每小时为您推送最新的空投信息。\n您也可以在这里和其他用户交流。',
       type: 'text',
       is_bot: true,
       ad_data: adPool[0], // 欢迎消息也带广告
@@ -796,7 +796,7 @@ const shareAirdrop = (message: any) => {
   
   if (navigator.share) {
     navigator.share({
-      title: 'AI智能空投',
+      title: 'AI智能科技学习集成',
       text: shareText
     })
   } else {

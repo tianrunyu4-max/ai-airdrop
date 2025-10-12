@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缓存清除工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 缓存清除工具</h1>
+        
+        <div class="warning">
+            <strong>⚠️ 问题：</strong> 浏览器缓存导致JavaScript模块加载失败，登录功能异常。
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="button" onclick="clearAllCache()">🧹 清除所有缓存</button>
+            <button class="button" onclick="forceReload()">🔄 强制重新加载</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="/" class="button">🏠 返回首页</a>
+            <a href="/login" class="button">🔐 测试登录</a>
+        </div>
+    </div>
+
+    <script>
+        function clearAllCache() {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.className = 'status warning';
+            status.innerHTML = '🧹 正在清除缓存...';
+            
+            // 清除Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            
+            // 清除所有存储
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // 清除IndexedDB
+            if ('indexedDB' in window) {
+                indexedDB.databases().then(databases => {
+                    databases.forEach(db => {
+                        indexedDB.deleteDatabase(db.name);
+                    });
+                });
+            }
+            
+            // 清除Cache API
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            setTimeout(() => {
+                status.className = 'status success';
+                status.innerHTML = '✅ 缓存清除完成！正在重新加载...';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }, 3000);
+        }
+        
+        function forceReload() {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.className = 'status warning';
+            status.innerHTML = '🔄 正在强制重新加载...';
+            
+            // 添加时间戳参数强制刷新
+            const url = new URL(window.location);
+            url.searchParams.set('t', Date.now());
+            window.location.href = url.toString();
+        }
+        
+        // 页面加载时显示当前状态
+        window.addEventListener('load', function() {
+            console.log('🔧 缓存清除工具已加载');
+            console.log('📱 如果登录仍有问题，请点击"清除所有缓存"按钮');
+        });
+    </script>
+</body>
+</html>
+

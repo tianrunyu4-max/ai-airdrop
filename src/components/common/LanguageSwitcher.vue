@@ -1,7 +1,7 @@
 <template>
   <div class="dropdown dropdown-end">
-    <label tabindex="0" class="btn btn-ghost btn-circle btn-sm">
-      <GlobeAltIcon class="w-5 h-5" />
+    <label tabindex="0" class="btn btn-ghost btn-circle">
+      <GlobeAltIcon class="w-8 h-8" />
     </label>
     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-32 mt-2">
       <li>

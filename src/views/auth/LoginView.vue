@@ -118,7 +118,7 @@
 
         <!-- 底部信息 -->
         <div class="text-center mt-6 text-white/60 text-sm">
-          <p>© 2025 AI智能空投平台</p>
+          <p>© 2025AI 智能科技学习集成</p>
         </div>
       </div>
     </div>
