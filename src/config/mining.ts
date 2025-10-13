@@ -10,8 +10,11 @@ export const AILearningConfig = {
     NAME: 'AI学习卡',
     COST: 100,                    // 100积分
     COST_IN_U: 6,                 // 6U可兑换100积分
-    EXIT_MULTIPLIER: 3,           // 3倍出局
-    TOTAL_OUTPUT: 300,            // 总产出300积分（100×3）
+    EXIT_MULTIPLIER: 10,          // 10倍出局
+    TOTAL_POINTS: 1000,           // 总产出1000积分（100×10）
+    TOTAL_OUTPUT: 1000,           // 总产出1000积分（100×10）
+    BASE_RELEASE_RATE: 0.02,      // 基础释放率2%/天
+    DAILY_OUTPUT: 2,              // 每日产出2积分（100×2%）
     MAX_STACK: 10,                // 最多10张/人
     AUTO_GIFT: true,              // 成为AI代理自动送100积分
     FIRST_FREE: false             // 不再是第一次免费，而是成为代理自动送
@@ -19,11 +22,11 @@ export const AILearningConfig = {
   
   // ========== 释放规则 ==========
   RELEASE: {
-    BASE_RATE: 0.025,             // 基础释放率2.5%/天
-    BOOST_PER_REFERRAL: 0.025,    // 每直推1个AI代理 +2.5%
-    MAX_BOOST: 0.075,             // 最高加速7.5%（3个直推×2.5%）
-    MAX_RATE: 0.10,               // 最高释放率10%（2.5%基础 + 7.5%加速）
-    MAX_REFERRALS: 3,             // 最多计算3个直推（达到10%上限）
+    BASE_RATE: 0.02,              // 基础释放率2%/天
+    BOOST_PER_REFERRAL: 0.03,     // 每直推1个AI代理 +3%
+    MAX_BOOST: 0.18,              // 最高加速18%（6个直推×3%）
+    MAX_RATE: 0.20,               // 最高释放率20%（2%基础 + 18%加速）
+    MAX_REFERRALS: 6,             // 最多计算6个直推（达到20%上限）
     REQUIRE_CHECKIN: true,        // 必须签到才释放
     TIME: '00:00',                // 每天00:00释放
     TIMEZONE: 'Asia/Shanghai'
@@ -84,7 +87,7 @@ export const MiningConfig = {
   MAX_BOOST_RATE: AILearningConfig.RELEASE.MAX_BOOST,
   POINTS_TO_U_RATE: AILearningConfig.MACHINE.COST_IN_U / AILearningConfig.MACHINE.COST,
   U_PERCENTAGE: AILearningConfig.DISTRIBUTION.TO_U_PERCENT,
-  POINTS_PERCENTAGE: AILearningConfig.DISTRIBUTION.TO_TRANSFER_PERCENT,
+  POINTS_PERCENTAGE: AILearningConfig.DISTRIBUTION.TO_BURN_PERCENT,
   MAX_MACHINES_PER_USER: AILearningConfig.MACHINE.MAX_STACK,
   FIRST_FREE: AILearningConfig.MACHINE.FIRST_FREE,
   EXIT_MULTIPLIER: AILearningConfig.MACHINE.EXIT_MULTIPLIER,
