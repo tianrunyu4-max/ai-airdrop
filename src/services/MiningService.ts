@@ -337,9 +337,9 @@ export class MiningService extends BaseService {
       })))
 
       // 6. 分配释放的积分到用户账户
-      // 70% 转 U (兑换价1:1)
+      // 70% 转 U (兑换价：100积分=8U，即1积分=0.08U)
       const toU = totalReleased * 0.70
-      const uAmount = toU * 1 // 1积分 = 1U
+      const uAmount = toU * 0.08 // 1积分 = 0.08U (100积分=8U)
       
       // 30% 转互转积分
       const toTransfer = totalReleased * 0.30
