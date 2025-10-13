@@ -103,3 +103,8 @@ ORDER BY ordinal_position;
 **请先执行数据库升级SQL，然后重新测试兑换功能！** 🚀
 
 
+
+
+
+
+

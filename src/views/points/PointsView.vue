@@ -6,18 +6,25 @@
       <p class="text-center text-yellow-100 text-sm">每日签到 · 持续释放</p>
     </div>
 
+    <!-- 加载中提示 -->
+    <div v-if="!user" class="px-4 mt-6 text-center">
+      <div class="bg-white rounded-2xl shadow-lg p-8">
+        <div class="text-gray-500">加载中...</div>
+      </div>
+    </div>
+
     <!-- 我的资产卡片 -->
-    <div class="px-4 -mt-4">
+    <div v-if="user" class="px-4 -mt-4">
       <div class="bg-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-200">
         <div class="text-center mb-4">
           <div class="text-gray-500 text-sm mb-1">我的资产</div>
-          <div class="text-4xl font-bold text-yellow-600">{{ user?.u_balance.toFixed(2) || '0.00' }} U</div>
+          <div class="text-4xl font-bold text-yellow-600">{{ (user.u_balance || 0).toFixed(2) }} U</div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">互转积分</div>
-            <div class="text-yellow-700 font-bold text-lg">{{ user?.transfer_points.toFixed(2) || '0.00' }}</div>
+            <div class="text-yellow-700 font-bold text-lg">{{ (user.transfer_points || 0).toFixed(2) }}</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">学习卡数量</div>
@@ -50,7 +57,7 @@
     </div>
 
     <!-- 每日签到区 -->
-    <div class="px-4 mt-6">
+    <div v-if="user" class="px-4 mt-6">
       <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
         <span class="bg-green-400 w-1 h-6 rounded-full mr-3"></span>
         📅 每日签到
@@ -107,7 +114,7 @@
     </div>
 
     <!-- AI学习卡兑换区 -->
-    <div class="px-4 mt-6">
+    <div v-if="user" class="px-4 mt-6">
       <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
         <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
         💳 兑换学习卡
@@ -223,7 +230,7 @@
     </div>
 
     <!-- 我的学习卡列表 -->
-    <div class="px-4 mt-6 mb-8">
+    <div v-if="user" class="px-4 mt-6 mb-8">
       <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center justify-between">
         <span class="flex items-center">
           <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
@@ -232,62 +239,62 @@
         <span class="text-sm text-gray-600">{{ myMachines.length }}/10</span>
       </h3>
 
-      <!-- 学习机列表 -->
-      <div v-if="myMachines.length > 0" class="space-y-4">
+      <!-- 学习机列表 - 2列网格布局 -->
+      <div v-if="myMachines.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div 
           v-for="machine in myMachines" 
           :key="machine.id"
-          class="bg-white rounded-xl shadow-md p-5 border-2"
-          :class="machine.is_active ? 'border-yellow-300' : 'border-gray-300'"
+          class="bg-white rounded-xl shadow-md p-4 border-2"
+          :class="getCardBorderClass(machine)"
         >
-          <div class="flex justify-between items-start mb-4">
+          <div class="flex justify-between items-start mb-3">
             <div>
-              <h4 class="text-gray-800 font-bold text-lg mb-1">AI学习机 #{{ machine.id.slice(-4) }}</h4>
+              <h4 class="text-gray-800 font-bold text-base mb-1">AI学习机 #{{ machine.id.slice(-4) }}</h4>
               <span 
-                class="inline-block px-3 py-1 rounded-full text-xs font-bold"
-                :class="machine.is_active ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'"
+                class="inline-block px-2 py-1 rounded-full text-xs font-bold"
+                :class="getStatusClass(machine)"
               >
-                {{ machine.is_active ? '🟢 学习中' : '⭕ 已出局' }}
+                {{ getStatusText(machine) }}
               </span>
             </div>
             <div class="text-right">
-              <div class="text-yellow-600 font-bold text-xl">{{ ((machine.base_rate + machine.boost_rate) * 100).toFixed(1) }}%</div>
+              <div class="text-yellow-600 font-bold text-xl">{{ (((machine.base_rate || 0) + (machine.boost_rate || 0)) * 100).toFixed(1) }}%</div>
               <div class="text-xs text-gray-500">每日释放率</div>
             </div>
           </div>
 
           <!-- 进度条 -->
-          <div class="mb-4">
-            <div class="flex justify-between text-xs text-gray-600 mb-2">
+          <div class="mb-3">
+            <div class="flex justify-between text-xs text-gray-600 mb-1">
               <span>学习进度</span>
-              <span class="font-bold">{{ ((machine.released_points / machine.total_points) * 100).toFixed(1) }}%</span>
+              <span class="font-bold">{{ (((machine.released_points || 0) / (machine.total_points || 1)) * 100).toFixed(1) }}%</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div 
                 class="h-full rounded-full transition-all"
-                :class="machine.is_active ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gray-400'"
-                :style="{ width: `${(machine.released_points / machine.total_points * 100)}%` }"
+                :class="getProgressBarClass(machine)"
+                :style="{ width: `${((machine.released_points || 0) / (machine.total_points || 1) * 100)}%` }"
               ></div>
             </div>
             <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{{ machine.released_points.toFixed(0) }}积分</span>
-              <span>{{ machine.total_points.toFixed(0) }}积分</span>
+              <span>{{ (machine.released_points || 0).toFixed(0) }}积分</span>
+              <span>{{ (machine.total_points || 0).toFixed(0) }}积分</span>
             </div>
           </div>
 
           <!-- 数据统计 -->
-          <div class="grid grid-cols-3 gap-2 text-xs mb-4">
-            <div class="bg-yellow-50 rounded-lg p-2 text-center border border-yellow-100">
-              <div class="text-gray-600 mb-1">日释放率</div>
-              <div class="text-yellow-700 font-bold">{{ (machine.base_rate * 100).toFixed(1) }}%</div>
+          <div class="grid grid-cols-3 gap-1 text-xs mb-3">
+            <div class="bg-yellow-50 rounded-lg p-1.5 text-center border border-yellow-100">
+              <div class="text-gray-600 text-xs">日释放</div>
+              <div class="text-yellow-700 font-bold text-sm">{{ ((machine.base_rate || 0) * 100).toFixed(1) }}%</div>
             </div>
-            <div class="bg-purple-50 rounded-lg p-2 text-center border border-purple-100">
-              <div class="text-gray-600 mb-1">学习等级</div>
-              <div class="text-purple-600 font-bold">{{ getCompoundMultiplier(machine) }}倍</div>
+            <div class="bg-purple-50 rounded-lg p-1.5 text-center border border-purple-100">
+              <div class="text-gray-600 text-xs">等级</div>
+              <div class="text-purple-600 font-bold text-sm">{{ getCompoundMultiplier(machine) }}倍</div>
             </div>
-            <div class="bg-yellow-50 rounded-lg p-2 text-center border border-yellow-100">
-              <div class="text-gray-600 mb-1">重启次数</div>
-              <div class="text-gray-700 font-bold">{{ machine.restart_count || 0 }}次</div>
+            <div class="bg-blue-50 rounded-lg p-1.5 text-center border border-blue-100">
+              <div class="text-gray-600 text-xs">重启</div>
+              <div class="text-gray-700 font-bold text-sm">{{ machine.restart_count || 0 }}次</div>
             </div>
           </div>
 
@@ -405,11 +412,12 @@ const showRestartInfo = ref(false)
 const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
 
-// 活跃学习卡数量
+// 活跃学习卡数量（未完成的学习卡）
 const activeCardCount = computed(() => {
-  return myMachines.value.filter(m => 
-    (m as any).status === 'active' || (m as any).status === 'inactive'
-  ).length
+  return myMachines.value.filter(m => {
+    const machine = m as any
+    return machine.released_points < machine.total_points
+  }).length
 })
 
 // 是否可以兑换（V4.0新逻辑：6U余额）
@@ -592,6 +600,42 @@ const getCompoundMultiplier = (machine: MiningMachine) => {
   return multipliers[level] || 2
 }
 
+// 获取卡片状态文本
+const getStatusText = (machine: any) => {
+  const status = machine.status || 'inactive'
+  if (status === 'inactive') return '⏰ 待签到'
+  if (status === 'active') return '🟢 学习中'
+  if (status === 'finished') return '✅ 已完成'
+  return '⭕ 已出局'
+}
+
+// 获取卡片状态样式
+const getStatusClass = (machine: any) => {
+  const status = machine.status || 'inactive'
+  if (status === 'inactive') return 'bg-blue-100 text-blue-700'
+  if (status === 'active') return 'bg-yellow-100 text-yellow-700'
+  if (status === 'finished') return 'bg-green-100 text-green-700'
+  return 'bg-gray-100 text-gray-600'
+}
+
+// 获取卡片边框样式
+const getCardBorderClass = (machine: any) => {
+  const status = machine.status || 'inactive'
+  if (status === 'inactive') return 'border-blue-300'
+  if (status === 'active') return 'border-yellow-300'
+  if (status === 'finished') return 'border-green-300'
+  return 'border-gray-300'
+}
+
+// 获取进度条颜色
+const getProgressBarClass = (machine: any) => {
+  const status = machine.status || 'inactive'
+  if (status === 'inactive') return 'bg-gradient-to-r from-blue-400 to-blue-600'
+  if (status === 'active') return 'bg-gradient-to-r from-yellow-400 to-yellow-600'
+  if (status === 'finished') return 'bg-gradient-to-r from-green-400 to-green-600'
+  return 'bg-gray-400'
+}
+
 // 跳转到互转页面
 const goToTransfer = () => {
   router.push('/transfer')
@@ -608,51 +652,62 @@ const refreshPage = () => {
   toast.success('已刷新')
 }
 
-// 加载我的学习机
-// 从数据库加载我的学习机
+// 加载我的学习机（localStorage版本）
 const loadMyMachines = async () => {
   if (!user.value) return
 
   try {
-    const { data, error } = await supabase
-      .from('mining_machines')
-      .select('*')
-      .eq('user_id', user.value.id)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('加载学习机失败:', error)
-      return
+    // 从localStorage读取学习卡
+    const storageKey = 'user_learning_cards'
+    const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    
+    // 过滤出当前用户的学习卡
+    const userCards = allCards
+      .filter((card: any) => card.user_id === user.value.id)
+      .sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    
+    myMachines.value = userCards
+    console.log(`✅ 从localStorage加载${userCards.length}张学习卡`)
+    if (userCards.length > 0) {
+      console.log('学习卡详情:', userCards.map((c: any) => ({
+        id: c.id.slice(-4),
+        status: c.status,
+        released: c.released_points,
+        total: c.total_points,
+        progress: `${((c.released_points / c.total_points) * 100).toFixed(1)}%`
+      })))
     }
-
-    myMachines.value = data || []
   } catch (err) {
     console.error('加载学习机异常:', err)
+    myMachines.value = []
   }
 }
 
-// 计算释放率
+// 计算释放率（localStorage版本）
 const calculateReleaseRate = async () => {
   if (!user.value?.id) return
   
   try {
-    // 查询直推AI代理数量
-    const { count, error } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('inviter_id', user.value.id)
-      .eq('is_agent', true)
+    // 从localStorage查询直推AI代理数量
+    const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
     
-    if (error) {
-      console.error('查询直推数量失败:', error)
-      releaseRate.value = 0.02
-      return
+    // 统计直推AI代理数量
+    let referralCount = 0
+    for (const key in registeredUsers) {
+      const userData = registeredUsers[key].userData
+      if (userData.inviter_id === user.value.id && userData.is_agent) {
+        referralCount++
+      }
     }
     
     // 计算释放率：基础2% + 直推加速3%×人数，最高20%
-    const referralCount = Math.min(count || 0, 6)
-    const rate = Math.min(0.02 + referralCount * 0.03, 0.20)
+    const count = Math.min(referralCount, 6)
+    const rate = Math.min(0.02 + count * 0.03, 0.20)
     releaseRate.value = rate
+    
+    console.log(`✅ 计算释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(1)}%`)
   } catch (error) {
     console.error('计算释放率失败:', error)
     releaseRate.value = 0.02
@@ -667,7 +722,20 @@ const checkCheckinStatus = () => {
   }
   
   const today = new Date().toISOString().split('T')[0]
-  isCheckedInToday.value = myMachines.value.some(
+  
+  // 过滤出未完成的学习卡
+  const activeCards = myMachines.value.filter(m => {
+    const machine = m as any
+    return machine.released_points < machine.total_points
+  })
+  
+  if (activeCards.length === 0) {
+    isCheckedInToday.value = false
+    return
+  }
+  
+  // 检查是否所有未完成的卡都已签到
+  isCheckedInToday.value = activeCards.every(
     m => (m as any).last_checkin_date === today
   )
 }

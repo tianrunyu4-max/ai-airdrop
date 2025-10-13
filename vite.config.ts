@@ -6,7 +6,8 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(Date.now())
+    __APP_VERSION__: JSON.stringify(1760267341304),
+    __BUILD_TIME__: JSON.stringify(1760267341304)
   },
   plugins: [
     vue(),
@@ -14,9 +15,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'AI智能空投',
-        short_name: 'AI空投',
-        description: '智能空投监控平台 - 币安&OKX空投实时推送',
+        name: 'AI智能科技学习集成',
+        short_name: 'AI学习',
+        description: '智能科技学习集成平台 - 币安&OKX空投实时推送',
         theme_color: '#6366f1',
         background_color: '#ffffff',
         display: 'standalone',
@@ -46,7 +47,20 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         sourcemap: false,
         skipWaiting: true,
-        clientsClaim: true
+        clientsClaim: true,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/eth10\.netlify\.app\/.*\.(js|css)$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-resources',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 2 // 2 hours
+              }
+            }
+          }
+        ]
       }
     })
   ],
@@ -62,6 +76,17 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom'
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    },
+    sourcemap: false,
+    minify: 'esbuild'
   }
 })
-

@@ -128,7 +128,7 @@ export class WalletManager {
   }
 
   /**
-   * 转账（原子事务）
+   * 转账（localStorage版本）
    */
   static async transfer(
     fromUserId: string,
@@ -142,17 +142,84 @@ export class WalletManager {
       throw new Error('不能给自己转账')
     }
 
-    // 使用数据库事务处理转账
-    const { error } = await supabase.rpc('transfer_balance', {
-      p_from_user: fromUserId,
-      p_to_user: toUserId,
-      p_amount: amount,
-      p_description: description || '转账'
-    })
+    // 使用localStorage处理转账
+    try {
+      // 1. 获取双方用户信息
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      const fromUserKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === fromUserId
+      )
+      const toUserKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === toUserId
+      )
 
-    if (error) {
+      if (!fromUserKey || !toUserKey) {
+        throw new Error('用户不存在')
+      }
+
+      const fromUser = registeredUsers[fromUserKey].userData
+      const toUser = registeredUsers[toUserKey].userData
+
+      // 2. 防御性检查：确保余额是有效数字
+      const fromBalance = Number(fromUser.u_balance) || 0
+      const toBalance = Number(toUser.u_balance) || 0
+
+      // 3. 检查余额
+      if (fromBalance < amount) {
+        throw new Error(`余额不足，当前余额: ${fromBalance} U`)
+      }
+
+      // 4. 扣除发送方余额（确保使用安全的数值运算）
+      fromUser.u_balance = Number((fromBalance - amount).toFixed(2))
+      
+      // 5. 增加接收方余额（确保使用安全的数值运算）
+      toUser.u_balance = Number((toBalance + amount).toFixed(2))
+      
+      console.log(`💸 转账: ${fromUser.username}(${fromBalance}U) → ${toUser.username}(${toBalance}U), 金额: ${amount}U`)
+      console.log(`   发送方余额: ${fromBalance}U → ${fromUser.u_balance}U`)
+      console.log(`   接收方余额: ${toBalance}U → ${toUser.u_balance}U`)
+
+      // 5. 保存更新后的用户数据
+      registeredUsers[fromUserKey].userData = fromUser
+      registeredUsers[toUserKey].userData = toUser
+      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+
+      // 6. 记录转账流水
+      const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+      const timestamp = new Date().toISOString()
+
+      // 发送方流水
+      transactions.push({
+        id: `tx-${Date.now()}-out`,
+        user_id: fromUserId,
+        type: 'transfer_out',
+        amount: -amount,
+        balance_after: fromUser.u_balance,
+        related_user_id: toUserId,
+        currency: 'U',
+        description: description || `转账给 ${toUser.username}`,
+        created_at: timestamp
+      })
+
+      // 接收方流水
+      transactions.push({
+        id: `tx-${Date.now()}-in`,
+        user_id: toUserId,
+        type: 'transfer_in',
+        amount: amount,
+        balance_after: toUser.u_balance,
+        related_user_id: fromUserId,
+        currency: 'U',
+        description: description || `收到 ${fromUser.username} 的转账`,
+        created_at: timestamp
+      })
+
+      localStorage.setItem('user_transactions', JSON.stringify(transactions))
+
+      console.log(`✅ 转账成功: ${fromUser.username} -> ${toUser.username}, ${amount} U`)
+    } catch (error) {
       console.error('转账失败:', error)
-      throw new Error('转账失败: ' + error.message)
+      throw error
     }
   }
 

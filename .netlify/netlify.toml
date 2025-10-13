@@ -13,7 +13,7 @@ commandOrigin = "config"
 command = "npm run build"
 
 [build.environment]
-NODE_VERSION = "18"
+NODE_VERSION = "20"
 
 [build.processing]
 
@@ -35,6 +35,20 @@ X-Frame-Options = "DENY"
 X-Content-Type-Options = "nosniff"
 Referrer-Policy = "no-referrer"
 Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+[[headers]]
+for = "/assets/*.js"
+
+[headers.values]
+Content-Type = "application/javascript"
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/assets/*.css"
+
+[headers.values]
+Content-Type = "text/css"
+Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
 from = "/*"

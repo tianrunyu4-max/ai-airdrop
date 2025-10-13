@@ -13,14 +13,14 @@
           <!-- U余额 -->
           <div class="text-center">
             <div class="text-gray-600 text-xs mb-1">U余额</div>
-            <div class="text-yellow-600 text-2xl font-bold">{{ user?.u_balance.toFixed(2) || '0.00' }}</div>
+            <div class="text-yellow-600 text-2xl font-bold">{{ (user?.u_balance || 0).toFixed(2) }}</div>
             <div class="text-blue-600 text-xs mt-1">USDT</div>
           </div>
           
           <!-- 互转积分 -->
           <div class="text-center">
             <div class="text-gray-600 text-xs mb-1">互转积分</div>
-            <div class="text-yellow-600 text-2xl font-bold">{{ user?.transfer_points.toFixed(2) || '0.00' }}</div>
+            <div class="text-yellow-600 text-2xl font-bold">{{ (user?.transfer_points || 0).toFixed(2) }}</div>
             <div class="text-green-600 text-xs mt-1">可互转</div>
           </div>
         </div>
@@ -109,7 +109,7 @@
           <label class="label">
             <span class="label-text text-gray-700 font-medium">转账金额</span>
             <span class="label-text-alt text-gray-400">
-              可用: {{ availableBalance.toFixed(2) }}
+              可用: {{ (availableBalance || 0).toFixed(2) }}
             </span>
           </label>
           <input 
@@ -281,7 +281,8 @@ const historyFilters = [
 // 可用余额
 const availableBalance = computed(() => {
   if (!user.value) return 0
-  return transferType.value === 'u' ? user.value.u_balance : user.value.transfer_points
+  const balance = transferType.value === 'u' ? user.value.u_balance : user.value.transfer_points
+  return balance || 0
 })
 
 // 验证转账
@@ -372,15 +373,24 @@ const submitTransfer = async () => {
     }
 
     if (result.success) {
-      // 更新本地余额
+      // 更新本地余额（添加防御性检查）
       if (transferType.value === 'u') {
-        user.value.u_balance -= transferAmount.value
+        const currentBalance = Number(user.value.u_balance) || 0
+        user.value.u_balance = Number((currentBalance - transferAmount.value).toFixed(2))
       } else {
-        user.value.transfer_points -= transferAmount.value
+        const currentTransferPoints = Number(user.value.transfer_points) || 0
+        const currentPointsBalance = Number(user.value.points_balance) || 0
+        user.value.transfer_points = Number((currentTransferPoints - transferAmount.value).toFixed(2))
+        user.value.points_balance = Number((currentPointsBalance - transferAmount.value).toFixed(2))
       }
 
-      // 同步localStorage
-      localStorage.setItem('current_user', JSON.stringify(user.value))
+      // 同步localStorage (更新registered_users中的数据)
+      const currentUsername = localStorage.getItem('current_user')
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      if (currentUsername && registeredUsers[currentUsername]) {
+        registeredUsers[currentUsername].userData = user.value
+        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+      }
 
       toast.removeToast(loadingToast)
       toast.success(`✨ 转账成功！已转出 ${transferAmount.value} ${transferType.value === 'u' ? 'U' : '积分'}`, 4000)

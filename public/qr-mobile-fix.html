@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机扫码清理缓存 - AI智能科技学习集成</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .qr-container {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+        #qrcode {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .url-box {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            color: #374151;
+        }
+        .steps {
+            background: #fef3c7;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            margin-top: 20px;
+        }
+        .steps h3 {
+            color: #92400e;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .steps ol {
+            padding-left: 20px;
+            color: #78350f;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📱</div>
+        <h1>手机扫码清理缓存</h1>
+        <p class="subtitle">使用手机扫描下方二维码，清理缓存后即可看到提现功能</p>
+        
+        <div class="qr-container">
+            <div id="qrcode"></div>
+            <div class="url-box">
+                https://eth10.netlify.app/mobile-fix.html?auto=true
+            </div>
+        </div>
+        
+        <div class="steps">
+            <h3>📋 使用步骤</h3>
+            <ol>
+                <li>使用手机浏览器扫描上方二维码</li>
+                <li>或手动访问上方网址</li>
+                <li>页面会自动清理所有缓存</li>
+                <li>清理完成后自动跳转到个人资料页面</li>
+                <li>向下滚动即可看到"提现功能"卡片</li>
+            </ol>
+        </div>
+        
+        <div class="steps" style="background: #dbeafe; margin-top: 15px;">
+            <h3>💡 提现功能特征</h3>
+            <ol>
+                <li>蓝色渐变背景卡片</li>
+                <li>显示"提现功能"标题</li>
+                <li>显示"50U 起提"限制</li>
+                <li>有💳银行卡图标</li>
+                <li>可以添加TRC20和BEP20地址</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // 生成二维码
+        const qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: "https://eth10.netlify.app/mobile-fix.html?auto=true",
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    </script>
+</body>
+</html>
+
+
+

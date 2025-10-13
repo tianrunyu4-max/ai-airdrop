@@ -24,7 +24,7 @@ import type { MiningMachine } from '@/types'
 
 export class MiningService extends BaseService {
   /**
-   * 兑换学习卡（V4.0新逻辑：7U余额 = 100积分 = 1张学习卡）
+   * 兑换学习卡（V4.0新逻辑：6U余额 = 100积分 = 1张学习卡）- localStorage版本
    * 注意：需要代理身份（已加入Binary系统）
    */
   static async purchaseMachine(
@@ -40,8 +40,17 @@ export class MiningService extends BaseService {
         return { success: false, error: '每次兑换数量必须在1-10张之间' }
       }
 
-      // 2. 获取用户信息
-      const user = await UserRepository.findById(userId)
+      // 2. 从localStorage获取用户信息
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      const userKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === userId
+      )
+
+      if (!userKey) {
+        return { success: false, error: '用户不存在' }
+      }
+
+      const user = registeredUsers[userKey].userData
 
       // 3. 必须是代理身份
       if (!user.is_agent) {
@@ -52,14 +61,12 @@ export class MiningService extends BaseService {
       }
 
       // 4. 检查学习卡数量限制
-      const { data: allMachines, error: countError } = await supabase
-        .from('mining_machines')
-        .select('*')
-        .eq('user_id', userId)
-
-      if (countError) throw countError
-
-      const activeMachines = allMachines?.filter(m => m.is_active).length || 0
+      const storageKey = 'user_learning_cards'
+      const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+      const userCards = allCards.filter((card: any) => card.user_id === userId)
+      const activeMachines = userCards.filter((m: any) => 
+        m.status === 'active' || m.status === 'inactive'
+      ).length
 
       if (activeMachines + quantity > AILearningConfig.MACHINE.MAX_STACK) {
         return {
@@ -68,46 +75,71 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 5. 计算费用（7U × 数量）
+      // 5. 计算费用（6U × 数量）
       const totalCost = AILearningConfig.MACHINE.COST_IN_U * quantity
 
-      // 6. 扣除U余额
-      await WalletManager.deduct(
-        userId,
-        totalCost,
-        'u_balance',
-        'exchange_learning_card',
-        `兑换${quantity}张AI学习卡（${totalCost}U）`
-      )
+      // 6. 检查余额（防御性检查：确保余额是有效数字）
+      const currentBalance = Number(user.u_balance) || 0
+      if (currentBalance < totalCost) {
+        return { 
+          success: false, 
+          error: `U余额不足，需要${totalCost}U，当前余额${currentBalance}U` 
+        }
+      }
 
-      // 7. 批量创建学习卡
+      // 7. 扣除U余额（确保使用安全的数值运算）
+      const newBalance = Number((currentBalance - totalCost).toFixed(2))
+      user.u_balance = newBalance
+      registeredUsers[userKey].userData = user
+      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+      
+      console.log(`💰 扣除余额：${currentBalance}U → ${newBalance}U (-${totalCost}U)`)
+
+      // 8. 批量创建学习卡
       const machines: MiningMachine[] = []
-      for (let i = 0; i < quantity; i++) {
-        const { data: machine, error: machineError } = await supabase
-          .from('mining_machines')
-          .insert({
-            user_id: userId,
-            machine_type: machineType,
-            initial_points: AILearningConfig.MACHINE.COST, // 100积分
-            released_points: 0,
-            total_points: AILearningConfig.MACHINE.TOTAL_OUTPUT, // 10倍出局 = 1000积分
-            base_rate: AILearningConfig.RELEASE.BASE_RATE, // 2%/天
-            boost_rate: 0, // 动态计算，根据直推数量
-            boost_count: 0,
-            is_active: false, // 初始未激活，需要签到
-            status: 'inactive', // 未签到状态
-            restart_count: 0,
-            compound_level: 0,
-            last_checkin_date: null,
-            checkin_count: 0,
-            is_checked_in_today: false
-          })
-          .select()
-          .single()
+      const timestamp = new Date().toISOString()
 
-        if (machineError) throw machineError
+      for (let i = 0; i < quantity; i++) {
+        const machine = {
+          id: `card-${Date.now()}-${i}`,
+          user_id: userId,
+          type: machineType,
+          status: 'inactive' as const,  // V4.0：未签到前是inactive
+          is_active: false,
+          total_points: AILearningConfig.MACHINE.TOTAL_POINTS,
+          released_points: 0,
+          daily_output: AILearningConfig.MACHINE.DAILY_OUTPUT,
+          base_rate: AILearningConfig.MACHINE.BASE_RELEASE_RATE,
+          boost_rate: 0,
+          compound_count: 0,
+          last_release_date: null,
+          last_checkin_date: null,  // V4.0：签到日期
+          created_at: timestamp,
+          expires_at: null
+        } as MiningMachine
+
+        allCards.push(machine)
         machines.push(machine)
       }
+
+      // 9. 保存学习卡到localStorage
+      localStorage.setItem(storageKey, JSON.stringify(allCards))
+
+      // 10. 记录交易流水
+      const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+      transactions.push({
+        id: `tx-${Date.now()}-learning-card`,
+        user_id: userId,
+        type: 'exchange_learning_card',
+        amount: -totalCost,
+        balance_after: user.u_balance,
+        currency: 'U',
+        description: `兑换${quantity}张AI学习卡（${totalCost}U）`,
+        created_at: timestamp
+      })
+      localStorage.setItem('user_transactions', JSON.stringify(transactions))
+
+      console.log(`✅ 成功兑换${quantity}张学习卡`)
 
       return {
         success: true,
@@ -218,7 +250,7 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * 每日签到（V4.0新增：必须签到才释放）
+   * 每日签到（V4.0新增：必须签到才释放）- localStorage版本
    */
   static async checkin(userId: string): Promise<ApiResponse<{ 
     checkedInCount: number
@@ -230,16 +262,12 @@ export class MiningService extends BaseService {
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // 1. 获取用户所有活跃学习卡
-      const { data: cards, error } = await supabase
-        .from('mining_machines')
-        .select('*')
-        .eq('user_id', userId)
-        .in('status', ['active', 'inactive'])
+      // 1. 从localStorage获取用户所有学习卡
+      const storageKey = 'user_learning_cards'
+      const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+      const userCards = allCards.filter((card: any) => card.user_id === userId)
 
-      if (error) throw error
-
-      if (!cards || cards.length === 0) {
+      if (userCards.length === 0) {
         return {
           success: false,
           error: '您还没有学习卡，请先兑换学习卡'
@@ -247,7 +275,9 @@ export class MiningService extends BaseService {
       }
 
       // 过滤未出局的学习卡
-      const activeCards = cards.filter(card => card.released_points < card.total_points)
+      const activeCards = userCards.filter((card: any) => 
+        card.released_points < card.total_points
+      )
 
       if (activeCards.length === 0) {
         return {
@@ -257,7 +287,9 @@ export class MiningService extends BaseService {
       }
 
       // 2. 检查今天是否已签到
-      const alreadyCheckedIn = activeCards.some(card => card.last_checkin_date === today)
+      const alreadyCheckedIn = activeCards.some((card: any) => 
+        card.last_checkin_date === today
+      )
       if (alreadyCheckedIn) {
         return {
           success: false,
@@ -265,31 +297,78 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 3. 计算释放率（基础2% + 直推加速）
-      const releaseRate = await this.calculateReleaseRate(userId)
+      // 3. 计算释放率（基础2%，暂时不考虑直推加速）
+      const releaseRate = AILearningConfig.MACHINE.BASE_RELEASE_RATE // 2%
 
       // 4. 批量签到并释放
       let totalReleased = 0
       let checkedInCount = 0
 
       for (const card of activeCards) {
+        // 计算今日释放量
+        const dailyRelease = card.total_points * releaseRate
+        card.released_points = Number((card.released_points + dailyRelease).toFixed(2))
+        
         // 更新签到状态
-        await supabase
-          .from('mining_machines')
-          .update({
-            last_checkin_date: today,
-            checkin_count: (card.checkin_count || 0) + 1,
-            is_checked_in_today: true,
-            is_active: true,
-            status: 'active',
-            boost_rate: releaseRate - AILearningConfig.RELEASE.BASE_RATE // 存储加速部分
-          })
-          .eq('id', card.id)
+        card.last_checkin_date = today
+        card.is_active = true
+        card.status = 'active'
+        card.boost_rate = 0
 
-        // 执行释放
-        const released = await this.releaseDailyPointsV4(card.id, releaseRate)
-        totalReleased += released
+        // 检查是否出局
+        if (card.released_points >= card.total_points) {
+          card.released_points = card.total_points
+          card.is_active = false
+          card.status = 'finished'
+        }
+
+        totalReleased += dailyRelease
         checkedInCount++
+      }
+
+      // 5. 保存更新后的学习卡到localStorage
+      localStorage.setItem(storageKey, JSON.stringify(allCards))
+      
+      console.log('✅ 签到完成，已更新学习卡:', activeCards.map(c => ({
+        id: c.id.slice(-4),
+        released: c.released_points,
+        total: c.total_points,
+        progress: `${((c.released_points / c.total_points) * 100).toFixed(1)}%`
+      })))
+
+      // 6. 分配释放的积分到用户账户
+      // 70% 转 U (兑换价1:1)
+      const toU = totalReleased * 0.70
+      const uAmount = toU * 1 // 1积分 = 1U
+      
+      // 30% 转互转积分
+      const toTransfer = totalReleased * 0.30
+
+      // 更新用户余额
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      const userKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === userId
+      )
+      
+      if (userKey) {
+        const user = registeredUsers[userKey].userData
+        
+        // 防御性检查：确保所有余额字段都是有效数字
+        const currentUBalance = Number(user.u_balance) || 0
+        const currentTransferPoints = Number(user.transfer_points) || 0
+        const currentPointsBalance = Number(user.points_balance) || 0
+        
+        // 更新余额（确保使用安全的数值运算）
+        user.u_balance = Number((currentUBalance + uAmount).toFixed(2))
+        user.transfer_points = Number((currentTransferPoints + toTransfer).toFixed(2))
+        user.points_balance = Number((currentPointsBalance + toTransfer).toFixed(2))
+        
+        registeredUsers[userKey].userData = user
+        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+        
+        console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
+        console.log(`   余额变化：U ${currentUBalance} → ${user.u_balance} (+${uAmount.toFixed(2)})`)
+        console.log(`   互转积分：${currentTransferPoints} → ${user.transfer_points} (+${toTransfer.toFixed(2)})`)
       }
 
       return {
@@ -299,7 +378,7 @@ export class MiningService extends BaseService {
           totalReleased,
           releaseRate
         },
-        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分`
+        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toTransfer.toFixed(2)}互转积分）`
       }
     } catch (error) {
       return this.handleError(error)

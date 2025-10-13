@@ -64,19 +64,8 @@ onMounted(async () => {
     // 初始化认证状态
     await authStore.initialize()
     
-    // 初始化完成后，根据认证状态决定路由
+    // 初始化完成，路由守卫会处理所有的跳转逻辑
     isInitializing.value = false
-    
-    // 如果当前在需要认证的页面，但用户未登录，跳转到登录页
-    const requiresAuth = route.matched.some(record => record.meta.requiresAuth)
-    
-    if (requiresAuth && !authStore.isAuthenticated) {
-      router.replace({ name: 'login', query: { redirect: route.fullPath } })
-    }
-    // 如果当前在登录/注册页，但用户已登录，跳转到首页
-    else if ((route.name === 'login' || route.name === 'register') && authStore.isAuthenticated) {
-      router.replace({ name: 'chat' })
-    }
   } catch (error) {
     console.error('初始化失败:', error)
     isInitializing.value = false

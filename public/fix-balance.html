@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>余额修复工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .section h2 {
+      color: #667eea;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      margin: 5px 0;
+      background: white;
+      border-radius: 8px;
+    }
+    
+    .label {
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .value {
+      font-family: 'Courier New', monospace;
+      color: #667eea;
+      font-weight: bold;
+    }
+    
+    .error {
+      color: #e74c3c;
+    }
+    
+    .success {
+      color: #27ae60;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin: 5px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .danger {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+    
+    .log {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    
+    .log-line {
+      margin: 3px 0;
+    }
+    
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 余额修复工具</h1>
+    <p class="subtitle">诊断和修复签到余额清零问题</p>
+    
+    <!-- 当前状态 -->
+    <div class="section">
+      <h2>📊 当前状态</h2>
+      <div id="currentStatus"></div>
+    </div>
+    
+    <!-- 学习卡状态 -->
+    <div class="section">
+      <h2>📚 学习卡状态</h2>
+      <div id="cardsStatus"></div>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="section">
+      <h2>🛠️ 操作</h2>
+      <div class="buttons">
+        <button onclick="checkBalance()">🔍 检查余额</button>
+        <button onclick="fixBalance()">✨ 修复余额</button>
+        <button onclick="testCheckin()">📝 模拟签到测试</button>
+        <button onclick="showDetails()">📋 详细信息</button>
+        <button onclick="clearAll()" class="danger">🗑️ 清除所有数据</button>
+      </div>
+    </div>
+    
+    <!-- 日志 -->
+    <div class="section">
+      <h2>📜 操作日志</h2>
+      <div class="log" id="logContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    let logs = []
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString()
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : '📝'
+      logs.push(`[${timestamp}] ${prefix} ${message}`)
+      updateLog()
+    }
+    
+    function updateLog() {
+      const container = document.getElementById('logContainer')
+      container.innerHTML = logs.map(l => `<div class="log-line">${l}</div>`).join('')
+      container.scrollTop = container.scrollHeight
+    }
+    
+    function getCurrentUser() {
+      const currentUser = localStorage.getItem('current_user')
+      if (!currentUser) {
+        log('未找到登录用户', 'error')
+        return null
+      }
+      
+      const users = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      if (!users[currentUser]) {
+        log(`用户 ${currentUser} 数据不存在`, 'error')
+        return null
+      }
+      
+      return {
+        username: currentUser,
+        data: users[currentUser].userData,
+        allUsers: users
+      }
+    }
+    
+    function checkBalance() {
+      log('开始检查余额...')
+      const user = getCurrentUser()
+      if (!user) return
+      
+      const data = user.data
+      const html = `
+        <div class="info-row">
+          <span class="label">用户名:</span>
+          <span class="value">${user.username}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">U余额:</span>
+          <span class="value ${isNaN(data.u_balance) ? 'error' : ''}">${data.u_balance} U ${isNaN(data.u_balance) ? '(错误！)' : ''}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">互转积分:</span>
+          <span class="value ${isNaN(data.transfer_points) ? 'error' : ''}">${data.transfer_points} ${isNaN(data.transfer_points) ? '(错误！)' : ''}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">总积分:</span>
+          <span class="value ${isNaN(data.points_balance) ? 'error' : ''}">${data.points_balance} ${isNaN(data.points_balance) ? '(错误！)' : ''}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">代理身份:</span>
+          <span class="value ${data.is_agent ? 'success' : 'error'}">${data.is_agent ? '✅ 是' : '❌ 否'}</span>
+        </div>
+      `
+      
+      document.getElementById('currentStatus').innerHTML = html
+      
+      if (isNaN(data.u_balance) || isNaN(data.transfer_points) || isNaN(data.points_balance)) {
+        log('发现余额异常！建议立即修复', 'error')
+      } else {
+        log('余额检查完成，数据正常', 'success')
+      }
+      
+      checkCards()
+    }
+    
+    function checkCards() {
+      const user = getCurrentUser()
+      if (!user) return
+      
+      const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+      const userCards = cards.filter(c => c.user_id === user.data.id)
+      
+      if (userCards.length === 0) {
+        document.getElementById('cardsStatus').innerHTML = '<p>暂无学习卡</p>'
+        log(`用户没有学习卡`)
+        return
+      }
+      
+      const html = userCards.map((card, idx) => `
+        <div class="info-row">
+          <span class="label">学习卡 ${idx + 1}:</span>
+          <span class="value">${card.released_points} / ${card.total_points} (${((card.released_points / card.total_points) * 100).toFixed(1)}%)</span>
+        </div>
+      `).join('')
+      
+      document.getElementById('cardsStatus').innerHTML = html
+      log(`找到 ${userCards.length} 张学习卡`)
+    }
+    
+    function fixBalance() {
+      log('开始修复余额...')
+      const user = getCurrentUser()
+      if (!user) return
+      
+      const data = user.data
+      let fixed = false
+      
+      // 修复 u_balance
+      if (isNaN(data.u_balance) || data.u_balance === null || data.u_balance === undefined) {
+        log('修复 u_balance: undefined/NaN → 50U', 'success')
+        data.u_balance = 50
+        fixed = true
+      }
+      
+      // 修复 transfer_points
+      if (isNaN(data.transfer_points) || data.transfer_points === null || data.transfer_points === undefined) {
+        log('修复 transfer_points: undefined/NaN → 0', 'success')
+        data.transfer_points = 0
+        fixed = true
+      }
+      
+      // 修复 points_balance
+      if (isNaN(data.points_balance) || data.points_balance === null || data.points_balance === undefined) {
+        log('修复 points_balance: undefined/NaN → 0', 'success')
+        data.points_balance = 0
+        fixed = true
+      }
+      
+      if (fixed) {
+        // 保存修复后的数据
+        user.allUsers[user.username].userData = data
+        localStorage.setItem('registered_users', JSON.stringify(user.allUsers))
+        log('✅ 余额修复完成！', 'success')
+        
+        // 重新检查
+        setTimeout(() => checkBalance(), 500)
+      } else {
+        log('余额数据正常，无需修复', 'success')
+      }
+    }
+    
+    function testCheckin() {
+      log('开始模拟签到测试...')
+      const user = getCurrentUser()
+      if (!user) return
+      
+      const data = user.data
+      const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+      const userCards = cards.filter(c => c.user_id === data.id && c.released_points < c.total_points)
+      
+      if (userCards.length === 0) {
+        log('没有可签到的学习卡', 'error')
+        return
+      }
+      
+      const releaseRate = 0.02 // 2%
+      let totalReleased = 0
+      
+      userCards.forEach(card => {
+        const dailyRelease = card.total_points * releaseRate
+        totalReleased += dailyRelease
+        log(`学习卡释放: ${dailyRelease.toFixed(2)} 积分`)
+      })
+      
+      const toU = totalReleased * 0.7
+      const toTransfer = totalReleased * 0.3
+      
+      // 模拟防御性检查
+      const currentUBalance = Number(data.u_balance) || 0
+      const currentTransferPoints = Number(data.transfer_points) || 0
+      const currentPointsBalance = Number(data.points_balance) || 0
+      
+      log(`当前余额: ${currentUBalance}U`)
+      log(`释放总量: ${totalReleased.toFixed(2)} 积分`)
+      log(`→ 70% 转U: ${toU.toFixed(2)} → 预计余额: ${(currentUBalance + toU).toFixed(2)}U`)
+      log(`→ 30% 转积分: ${toTransfer.toFixed(2)} → 预计积分: ${(currentTransferPoints + toTransfer).toFixed(2)}`)
+      log('✅ 模拟测试完成（未实际修改数据）', 'success')
+    }
+    
+    function showDetails() {
+      log('显示详细信息...')
+      const user = getCurrentUser()
+      if (!user) return
+      
+      log('=== 用户详细信息 ===')
+      log(`ID: ${user.data.id}`)
+      log(`用户名: ${user.username}`)
+      log(`U余额: ${user.data.u_balance}`)
+      log(`互转积分: ${user.data.transfer_points}`)
+      log(`总积分: ${user.data.points_balance}`)
+      log(`代理身份: ${user.data.is_agent}`)
+      log(`管理员: ${user.data.is_admin}`)
+      log(`邀请码: ${user.data.invite_code}`)
+      
+      const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+      const userCards = cards.filter(c => c.user_id === user.data.id)
+      log(`=== 学习卡信息 (${userCards.length}张) ===`)
+      userCards.forEach((card, idx) => {
+        log(`[${idx + 1}] 释放: ${card.released_points}/${card.total_points} | 状态: ${card.status}`)
+      })
+    }
+    
+    function clearAll() {
+      if (!confirm('⚠️ 确定要清除所有数据吗？这将删除所有用户、学习卡和交易记录！')) {
+        return
+      }
+      
+      log('清除所有数据...', 'error')
+      localStorage.clear()
+      log('✅ 数据已清除', 'success')
+      
+      setTimeout(() => {
+        if (confirm('是否重新加载页面？')) {
+          location.href = '/'
+        }
+      }, 1000)
+    }
+    
+    // 页面加载时自动检查
+    window.onload = () => {
+      log('余额修复工具已就绪')
+      checkBalance()
+    }
+  </script>
+</body>
+</html>
+

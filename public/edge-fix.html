@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Edge浏览器修复 - AI智能科技学习集成</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        .status {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.loading {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .alert {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #92400e;
+        }
+        .alert strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 15px;
+        }
+        .steps {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .steps h3 {
+            color: #374151;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .steps ol {
+            padding-left: 20px;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Edge浏览器专用修复</h1>
+        <p class="subtitle">解决Edge浏览器登录失败问题</p>
+        
+        <div class="alert">
+            <strong>⚠️ Edge浏览器特别提示</strong>
+            Edge浏览器的缓存机制较特殊，需要彻底清理才能正常使用
+        </div>
+        
+        <div id="status" class="status">
+            <div class="icon">🔧</div>
+            <div>准备就绪，点击下方按钮开始修复</div>
+        </div>
+        
+        <div id="progress" class="progress" style="display: none;">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="edgeFix()">
+            <span>⚡</span>
+            <span>Edge浏览器一键修复</span>
+        </button>
+        
+        <button class="btn btn-success" onclick="openInPrivate()">
+            <span>🔒</span>
+            <span>在InPrivate模式下打开</span>
+        </button>
+        
+        <button class="btn btn-warning" onclick="manualClear()">
+            <span>📖</span>
+            <span>查看手动清理步骤</span>
+        </button>
+        
+        <div class="steps">
+            <h3>🚀 自动修复步骤</h3>
+            <ol>
+                <li>点击"Edge浏览器一键修复"</li>
+                <li>等待清理所有缓存（约5秒）</li>
+                <li>自动跳转到登录页面</li>
+                <li>使用账号密码登录</li>
+            </ol>
+        </div>
+        
+        <div class="steps" style="margin-top: 15px; background: #dbeafe;">
+            <h3>🔒 InPrivate模式（推荐）</h3>
+            <ol>
+                <li>点击"在InPrivate模式下打开"</li>
+                <li>或按快捷键：<strong>Ctrl + Shift + N</strong></li>
+                <li>在InPrivate窗口中访问网站</li>
+                <li>不会受到缓存影响</li>
+            </ol>
+        </div>
+        
+        <div id="manual-steps" class="steps" style="margin-top: 15px; background: #fef3c7; display: none;">
+            <h3>📖 Edge手动清理步骤</h3>
+            <ol>
+                <li>按快捷键：<strong>Ctrl + Shift + Delete</strong></li>
+                <li>时间范围选择：<strong>所有时间</strong></li>
+                <li>勾选以下项目：
+                    <ul style="margin-top: 5px;">
+                        <li>✓ 浏览历史记录</li>
+                        <li>✓ Cookie和其他站点数据</li>
+                        <li>✓ 缓存的图像和文件</li>
+                    </ul>
+                </li>
+                <li>点击"立即清除"</li>
+                <li>关闭浏览器后重新打开</li>
+                <li>访问：<strong>https://eth10.netlify.app</strong></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let progressInterval;
+        
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('progress-bar');
+            if (progressBar) {
+                progressBar.style.width = percent + '%';
+            }
+        }
+        
+        function showProgress() {
+            const progress = document.getElementById('progress');
+            progress.style.display = 'block';
+            let percent = 0;
+            progressInterval = setInterval(() => {
+                percent += 5;
+                updateProgress(percent);
+                if (percent >= 100) {
+                    clearInterval(progressInterval);
+                }
+            }, 250);
+        }
+        
+        async function edgeFix() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                statusDiv.className = 'status loading';
+                statusDiv.innerHTML = `
+                    <div class="spinner"></div>
+                    <div style="margin-top: 15px;">正在清理Edge浏览器缓存...</div>
+                `;
+                
+                showProgress();
+                
+                // 1. 清理所有缓存
+                console.log('开始清理缓存...');
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    console.log('找到缓存:', cacheNames);
+                    await Promise.all(
+                        cacheNames.map(cacheName => {
+                            console.log('删除缓存:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }
+                
+                updateProgress(30);
+                
+                // 2. 注销所有Service Worker
+                console.log('注销Service Worker...');
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        console.log('注销:', registration);
+                        await registration.unregister();
+                    }
+                }
+                
+                updateProgress(50);
+                
+                // 3. 清空存储
+                console.log('清空存储...');
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                } catch (e) {
+                    console.log('存储清理失败:', e);
+                }
+                
+                updateProgress(70);
+                
+                // 4. 清空IndexedDB
+                console.log('清空IndexedDB...');
+                if ('indexedDB' in window) {
+                    try {
+                        const databases = await indexedDB.databases();
+                        for (let db of databases) {
+                            if (db.name) {
+                                console.log('删除数据库:', db.name);
+                                indexedDB.deleteDatabase(db.name);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('IndexedDB清理失败:', e);
+                    }
+                }
+                
+                updateProgress(90);
+                
+                // 5. 清理Cookie
+                console.log('清理Cookie...');
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                updateProgress(100);
+                
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <div class="icon">✅</div>
+                    <div><strong>Edge浏览器修复完成！</strong></div>
+                    <div style="font-size: 14px; margin-top: 5px;">正在跳转到登录页面...</div>
+                `;
+                
+                // 等待2秒后跳转
+                setTimeout(() => {
+                    const timestamp = Date.now();
+                    window.location.href = `https://eth10.netlify.app/login?v=${timestamp}&edge=true&fixed=true`;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('修复失败:', error);
+                if (progressInterval) clearInterval(progressInterval);
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <div class="icon">❌</div>
+                    <div><strong>自动修复失败</strong></div>
+                    <div style="font-size: 13px; margin-top: 5px;">${error.message}</div>
+                    <div style="font-size: 12px; margin-top: 10px;">请尝试使用InPrivate模式或手动清理</div>
+                `;
+            }
+        }
+        
+        function openInPrivate() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status success';
+            statusDiv.innerHTML = `
+                <div class="icon">🔒</div>
+                <div><strong>请按以下步骤操作：</strong></div>
+                <div style="font-size: 14px; margin-top: 10px;">
+                    1. 按快捷键 <strong>Ctrl + Shift + N</strong><br>
+                    2. 在InPrivate窗口访问网站<br>
+                    3. 或点击Edge右上角"..."选择"新建InPrivate窗口"
+                </div>
+            `;
+            
+            // 尝试在新窗口打开
+            setTimeout(() => {
+                window.open('https://eth10.netlify.app/login?v=' + Date.now(), '_blank');
+            }, 1000);
+        }
+        
+        function manualClear() {
+            const manualSteps = document.getElementById('manual-steps');
+            if (manualSteps.style.display === 'none') {
+                manualSteps.style.display = 'block';
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = 'status';
+                statusDiv.innerHTML = `
+                    <div class="icon">📖</div>
+                    <div>请查看下方的手动清理步骤</div>
+                `;
+            } else {
+                manualSteps.style.display = 'none';
+            }
+        }
+        
+        // 检测是否为Edge浏览器
+        function isEdge() {
+            return /Edg/.test(navigator.userAgent);
+        }
+        
+        // 页面加载时
+        window.addEventListener('load', () => {
+            console.log('Edge浏览器修复页面已加载');
+            console.log('User Agent:', navigator.userAgent);
+            console.log('是否为Edge:', isEdge());
+            
+            if (!isEdge()) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = 'status';
+                statusDiv.innerHTML = `
+                    <div class="icon">ℹ️</div>
+                    <div>检测到您不是Edge浏览器</div>
+                    <div style="font-size: 13px; margin-top: 5px;">但仍可使用此页面清理缓存</div>
+                `;
+            }
+            
+            // 如果URL中有auto参数，自动执行修复
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto') === 'true') {
+                setTimeout(() => {
+                    edgeFix();
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+

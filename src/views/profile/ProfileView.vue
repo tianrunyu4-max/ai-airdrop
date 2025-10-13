@@ -102,6 +102,74 @@
       </div>
     </div>
 
+    <!-- 提现功能卡片 -->
+    <div class="p-4">
+      <div class="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-lg border-2 border-blue-200">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-gray-600 text-sm">提现功能</div>
+            <div class="text-lg font-bold text-blue-600 mt-1">50U 起提</div>
+          </div>
+          <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+            <span class="text-3xl">💳</span>
+          </div>
+        </div>
+        
+        <!-- 提现地址管理 -->
+        <div class="mt-4">
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-300">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-sm font-semibold text-blue-700">提现地址管理</div>
+              <button 
+                @click="showAddAddressModal = true"
+                class="btn btn-sm btn-primary"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                添加地址
+              </button>
+            </div>
+            
+            <!-- 地址列表 -->
+            <div v-if="withdrawalAddresses.length > 0" class="space-y-2">
+              <div
+                v-for="(address, index) in withdrawalAddresses"
+                :key="index"
+                class="bg-white rounded-lg p-3 border border-blue-200 flex items-center justify-between"
+              >
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs px-2 py-1 rounded-full"
+                          :class="address.chain === 'TRC20' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'">
+                      {{ address.chain }}
+                    </span>
+                    <span class="text-xs text-gray-500">{{ address.label }}</span>
+                  </div>
+                  <div class="text-sm font-mono text-gray-700 break-all">
+                    {{ address.address }}
+                  </div>
+                </div>
+                <button
+                  @click="deleteAddress(index)"
+                  class="btn btn-xs btn-error btn-outline ml-2"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else class="text-center py-4 text-gray-500">
+              <div class="text-2xl mb-2">📍</div>
+              <div class="text-sm">暂无提现地址</div>
+              <div class="text-xs text-gray-400 mt-1">请添加您的提现地址</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 代理状态/成为代理卡片 -->
     <div v-if="!user?.is_agent" class="px-4 mb-4">
       <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg border-2 border-purple-200">
@@ -440,11 +508,125 @@
       </form>
     </dialog>
 
-    <!-- 提现Modal (保留原有逻辑) -->
-    <!-- ...原有的提现Modal代码... -->
+    <!-- 添加提现地址模态框 -->
+    <div v-if="showAddAddressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">添加提现地址</h3>
+          <button
+            @click="showAddAddressModal = false"
+            class="btn btn-sm btn-circle btn-ghost"
+          >
+            ✕
+          </button>
+        </div>
 
-    <!-- 转账Modal (保留原有逻辑) -->
-    <!-- ...原有的转账Modal代码... -->
+        <form @submit.prevent="addAddress" class="space-y-4">
+          <!-- 链类型选择 -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">选择链类型</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all"
+                     :class="newAddress.chain === 'TRC20' ? 'border-red-300 bg-red-50' : 'border-gray-200'">
+                <input
+                  type="radio"
+                  v-model="newAddress.chain"
+                  value="TRC20"
+                  class="sr-only"
+                />
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                       :class="newAddress.chain === 'TRC20' ? 'border-red-500 bg-red-500' : 'border-gray-300'">
+                    <div v-if="newAddress.chain === 'TRC20'" class="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-sm">波场链</div>
+                    <div class="text-xs text-gray-500">TRC20</div>
+                  </div>
+                </div>
+              </label>
+
+              <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all"
+                     :class="newAddress.chain === 'BEP20' ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'">
+                <input
+                  type="radio"
+                  v-model="newAddress.chain"
+                  value="BEP20"
+                  class="sr-only"
+                />
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                       :class="newAddress.chain === 'BEP20' ? 'border-yellow-500 bg-yellow-500' : 'border-gray-300'">
+                    <div v-if="newAddress.chain === 'BEP20'" class="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-sm">币安链</div>
+                    <div class="text-xs text-gray-500">BEP20</div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 地址标签 -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">地址标签</label>
+            <input
+              v-model="newAddress.label"
+              type="text"
+              placeholder="例如：我的钱包"
+              class="input input-bordered w-full"
+              required
+            />
+          </div>
+
+          <!-- 钱包地址 -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">钱包地址</label>
+            <input
+              v-model="newAddress.address"
+              type="text"
+              placeholder="请输入您的钱包地址"
+              class="input input-bordered w-full font-mono"
+              required
+            />
+          </div>
+
+          <!-- 提示信息 -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="flex items-start gap-2">
+              <div class="text-blue-500 text-sm">💡</div>
+              <div class="text-xs text-blue-700">
+                <div class="font-semibold mb-1">重要提示：</div>
+                <ul class="space-y-1">
+                  <li>• 请确保地址正确，错误地址将导致资金丢失</li>
+                  <li>• 提现最低金额：50U</li>
+                  <li>• 提现手续费：2U</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 按钮 -->
+          <div class="flex gap-3 pt-2">
+            <button
+              type="button"
+              @click="showAddAddressModal = false"
+              class="btn btn-outline flex-1"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary flex-1"
+              :disabled="!newAddress.chain || !newAddress.label || !newAddress.address"
+            >
+              添加地址
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -465,6 +647,15 @@ const { t } = useI18n()
 // 用户信息
 const user = computed(() => authStore.user)
 const networkCount = ref(0)
+
+// 提现相关数据
+const showAddAddressModal = ref(false)
+const withdrawalAddresses = ref<Array<{chain: string, label: string, address: string}>>([])
+const newAddress = ref({
+  chain: 'TRC20',
+  label: '',
+  address: ''
+})
 
 // 邀请码信息
 const inviteCode = computed(() => {
@@ -654,6 +845,33 @@ const loadNetworkStats = async () => {
     networkCount.value = data?.length || 0
   } catch (error) {
     console.error('加载团队统计失败:', error)
+  }
+}
+
+// 添加提现地址
+const addAddress = () => {
+  if (!newAddress.value.chain || !newAddress.value.label || !newAddress.value.address) {
+    toast.error('请填写完整信息')
+    return
+  }
+
+  // 简单的地址格式验证
+  if (newAddress.value.address.length < 20) {
+    toast.error('地址格式不正确')
+    return
+  }
+
+  withdrawalAddresses.value.push({ ...newAddress.value })
+  newAddress.value = { chain: 'TRC20', label: '', address: '' }
+  showAddAddressModal.value = false
+  toast.success('地址添加成功')
+}
+
+// 删除提现地址
+const deleteAddress = (index: number) => {
+  if (confirm('确定要删除这个地址吗？')) {
+    withdrawalAddresses.value.splice(index, 1)
+    toast.success('地址已删除')
   }
 }
 

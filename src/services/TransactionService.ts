@@ -21,7 +21,7 @@ export type { Transaction }
 
 export class TransactionService extends BaseService {
   /**
-   * 获取用户的交易记录
+   * 获取用户的交易记录（localStorage版本）
    */
   static async getUserTransactions(
     userId: string,
@@ -31,14 +31,23 @@ export class TransactionService extends BaseService {
     this.validateRequired({ userId }, ['userId'])
 
     try {
-      const transactions = await TransactionRepository.query({
-        user_id: userId,
-        limit,
-        offset
-      })
-      return { success: true, data: transactions }
+      // 从localStorage读取转账记录
+      const storageKey = 'user_transactions'
+      const allTransactions = JSON.parse(localStorage.getItem(storageKey) || '[]')
+      
+      // 过滤出该用户的记录
+      const userTransactions = allTransactions
+        .filter((t: Transaction) => t.user_id === userId)
+        .sort((a: Transaction, b: Transaction) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        .slice(offset, offset + limit)
+      
+      console.log(`✅ 从localStorage加载${userTransactions.length}条交易记录`)
+      return { success: true, data: userTransactions }
     } catch (error) {
-      return this.handleError(error)
+      console.error('获取交易记录失败:', error)
+      return { success: true, data: [] } // 出错时返回空数组
     }
   }
 
@@ -111,7 +120,7 @@ export class TransactionService extends BaseService {
   }
 
   /**
-   * 积分转账（使用新架构）
+   * 积分转账（localStorage版本）
    */
   static async transferPoints(params: Omit<TransferParams, 'type'>): Promise<ApiResponse<{
     message: string
@@ -130,50 +139,73 @@ export class TransactionService extends BaseService {
         return { success: false, error: '不能转账给自己' }
       }
 
-      // 2. 检查接收方是否存在
-      const toUser = await UserRepository.findById(toUserId)
-      if (!toUser) {
-        return { success: false, error: '接收方不存在' }
+      // 2. 使用localStorage处理积分转账
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      const fromUserKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === fromUserId
+      )
+      const toUserKey = Object.keys(registeredUsers).find(key => 
+        registeredUsers[key].userData.id === toUserId
+      )
+
+      if (!fromUserKey || !toUserKey) {
+        return { success: false, error: '用户不存在' }
       }
 
-      // 3. 检查发送方积分是否充足
-      await BalanceValidator.checkPointsSufficient(fromUserId, amount, 'transfer')
+      const fromUser = registeredUsers[fromUserKey].userData
+      const toUser = registeredUsers[toUserKey].userData
+
+      // 3. 检查积分是否充足
+      if (fromUser.transfer_points < amount) {
+        return { success: false, error: `积分不足，当前可转账积分: ${fromUser.transfer_points}` }
+      }
 
       // 4. 扣除发送方积分
-      const fromUser = await UserRepository.findById(fromUserId)
-      await UserRepository.updatePoints(
-        fromUserId,
-        fromUser.points_balance - amount,
-        fromUser.mining_points,
-        fromUser.transfer_points - amount
-      )
-
+      fromUser.transfer_points = Number((fromUser.transfer_points - amount).toFixed(2))
+      fromUser.points_balance = Number((fromUser.points_balance - amount).toFixed(2))
+      
       // 5. 增加接收方积分
-      await UserRepository.updatePoints(
-        toUserId,
-        toUser.points_balance + amount,
-        toUser.mining_points,
-        toUser.transfer_points + amount
-      )
+      toUser.transfer_points = Number((toUser.transfer_points + amount).toFixed(2))
+      toUser.points_balance = Number((toUser.points_balance + amount).toFixed(2))
 
-      // 6. 记录流水
-      await TransactionRepository.create({
+      // 6. 保存更新后的用户数据
+      registeredUsers[fromUserKey].userData = fromUser
+      registeredUsers[toUserKey].userData = toUser
+      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+
+      // 7. 记录转账流水
+      const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+      const timestamp = new Date().toISOString()
+
+      // 发送方流水
+      transactions.push({
+        id: `tx-${Date.now()}-points-out`,
         user_id: fromUserId,
-        type: 'transfer_out',
+        type: 'points_transfer_out',
         amount: -amount,
-        balance_after: fromUser.points_balance - amount,
+        balance_after: fromUser.points_balance,
         related_user_id: toUserId,
-        description: description || `转账积分给 ${toUser.username}`
+        currency: 'points',
+        description: description || `转账积分给 ${toUser.username}`,
+        created_at: timestamp
       })
 
-      await TransactionRepository.create({
+      // 接收方流水
+      transactions.push({
+        id: `tx-${Date.now()}-points-in`,
         user_id: toUserId,
-        type: 'transfer_in',
+        type: 'points_transfer_in',
         amount: amount,
-        balance_after: toUser.points_balance + amount,
+        balance_after: toUser.points_balance,
         related_user_id: fromUserId,
-        description: description || '收到积分转账'
+        currency: 'points',
+        description: description || `收到 ${fromUser.username} 的积分转账`,
+        created_at: timestamp
       })
+
+      localStorage.setItem('user_transactions', JSON.stringify(transactions))
+
+      console.log(`✅ 积分转账成功: ${fromUser.username} -> ${toUser.username}, ${amount} 积分`)
 
       return {
         success: true,
@@ -181,6 +213,7 @@ export class TransactionService extends BaseService {
         message: '转账成功'
       }
     } catch (error) {
+      console.error('积分转账失败:', error)
       return this.handleError(error)
     }
   }

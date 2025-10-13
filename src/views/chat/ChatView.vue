@@ -1,61 +1,61 @@
 <template>
-  <div class="h-full flex flex-col bg-gradient-to-b from-yellow-50 via-white to-yellow-50">
-    <!-- 头部 - 醒目设计 -->
-    <div class="navbar bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white shadow-2xl border-b-4 border-yellow-300">
+  <div class="h-full flex flex-col bg-white">
+    <!-- 头部 - 顶到最顶部 -->
+    <div class="navbar bg-transparent text-base-content w-full px-4 py-1 absolute top-0 left-0 right-0 z-10">
       <div class="flex-1">
         <div class="flex items-center gap-4">
           <!-- 大图标 -->
           <div class="avatar placeholder">
-            <div class="bg-base-100 text-primary rounded-full w-14 h-14 shadow-lg">
-              <span class="text-4xl">{{ currentGroup?.icon || '🤖' }}</span>
+            <div class="bg-base-100 text-primary rounded-full w-12 h-12 shadow-lg">
+              <span class="text-3xl">{{ currentGroup?.icon || '🤖' }}</span>
             </div>
           </div>
           <!-- 标题信息 -->
           <div>
-            <h1 class="text-2xl font-black tracking-wide drop-shadow-lg">
+            <h1 class="text-xl font-black tracking-wide">
               {{ currentGroup?.name || 'AI科技' }}
             </h1>
             <div class="flex items-center gap-3 mt-1">
-              <p class="text-sm font-semibold opacity-90 flex items-center gap-1">
+              <p class="text-sm font-semibold text-base-content/70 flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                {{ formatNumber(currentGroup?.member_count || 0) }} 成员
+                {{ formatNumber(currentGroup?.member_count || 0) }}
               </p>
-              <span class="text-sm opacity-70">·</span>
-              <p class="text-sm font-semibold opacity-90 flex items-center gap-1">
+              <span class="text-sm text-base-content/50">·</span>
+              <p class="text-sm font-semibold text-base-content/70 flex items-center gap-1">
                 <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-                {{ onlineCount }} 在线
+                {{ onlineCount }}
               </p>
             </div>
           </div>
         </div>
       </div>
-      <div class="flex-none flex items-center gap-3">
-        <!-- 实时标签 -->
-        <div class="badge badge-success badge-lg gap-2 shadow-lg font-bold">
-          <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
-          实时推送
+      <div class="flex-none flex items-center gap-2">
+        <!-- 实时推送 - 横向显示 -->
+        <div class="badge badge-success badge-sm gap-1 font-bold">
+          <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+          <span class="whitespace-nowrap text-xs">实时推送</span>
+        </div>
+        <!-- 每日实操 -->
+        <div class="badge badge-info badge-sm gap-1 font-bold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="whitespace-nowrap text-xs">每日实操</span>
         </div>
         <!-- 群组选择器 - 所有人可见 -->
         <GroupSelector 
           :current-group-id="currentGroup?.id || null"
           @select="switchGroup"
         />
-        <!-- 代理标识 -->
-        <div v-if="authStore.user?.is_agent" class="badge badge-warning badge-lg gap-1 shadow-lg font-bold">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-          代理
-        </div>
       </div>
     </div>
 
-    <!-- 消息列表 - 简化版 -->
+    <!-- 消息列表 - 全屏聊天区域 -->
     <div
       ref="messageContainer"
-      class="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
+      class="flex-1 overflow-y-auto p-6 space-y-4 bg-white min-h-0 pt-20"
     >
       <!-- 机器人消息（空投推送） -->
       <div
@@ -200,7 +200,7 @@
       <div v-if="messages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
         <div class="text-8xl mb-6 animate-bounce">🤖</div>
         <h3 class="text-3xl font-bold text-primary mb-3">欢迎来到 AI科技</h3>
-        <p class="text-xl text-base-content/70 mb-6">等待 AI 机器人推送最新空投信息...</p>
+        <p class="text-xl text-base-content/70 mb-6">等待AI智能推送欧易 币安交易所空投资讯</p>
         <div class="flex gap-2">
           <span class="loading loading-dots loading-lg text-primary"></span>
         </div>
@@ -222,8 +222,8 @@
       <span>{{ t('chat.deleteAfter') }}</span>
     </div>
 
-    <!-- 输入框 - 加大尺寸 + 图片上传 -->
-    <div class="p-4 bg-yellow-50 border-t-2 border-yellow-200">
+    <!-- 输入框 - 全屏版 -->
+    <div class="p-6 bg-white border-t border-base-300">
       <!-- 图片预览 -->
       <div v-if="imagePreview" class="mb-3 relative inline-block">
         <img :src="imagePreview" class="max-w-xs max-h-32 rounded-lg" />
@@ -260,13 +260,13 @@
           v-model="messageInput"
           type="text"
           :placeholder="t('chat.inputPlaceholder')"
-          class="input input-bordered flex-1 input-lg text-base focus:input-primary transition-all"
+          class="input input-bordered flex-1 input-lg text-lg focus:input-primary transition-all h-14"
           :disabled="sending"
           maxlength="500"
         />
         <button
           type="submit"
-          class="btn btn-primary btn-lg px-10 gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold"
+          class="btn btn-primary btn-lg px-12 gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold h-14"
           :disabled="(!messageInput.trim() && !selectedImage) || sending"
         >
           <span v-if="sending" class="loading loading-spinner loading-md"></span>
@@ -284,8 +284,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase, isDevMode } from '@/lib/supabase'
 import type { Message, ChatGroup } from '@/types'
@@ -294,6 +295,7 @@ import GroupSelector from '@/components/GroupSelector.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const route = useRoute()
 
 const messages = ref<Message[]>([])
 const messageInput = ref('')
@@ -309,6 +311,7 @@ const fileInput = ref<HTMLInputElement>()
 // 订阅实时消息
 let messageSubscription: any = null
 let botInterval: any = null
+let cleanupInterval: any = null
 
 // 广告数据池（3张图片 + 标题）
 const adPool = [
@@ -406,22 +409,42 @@ const switchGroup = async (group: ChatGroup) => {
   }
 }
 
-// 加载群组消息
-const loadMessages = async (groupId: string) => {
+// 加载消息 - 简化版本，只使用localStorage，并清理10分钟前的消息
+const loadMessages = () => {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('chat_group_id', groupId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-      .limit(100)
-
-    if (error) throw error
-    messages.value = data || []
-    scrollToBottom()
+    console.log('🔍 开始加载消息')
+    
+    // 从localStorage加载消息
+    const storageKey = 'chat_messages'
+    const storedMessages = localStorage.getItem(storageKey)
+    
+    if (storedMessages) {
+      const parsedMessages = JSON.parse(storedMessages)
+      console.log('✅ 从localStorage加载消息:', parsedMessages.length)
+      
+      // 过滤掉10分钟前的消息
+      const tenMinutesAgo = Date.now() - 10 * 60 * 1000
+      const validMessages = parsedMessages.filter((msg: any) => {
+        const messageTime = new Date(msg.created_at).getTime()
+        return messageTime > tenMinutesAgo
+      })
+      
+      console.log(`🧹 清理旧消息: ${parsedMessages.length} -> ${validMessages.length}`)
+      
+      // 更新localStorage
+      if (validMessages.length !== parsedMessages.length) {
+        localStorage.setItem(storageKey, JSON.stringify(validMessages))
+      }
+      
+      messages.value = validMessages
+      scrollToBottom()
+    } else {
+      console.log('📝 localStorage没有消息')
+      messages.value = []
+    }
   } catch (error) {
     console.error('Load messages error:', error)
+    messages.value = []
   }
 }
 
@@ -561,37 +584,46 @@ const viewImage = (url: string) => {
   window.open(url, '_blank')
 }
 
-// 发送消息
+// 发送消息 - 简化版本，只使用localStorage
 const sendMessage = async () => {
   if (!messageInput.value.trim() && !selectedImage.value) return
-  if (!currentGroup.value) return
   if (!authStore.user) return
 
   try {
     sending.value = true
 
-    // 开发模式和生产模式都用同样的逻辑（因为Supabase配置了）
-    const newMessage: any = {
+    const messageContent = messageInput.value.trim() || '发送了一张图片'
+    const messageType = selectedImage.value ? 'image' : 'text'
+
+    // 创建消息对象
+    const newMessage = {
       id: `msg-${Date.now()}`,
-      chat_group_id: currentGroup.value.id,
       user_id: authStore.user.id,
       username: authStore.user.username,
-      content: messageInput.value.trim() || '发送了一张图片',
-      type: selectedImage.value ? 'image' : 'text',
+      content: messageContent,
+      type: messageType,
       is_bot: false,
       created_at: new Date().toISOString()
     }
 
-    // 如果有图片，使用预览URL
     if (selectedImage.value && imagePreview.value) {
       newMessage.image_url = imagePreview.value
     }
 
+    // 添加到界面显示
     messages.value.push(newMessage)
+    scrollToBottom()
+
+    // 保存到localStorage
+    const storageKey = 'chat_messages'
+    const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    storedMessages.push(newMessage)
+    localStorage.setItem(storageKey, JSON.stringify(storedMessages))
+    
+    console.log('✅ 消息已保存到localStorage:', newMessage)
     
     messageInput.value = ''
     cancelImage()
-    scrollToBottom()
   } catch (error) {
     console.error('Send message error:', error)
     alert('发送失败: ' + (error as Error).message)
@@ -747,16 +779,31 @@ const initDevMode = () => {
   startBotSimulation()
 }
 
+// 自动清理旧消息（每分钟检查一次）
+const startAutoCleanup = () => {
+  cleanupInterval = setInterval(() => {
+    console.log('⏰ 定时清理旧消息')
+    loadMessages() // loadMessages 会自动过滤并清理旧消息
+  }, 60000) // 每60秒检查一次
+}
+
 // 生命周期
-onMounted(async () => {
-  if (isDevMode) {
-    // 开发模式：使用模拟数据
-    initDevMode()
-  } else {
-    // 生产模式：连接真实数据库
-    await getDefaultGroup()
-    await loadMessages()
-    subscribeToMessages()
+onMounted(() => {
+  // 简化版本：直接加载消息，不订阅数据库
+  loadMessages()
+  // 不再订阅数据库消息，完全使用localStorage
+  // subscribeToMessages()
+  
+  // 启动自动清理
+  startAutoCleanup()
+})
+
+// 监听路由变化，当返回聊天页面时重新加载消息
+watch(() => route.path, (newPath, oldPath) => {
+  console.log('🔄 路由变化:', oldPath, '->', newPath)
+  if (newPath === '/chat' && oldPath !== '/chat') {
+    console.log('🔄 返回聊天页面，重新加载消息')
+    loadMessages()
   }
 })
 
@@ -766,6 +813,9 @@ onUnmounted(() => {
   }
   if (botInterval) {
     clearInterval(botInterval)
+  }
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval)
   }
 })
 
