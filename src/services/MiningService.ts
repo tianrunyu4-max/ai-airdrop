@@ -366,6 +366,30 @@ export class MiningService extends BaseService {
         registeredUsers[userKey].userData = user
         localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
         
+        // 7. 记录签到释放流水
+        const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+        const timestamp = new Date().toISOString()
+        
+        transactions.push({
+          id: `tx-${Date.now()}-checkin`,
+          user_id: userId,
+          type: 'checkin_release',
+          amount: uAmount,
+          balance_after: user.u_balance,
+          currency: 'U',
+          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）`,
+          metadata: {
+            cards_count: checkedInCount,
+            total_released: totalReleased,
+            to_u: uAmount,
+            to_transfer: toTransfer,
+            release_rate: releaseRate
+          },
+          created_at: timestamp
+        })
+        
+        localStorage.setItem('user_transactions', JSON.stringify(transactions))
+        
         console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
         console.log(`   余额变化：U ${currentUBalance} → ${user.u_balance} (+${uAmount.toFixed(2)})`)
         console.log(`   互转积分：${currentTransferPoints} → ${user.transfer_points} (+${toTransfer.toFixed(2)})`)

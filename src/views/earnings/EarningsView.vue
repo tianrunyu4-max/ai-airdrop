@@ -61,6 +61,57 @@
         <p class="text-gray-400 mt-4">加载中...</p>
       </div>
 
+      <!-- 签到释放记录 -->
+      <div v-if="activeTab === 'checkin'" class="space-y-3">
+        <div v-if="checkinRecords.length === 0" class="text-center py-12">
+          <div class="text-6xl mb-4">📅</div>
+          <p class="text-gray-600 font-medium mb-2">暂无签到释放记录</p>
+          <p class="text-xs text-gray-500">每日签到释放学习卡积分</p>
+        </div>
+        
+        <div 
+          v-for="record in checkinRecords" 
+          :key="record.id"
+          class="bg-white rounded-xl p-4 hover:bg-yellow-50 transition-all border-2 border-yellow-200 shadow-lg"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                <span class="text-white font-bold text-lg">📅</span>
+              </div>
+              <div>
+                <div class="text-gray-800 font-bold">签到释放</div>
+                <div class="text-xs text-gray-600">{{ formatDate(record.created_at) }}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xl font-bold text-green-600">+{{ record.amount.toFixed(2) }} U</div>
+              <div class="text-xs text-gray-400">{{ record.metadata?.cards_count || 1 }}张学习卡</div>
+            </div>
+          </div>
+          
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+            <div class="grid grid-cols-2 gap-2 text-xs mb-2">
+              <div>
+                <span class="text-gray-600">释放积分：</span>
+                <span class="text-green-600 font-bold">{{ record.metadata?.total_released?.toFixed(2) || '0' }}</span>
+              </div>
+              <div>
+                <span class="text-gray-600">释放率：</span>
+                <span class="text-green-600 font-bold">{{ ((record.metadata?.release_rate || 0) * 100).toFixed(1) }}%</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-600">
+              <span>70% → </span>
+              <span class="text-green-600 font-bold">{{ record.metadata?.to_u?.toFixed(2) || '0' }}U</span>
+              <span class="mx-2">|</span>
+              <span>30% → </span>
+              <span class="text-orange-600 font-bold">{{ record.metadata?.to_transfer?.toFixed(2) || '0' }}积分（已销毁）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 对碰奖记录 -->
       <div v-else-if="activeTab === 'pairing'" class="space-y-3">
         <div v-if="pairingRecords.length === 0" class="text-center py-12">
@@ -196,6 +247,10 @@
         <div class="font-bold text-gray-800 mb-3 text-sm">💡 收益说明</div>
         <ul class="space-y-2 text-gray-600">
           <li class="flex items-start gap-2">
+            <span class="text-green-500">📅</span>
+            <span><strong class="text-gray-800">签到释放：</strong>每日签到释放学习卡积分，基础2%/天，70%到账U余额</span>
+          </li>
+          <li class="flex items-start gap-2">
             <span class="text-yellow-500">💰</span>
             <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组10U（会员收益85%）</span>
           </li>
@@ -226,21 +281,24 @@ const toast = useToast()
 
 // 状态
 const loading = ref(true)
-const activeTab = ref<'pairing' | 'level' | 'dividend'>('pairing')
+const activeTab = ref<'checkin' | 'pairing' | 'level' | 'dividend'>('checkin')
 
 // 收益统计
 const totalEarnings = ref(0)
 const pairingBonus = ref(0)
 const levelBonus = ref(0)
 const dividend = ref(0)
+const checkinEarnings = ref(0)
 
 // 记录列表
+const checkinRecords = ref<any[]>([])
 const pairingRecords = ref<any[]>([])
 const levelRecords = ref<any[]>([])
 const dividendRecords = ref<any[]>([])
 
 // Tab配置
 const tabs = [
+  { label: '签到释放', value: 'checkin' as const },
   { label: '对碰奖', value: 'pairing' as const },
   { label: '平级奖', value: 'level' as const },
   { label: '分红', value: 'dividend' as const }
@@ -294,6 +352,31 @@ const loadEarningsStats = async () => {
   } catch (error: any) {
     console.error('加载收益统计失败:', error)
     toast.error('加载收益统计失败')
+  }
+}
+
+// 加载签到释放记录
+const loadCheckinRecords = async () => {
+  try {
+    const userId = authStore.user?.id
+    if (!userId) return
+
+    // 从localStorage读取交易记录
+    const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+    
+    // 筛选签到释放记录
+    checkinRecords.value = transactions
+      .filter((tx: any) => tx.user_id === userId && tx.type === 'checkin_release')
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 50)
+    
+    // 计算签到总收益
+    checkinEarnings.value = checkinRecords.value.reduce((sum, record) => sum + (record.amount || 0), 0)
+    
+    console.log(`✅ 加载了${checkinRecords.value.length}条签到释放记录`)
+  } catch (error: any) {
+    console.error('加载签到记录失败:', error)
+    toast.error('加载签到记录失败')
   }
 }
 
@@ -458,6 +541,7 @@ const loadAllData = async () => {
   try {
     await Promise.all([
       loadEarningsStats(),
+      loadCheckinRecords(),
       loadPairingRecords(),
       loadLevelRecords(),
       loadDividendRecords()
