@@ -2,6 +2,58 @@
   command = "npm run build"
   publish = "dist"
 
+# 静态HTML文件不重定向（先匹配）
+[[redirects]]
+  from = "/fix-balance.html"
+  to = "/fix-balance.html"
+  status = 200
+
+[[redirects]]
+  from = "/emergency-login.html"
+  to = "/emergency-login.html"
+  status = 200
+
+[[redirects]]
+  from = "/check-storage.html"
+  to = "/check-storage.html"
+  status = 200
+
+[[redirects]]
+  from = "/clear-cache.html"
+  to = "/clear-cache.html"
+  status = 200
+
+[[redirects]]
+  from = "/edge-fix.html"
+  to = "/edge-fix.html"
+  status = 200
+
+[[redirects]]
+  from = "/mobile-fix.html"
+  to = "/mobile-fix.html"
+  status = 200
+
+[[redirects]]
+  from = "/test-withdrawal.html"
+  to = "/test-withdrawal.html"
+  status = 200
+
+[[redirects]]
+  from = "/test.html"
+  to = "/test.html"
+  status = 200
+
+[[redirects]]
+  from = "/help.html"
+  to = "/help.html"
+  status = 200
+
+[[redirects]]
+  from = "/m.html"
+  to = "/m.html"
+  status = 200
+
+# SPA路由重定向（放在最后）
 [[redirects]]
   from = "/*"
   to = "/index.html"
