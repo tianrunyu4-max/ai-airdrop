@@ -4,7 +4,7 @@
  * 
  * 实现AI学习卡核心业务逻辑：
  * 1. 加入代理自动送100积分（可激活第1张学习卡）
- * 2. U余额兑换学习卡（7U = 100积分）
+ * 2. U余额兑换学习卡（8U = 100积分）
  * 3. 每日签到释放（不签到不释放）
  * 4. 基础释放率2%/天 + 直推加速3%/人，最高20%
  * 5. 10倍出局（50-500天）
@@ -24,7 +24,7 @@ import type { MiningMachine } from '@/types'
 
 export class MiningService extends BaseService {
   /**
-   * 兑换学习卡（V4.0新逻辑：6U余额 = 100积分 = 1张学习卡）- localStorage版本
+   * 兑换学习卡（V4.0新逻辑：8U余额 = 100积分 = 1张学习卡）- localStorage版本
    * 注意：需要代理身份（已加入Binary系统）
    */
   static async purchaseMachine(
@@ -75,7 +75,7 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 5. 计算费用（6U × 数量）
+      // 5. 计算费用（8U × 数量）
       const totalCost = AILearningConfig.MACHINE.COST_IN_U * quantity
 
       // 6. 检查余额（防御性检查：确保余额是有效数字）
@@ -217,9 +217,9 @@ export class MiningService extends BaseService {
       if (updateError) throw updateError
 
       // 🔥 核心逻辑：自动分配积分（V3.0：70%转U，30%互转）
-      // 70%转U（100积分=7U，所以1积分=0.07U）
+      // 70%转U（100积分=8U，所以1积分=0.08U）
       const toU = actualRelease * 0.70
-      const uAmount = toU * 0.07 // 1积分=0.07U
+      const uAmount = toU * 0.08 // 1积分=0.08U
       
       await WalletManager.add(
         machine.user_id,
@@ -495,7 +495,7 @@ export class MiningService extends BaseService {
       const toBurn = actualRelease * AILearningConfig.DISTRIBUTION.TO_BURN_PERCENT
 
       // 70%转U余额
-      const uAmount = toU * 0.07 // 100积分 = 7U，所以积分×0.07=U
+      const uAmount = toU * 0.08 // 100积分 = 8U，所以积分×0.08=U
       await WalletManager.add(
         machine.user_id,
         uAmount,

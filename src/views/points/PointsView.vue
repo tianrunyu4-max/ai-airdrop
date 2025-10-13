@@ -138,30 +138,30 @@
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
           <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 2.5-10%释放 · 3倍出局 · 70%到账30%销毁
+            每日签到 · 2-20%释放 · 10倍出局 · 70%到账30%销毁
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">兑换成本</div>
-            <div class="text-yellow-600 font-bold text-xl">6U</div>
+            <div class="text-yellow-600 font-bold text-xl">8U</div>
             <div class="text-gray-500 text-xs mt-1">= 100积分</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">出局倍数</div>
-            <div class="text-yellow-600 font-bold text-xl">3倍</div>
-            <div class="text-gray-500 text-xs mt-1">共300积分</div>
+            <div class="text-yellow-600 font-bold text-xl">10倍</div>
+            <div class="text-gray-500 text-xs mt-1">共1000积分</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">基础释放</div>
-            <div class="text-yellow-600 font-bold text-xl">2.5%/天</div>
+            <div class="text-yellow-600 font-bold text-xl">2%/天</div>
             <div class="text-gray-500 text-xs mt-1">需要签到</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">直推加速</div>
-            <div class="text-yellow-600 font-bold text-xl">+2.5%</div>
-            <div class="text-gray-500 text-xs mt-1">最高10%</div>
+            <div class="text-yellow-600 font-bold text-xl">+3%</div>
+            <div class="text-gray-500 text-xs mt-1">最高20%</div>
           </div>
         </div>
 
@@ -420,10 +420,10 @@ const activeCardCount = computed(() => {
   }).length
 })
 
-// 是否可以兑换（V4.0新逻辑：6U余额）
+// 是否可以兑换（V4.0新逻辑：8U余额）
 const canExchange = computed(() => {
   if (!user.value?.is_agent) return false
-  const totalCostU = purchaseCount.value * 6
+  const totalCostU = purchaseCount.value * 8
   const uBalance = user.value?.u_balance || 0
   const currentCount = myMachines.value.length
   return uBalance >= totalCostU && currentCount + purchaseCount.value <= 10
@@ -465,7 +465,7 @@ const handleCheckin = async () => {
   }
 }
 
-// V4.0兑换学习卡（6U = 100积分）
+// V4.0兑换学习卡（8U = 100积分）
 const exchangeCard = async () => {
   if (!user.value?.id) return
   

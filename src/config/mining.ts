@@ -9,7 +9,7 @@ export const AILearningConfig = {
   MACHINE: {
     NAME: 'AI学习卡',
     COST: 100,                    // 100积分
-    COST_IN_U: 6,                 // 6U可兑换100积分
+    COST_IN_U: 8,                 // 8U可兑换100积分
     EXIT_MULTIPLIER: 10,          // 10倍出局
     TOTAL_POINTS: 1000,           // 总产出1000积分（100×10）
     TOTAL_OUTPUT: 1000,           // 总产出1000积分（100×10）
