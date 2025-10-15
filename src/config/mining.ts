@@ -14,7 +14,7 @@ export const AILearningConfig = {
     TOTAL_POINTS: 300,            // 总产出300积分（100×3）
     TOTAL_OUTPUT: 300,            // 总产出300积分（100×3）
     BASE_RELEASE_RATE: 0.01,      // 基础释放率1%/天
-    DAILY_OUTPUT: 1,              // 每日产出1积分（100×1%）
+    DAILY_OUTPUT: 3,              // 每日产出3积分（300×1%）
     MAX_STACK: 10,                // 最多10张/人
     AUTO_GIFT: true,              // 成为AI代理自动送100积分
     FIRST_FREE: false             // 不再是第一次免费，而是成为代理自动送

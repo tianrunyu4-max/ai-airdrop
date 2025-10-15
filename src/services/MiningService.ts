@@ -170,11 +170,11 @@ export class MiningService extends BaseService {
         return 0
       }
 
-      // 计算每日释放量（基础10%，不再使用加速机制）
-      const dailyReleaseRate = machine.base_rate // 10%/天
-      const dailyRelease = machine.initial_points * dailyReleaseRate
+      // 计算每日释放量（基于总产出，而非初始投入）
+      const dailyReleaseRate = machine.base_rate
+      const dailyRelease = machine.total_points * dailyReleaseRate
       
-      // 检查是否会超过total_points（2倍出局）
+      // 检查是否会超过total_points（3倍出局）
       const potentialRelease = machine.released_points + dailyRelease
       let actualRelease = dailyRelease
       let shouldExit = false
@@ -458,8 +458,8 @@ export class MiningService extends BaseService {
         return 0
       }
 
-      // 计算每日释放量
-      const dailyRelease = machine.initial_points * releaseRate
+      // 计算每日释放量（基于总产出300积分，而非初始100积分）
+      const dailyRelease = machine.total_points * releaseRate
       
       // 检查是否会超过total_points（3倍出局）
       const potentialRelease = machine.released_points + dailyRelease
