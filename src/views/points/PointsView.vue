@@ -83,10 +83,10 @@
           <div class="text-center">
             <div class="text-gray-600 text-sm mb-1">当前释放率</div>
             <div class="text-green-600 font-bold text-3xl">
-              {{ (releaseRate * 100).toFixed(1) }}%/天
+              {{ (releaseRate * 100).toFixed(0) }}%/天
             </div>
             <div class="text-xs text-gray-500 mt-2">
-              基础 1% + 直推加速 {{ ((releaseRate - 0.01) * 100).toFixed(1) }}%
+              直推加速：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%
             </div>
             <div class="mt-3 pt-3 border-t border-green-200">
               <div class="text-xs text-gray-600 mb-1">每张卡每日释放</div>
@@ -153,7 +153,7 @@
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
           <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 1-10%释放 · 3倍出局 · 70%到账30%销毁
+            每日签到 · 1-15%释放 · 3倍出局 · 70%到账30%销毁
           </div>
         </div>
 
@@ -171,12 +171,12 @@
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">基础释放</div>
             <div class="text-yellow-600 font-bold text-xl">1%/天</div>
-            <div class="text-gray-500 text-xs mt-1">需要签到</div>
+            <div class="text-gray-500 text-xs mt-1">0个直推</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">直推加速</div>
-            <div class="text-yellow-600 font-bold text-xl">+1%</div>
-            <div class="text-gray-500 text-xs mt-1">最高10%</div>
+            <div class="text-yellow-600 font-bold text-xl">1→3→15%</div>
+            <div class="text-gray-500 text-xs mt-1">5个封顶</div>
           </div>
         </div>
 
@@ -195,7 +195,7 @@
           </div>
         </div>
 
-        <!-- 释放量对照表 -->
+        <!-- 释放量对照表 V4.3 -->
         <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 mb-6 border border-blue-200">
           <div class="text-center text-sm font-bold text-gray-700 mb-3">💰 每日释放量对照表</div>
           <div class="space-y-1.5 text-xs">
@@ -204,20 +204,28 @@
               <span class="text-blue-600 font-bold">3积分/天 → 0.168U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">1个直推：2%</span>
-              <span class="text-blue-600 font-bold">6积分/天 → 0.336U</span>
+              <span class="text-gray-600">1个直推：3%</span>
+              <span class="text-blue-600 font-bold">9积分/天 → 0.504U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">5个直推：6%</span>
+              <span class="text-gray-600">2个直推：6%</span>
               <span class="text-blue-600 font-bold">18积分/天 → 1.008U</span>
             </div>
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+              <span class="text-gray-600">3个直推：9%</span>
+              <span class="text-blue-600 font-bold">27积分/天 → 1.512U</span>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+              <span class="text-gray-600">4个直推：12%</span>
+              <span class="text-green-600 font-bold">36积分/天 → 2.016U</span>
+            </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border-2 border-green-400">
-              <span class="text-gray-700 font-bold">9个直推：10%</span>
-              <span class="text-green-600 font-bold">30积分/天 → 1.68U</span>
+              <span class="text-gray-700 font-bold">5个直推：15%</span>
+              <span class="text-green-600 font-bold">45积分/天 → 2.52U</span>
             </div>
           </div>
           <div class="text-center text-xs text-gray-500 mt-2">
-            💡 基于300积分总产出（3倍出局），70%到账
+            💡 基于300积分总产出（3倍出局），70%到账，5个直推封顶
           </div>
         </div>
 
@@ -578,7 +586,7 @@ const loadMyMachines = async () => {
   }
 }
 
-// 计算释放率（localStorage版本）
+// V4.3 计算释放率（0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶）
 const calculateReleaseRate = async () => {
   if (!user.value?.id) return
   
@@ -595,12 +603,19 @@ const calculateReleaseRate = async () => {
       }
     }
     
-    // V4.2：基础1% + 直推加速1%×人数，最高10%（9个直推达到上限）
-    const count = Math.min(referralCount, 9) // 最多9个直推
-    const rate = Math.min(0.01 + count * 0.01, 0.10) // 1% + 1%/人，上限10%
+    // V4.3：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶
+    // 公式：rate = 0.01 + 0.01 * (3 * count - 1) when count > 0
+    let rate: number
+    if (referralCount === 0) {
+      rate = 0.01 // 1%
+    } else {
+      const count = Math.min(referralCount, 5) // 最多5个直推
+      const boost = 0.01 * (3 * count - 1)
+      rate = Math.min(0.01 + boost, 0.15) // 上限15%
+    }
     releaseRate.value = rate
     
-    console.log(`✅ V4.2释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(1)}%（基础1% + 加速${count}%）`)
+    console.log(`✅ V4.3释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(0)}%`)
   } catch (error) {
     console.error('计算释放率失败:', error)
     releaseRate.value = 0.01

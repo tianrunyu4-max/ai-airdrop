@@ -406,14 +406,11 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * 计算释放率（基础1% + 直推加速1%/人，最高10%）
+   * V4.3 计算释放率（0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶）
    */
   private static async calculateReleaseRate(userId: string): Promise<number> {
     try {
-      // 1. 基础释放率
-      let rate = AILearningConfig.RELEASE.BASE_RATE // 1%
-
-      // 2. 查询直推AI代理数量
+      // 1. 查询直推AI代理数量
       const { count, error } = await supabase
         .from('users')
         .select('id', { count: 'exact', head: true })
@@ -422,17 +419,28 @@ export class MiningService extends BaseService {
 
       if (error) {
         console.error('查询直推数量失败:', error)
-        return rate
+        return AILearningConfig.RELEASE.BASE_RATE
       }
 
-      // 3. 计算加速（每个直推+1%，最多9个）
-      const referralCount = Math.min(count || 0, AILearningConfig.RELEASE.MAX_REFERRALS)
-      const boost = referralCount * AILearningConfig.RELEASE.BOOST_PER_REFERRAL
+      const referralCount = count || 0
 
-      // 4. 总释放率（不超过10%）
-      rate = Math.min(rate + boost, AILearningConfig.RELEASE.MAX_RATE)
+      // 2. 计算释放率
+      // 0个直推：1%
+      // 1个直推：3% = 1% + 2%
+      // 2个直推：6% = 1% + 5%
+      // 3个直推：9% = 1% + 8%
+      // 4个直推：12% = 1% + 11%
+      // 5个直推：15% = 1% + 14%（封顶）
+      // 公式：rate = 0.01 + 0.01 * (3 * count - 1) when count > 0
+      let rate: number
+      if (referralCount === 0) {
+        rate = 0.01 // 1%
+      } else {
+        const boost = 0.01 * (3 * Math.min(referralCount, AILearningConfig.RELEASE.MAX_REFERRALS) - 1)
+        rate = Math.min(0.01 + boost, AILearningConfig.RELEASE.MAX_RATE)
+      }
 
-      console.log(`用户 ${userId} 释放率计算：基础${AILearningConfig.RELEASE.BASE_RATE*100}% + 直推${referralCount}人×1% = ${rate*100}%`)
+      console.log(`✅ V4.3释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(0)}%`)
 
       return rate
     } catch (error) {
