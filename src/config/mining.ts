@@ -1,7 +1,7 @@
 /**
- * AI学习卡系统配置 V4.0
+ * AI学习卡系统配置 V4.2
  * 更新日期：2025-10-15
- * 核心变更：签到释放 + 1%基础 + 3倍出局 + 直推加速2% + 70%到账30%销毁
+ * 核心变更：签到释放 + 1%基础 + 3倍出局 + 直推加速1% + 最高10% + 70%到账30%销毁
  */
 
 export const AILearningConfig = {
@@ -23,10 +23,10 @@ export const AILearningConfig = {
   // ========== 释放规则 ==========
   RELEASE: {
     BASE_RATE: 0.01,              // 基础释放率1%/天
-    BOOST_PER_REFERRAL: 0.02,     // 每直推1个AI代理 +2%
-    MAX_BOOST: 0.19,              // 最高加速19%（9个直推×2%，向下取整）
-    MAX_RATE: 0.20,               // 最高释放率20%（1%基础 + 19%加速）
-    MAX_REFERRALS: 9,             // 最多计算9个直推（1% + 9×2% = 19%，共20%）
+    BOOST_PER_REFERRAL: 0.01,     // 每直推1个AI代理 +1%
+    MAX_BOOST: 0.09,              // 最高加速9%（9个直推×1%）
+    MAX_RATE: 0.10,               // 最高释放率10%（1%基础 + 9%加速）
+    MAX_REFERRALS: 9,             // 最多计算9个直推（1% + 9×1% = 9%，共10%）
     REQUIRE_CHECKIN: true,        // 必须签到才释放
     TIME: '00:00',                // 每天00:00释放
     TIMEZONE: 'Asia/Shanghai'
