@@ -138,7 +138,7 @@
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
           <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 2-20%释放 · 3倍出局 · 70%到账30%销毁
+            每日签到 · 1-20%释放 · 3倍出局 · 70%到账30%销毁
           </div>
         </div>
 
@@ -155,12 +155,12 @@
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">基础释放</div>
-            <div class="text-yellow-600 font-bold text-xl">2%/天</div>
+            <div class="text-yellow-600 font-bold text-xl">1%/天</div>
             <div class="text-gray-500 text-xs mt-1">需要签到</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">直推加速</div>
-            <div class="text-yellow-600 font-bold text-xl">+3%</div>
+            <div class="text-yellow-600 font-bold text-xl">+2%</div>
             <div class="text-gray-500 text-xs mt-1">最高20%</div>
           </div>
         </div>
@@ -364,7 +364,7 @@
           
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
             <div class="font-bold text-green-700 mb-1">📊 每日收益</div>
-            <div>2-20%日释放率（直推加速），70%转U，30%自动销毁，3倍出局</div>
+            <div>1-20%日释放率（直推加速+2%），70%转U，30%自动销毁，3倍出局</div>
           </div>
         </div>
         
@@ -557,9 +557,9 @@ const compoundReinvest = async (machineId: string) => {
   }
 }
 
-// V4.0：重启学习机（3倍出局，积分清0销毁）
+// V4.0：重启学习卡（3倍出局，积分清0销毁）
 const restartMachine = async (machineId: string) => {
-  if (!confirm('⚠️ 确认重启这台学习卡吗？\n\n重启后：\n- 所有累计积分清0销毁\n- 重新开始3倍出局（300积分）\n- 学习等级重置为0\n- 继续2-20%日释放率（直推加速）')) {
+  if (!confirm('⚠️ 确认重启这台学习卡吗？\n\n重启后：\n- 所有累计积分清0销毁\n- 重新开始3倍出局（300积分）\n- 学习等级重置为0\n- 继续1-20%日释放率（直推加速+2%）')) {
     return
   }
 

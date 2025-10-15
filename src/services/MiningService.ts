@@ -3,11 +3,11 @@
  * 使用新架构：Repository + Wallet + Config
  * 
  * 实现AI学习卡核心业务逻辑：
- * 1. 加入代理自动送100积分（可激活第1张学习卡）
+ * 1. 加入代理（30U）自动送100积分（可激活第1张学习卡）
  * 2. U余额兑换学习卡（8U = 100积分）
  * 3. 每日签到释放（不签到不释放）
- * 4. 基础释放率2%/天 + 直推加速3%/人，最高20%
- * 5. 3倍出局（15-150天）
+ * 4. 基础释放率1%/天 + 直推加速2%/人，最高20%
+ * 5. 3倍出局（30-300天）
  * 6. 70%到账U余额，30%自动销毁清0
  * 7. 自动重启机制（总释放>新积分时触发）
  * 8. 叠加机制（最多10张）
@@ -406,12 +406,12 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * 计算释放率（基础2% + 直推加速3%/人，最高20%）
+   * 计算释放率（基础1% + 直推加速2%/人，最高20%）
    */
   private static async calculateReleaseRate(userId: string): Promise<number> {
     try {
       // 1. 基础释放率
-      let rate = AILearningConfig.RELEASE.BASE_RATE // 2%
+      let rate = AILearningConfig.RELEASE.BASE_RATE // 1%
 
       // 2. 查询直推AI代理数量
       const { count, error } = await supabase
@@ -425,14 +425,14 @@ export class MiningService extends BaseService {
         return rate
       }
 
-      // 3. 计算加速（每个直推+3%，最多6个）
+      // 3. 计算加速（每个直推+2%，最多9个）
       const referralCount = Math.min(count || 0, AILearningConfig.RELEASE.MAX_REFERRALS)
       const boost = referralCount * AILearningConfig.RELEASE.BOOST_PER_REFERRAL
 
       // 4. 总释放率（不超过20%）
       rate = Math.min(rate + boost, AILearningConfig.RELEASE.MAX_RATE)
 
-      console.log(`用户 ${userId} 释放率计算：基础${AILearningConfig.RELEASE.BASE_RATE*100}% + 直推${referralCount}人×3% = ${rate*100}%`)
+      console.log(`用户 ${userId} 释放率计算：基础${AILearningConfig.RELEASE.BASE_RATE*100}% + 直推${referralCount}人×2% = ${rate*100}%`)
 
       return rate
     } catch (error) {

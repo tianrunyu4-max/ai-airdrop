@@ -1,7 +1,7 @@
 /**
  * AI学习卡系统配置 V4.0
  * 更新日期：2025-10-15
- * 核心变更：签到释放 + 2%基础 + 3倍出局 + 直推加速3% + 70%到账30%销毁
+ * 核心变更：签到释放 + 1%基础 + 3倍出局 + 直推加速2% + 70%到账30%销毁
  */
 
 export const AILearningConfig = {
@@ -13,8 +13,8 @@ export const AILearningConfig = {
     EXIT_MULTIPLIER: 3,           // 3倍出局
     TOTAL_POINTS: 300,            // 总产出300积分（100×3）
     TOTAL_OUTPUT: 300,            // 总产出300积分（100×3）
-    BASE_RELEASE_RATE: 0.02,      // 基础释放率2%/天
-    DAILY_OUTPUT: 2,              // 每日产出2积分（100×2%）
+    BASE_RELEASE_RATE: 0.01,      // 基础释放率1%/天
+    DAILY_OUTPUT: 1,              // 每日产出1积分（100×1%）
     MAX_STACK: 10,                // 最多10张/人
     AUTO_GIFT: true,              // 成为AI代理自动送100积分
     FIRST_FREE: false             // 不再是第一次免费，而是成为代理自动送
@@ -22,11 +22,11 @@ export const AILearningConfig = {
   
   // ========== 释放规则 ==========
   RELEASE: {
-    BASE_RATE: 0.02,              // 基础释放率2%/天
-    BOOST_PER_REFERRAL: 0.03,     // 每直推1个AI代理 +3%
-    MAX_BOOST: 0.18,              // 最高加速18%（6个直推×3%）
-    MAX_RATE: 0.20,               // 最高释放率20%（2%基础 + 18%加速）
-    MAX_REFERRALS: 6,             // 最多计算6个直推（达到20%上限）
+    BASE_RATE: 0.01,              // 基础释放率1%/天
+    BOOST_PER_REFERRAL: 0.02,     // 每直推1个AI代理 +2%
+    MAX_BOOST: 0.19,              // 最高加速19%（9个直推×2%，向下取整）
+    MAX_RATE: 0.20,               // 最高释放率20%（1%基础 + 19%加速）
+    MAX_REFERRALS: 9,             // 最多计算9个直推（1% + 9×2% = 19%，共20%）
     REQUIRE_CHECKIN: true,        // 必须签到才释放
     TIME: '00:00',                // 每天00:00释放
     TIMEZONE: 'Asia/Shanghai'
