@@ -138,7 +138,7 @@
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
           <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 2-20%释放 · 10倍出局 · 70%到账30%销毁
+            每日签到 · 2-20%释放 · 3倍出局 · 70%到账30%销毁
           </div>
         </div>
 
@@ -150,8 +150,8 @@
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">出局倍数</div>
-            <div class="text-yellow-600 font-bold text-xl">10倍</div>
-            <div class="text-gray-500 text-xs mt-1">共1000积分</div>
+            <div class="text-yellow-600 font-bold text-xl">3倍</div>
+            <div class="text-gray-500 text-xs mt-1">共300积分</div>
           </div>
           <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
             <div class="text-gray-600 text-xs mb-1">基础释放</div>
@@ -349,22 +349,22 @@
 
           <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
             <div class="font-bold text-yellow-700 mb-1">🔄 手动重启</div>
-            <div>积分清0销毁，重新开始2倍出局（200积分），学习等级重置为0</div>
+            <div>积分清0销毁，重新开始3倍出局（300积分），学习等级重置为0</div>
           </div>
           
           <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div class="font-bold text-blue-700 mb-1">🚀 复购学习</div>
-            <div>支付100积分（7U）购买新学习机，重新开始2倍出局</div>
+            <div>支付100积分（8U）购买新学习卡，重新开始3倍出局</div>
           </div>
 
           <div class="bg-red-50 rounded-lg p-3 border border-red-200">
-            <div class="font-bold text-red-700 mb-1">🎁 首次免费</div>
-            <div>第一次购买学习机免费送，邀请人和团队可互转积分学习</div>
+            <div class="font-bold text-red-700 mb-1">🎁 代理自动送</div>
+            <div>成为AI代理自动送100积分，可以直接激活学习卡</div>
           </div>
           
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
             <div class="font-bold text-green-700 mb-1">📊 每日收益</div>
-            <div>10%日释放率，70%转U，30%互转积分，20天2倍出局</div>
+            <div>2-20%日释放率（直推加速），70%转U，30%自动销毁，3倍出局</div>
           </div>
         </div>
         
@@ -557,9 +557,9 @@ const compoundReinvest = async (machineId: string) => {
   }
 }
 
-// V3.0：重启学习机（2倍出局，积分清0销毁）
+// V4.0：重启学习机（3倍出局，积分清0销毁）
 const restartMachine = async (machineId: string) => {
-  if (!confirm('⚠️ 确认重启这台学习机吗？\n\n重启后：\n- 所有累计积分清0销毁\n- 重新开始2倍出局（200积分）\n- 学习等级重置为0\n- 继续10%日释放率')) {
+  if (!confirm('⚠️ 确认重启这台学习卡吗？\n\n重启后：\n- 所有累计积分清0销毁\n- 重新开始3倍出局（300积分）\n- 学习等级重置为0\n- 继续2-20%日释放率（直推加速）')) {
     return
   }
 
@@ -569,7 +569,7 @@ const restartMachine = async (machineId: string) => {
     const machine = myMachines.value.find(m => m.id === machineId)
     if (machine) {
       machine.is_active = true
-      machine.total_points = 200 // 2倍出局
+      machine.total_points = 300 // 3倍出局
       machine.released_points = 0
       machine.exited_at = null
       machine.restart_count = (machine.restart_count || 0) + 1
@@ -578,7 +578,7 @@ const restartMachine = async (machineId: string) => {
       localStorage.setItem('my_machines', JSON.stringify(myMachines.value))
 
       toast.removeToast(loadingToast)
-      toast.success('🔄 重启成功！积分已清0，重新开始2倍出局', 3000)
+      toast.success('🔄 重启成功！积分已清0，重新开始3倍出局', 3000)
     }
   } catch (error: any) {
     toast.removeToast(loadingToast)

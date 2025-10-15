@@ -7,12 +7,12 @@
  * 2. U余额兑换学习卡（8U = 100积分）
  * 3. 每日签到释放（不签到不释放）
  * 4. 基础释放率2%/天 + 直推加速3%/人，最高20%
- * 5. 10倍出局（50-500天）
+ * 5. 3倍出局（15-150天）
  * 6. 70%到账U余额，30%自动销毁清0
  * 7. 自动重启机制（总释放>新积分时触发）
  * 8. 叠加机制（最多10张）
  * 
- * 更新日期：2025-10-11
+ * 更新日期：2025-10-15
  */
 
 import { BaseService, type ApiResponse } from './BaseService'
@@ -341,8 +341,8 @@ export class MiningService extends BaseService {
       const toU = totalReleased * 0.70
       const uAmount = toU * 0.08 // 1积分 = 0.08U (100积分=8U)
       
-      // 30% 转互转积分
-      const toTransfer = totalReleased * 0.30
+      // 30% 销毁（V4.0：防泡沫机制，不再转互转积分）
+      const toBurn = totalReleased * 0.30
 
       // 更新用户余额
       const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
@@ -355,13 +355,9 @@ export class MiningService extends BaseService {
         
         // 防御性检查：确保所有余额字段都是有效数字
         const currentUBalance = Number(user.u_balance) || 0
-        const currentTransferPoints = Number(user.transfer_points) || 0
-        const currentPointsBalance = Number(user.points_balance) || 0
         
         // 更新余额（确保使用安全的数值运算）
         user.u_balance = Number((currentUBalance + uAmount).toFixed(2))
-        user.transfer_points = Number((currentTransferPoints + toTransfer).toFixed(2))
-        user.points_balance = Number((currentPointsBalance + toTransfer).toFixed(2))
         
         registeredUsers[userKey].userData = user
         localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
@@ -377,12 +373,12 @@ export class MiningService extends BaseService {
           amount: uAmount,
           balance_after: user.u_balance,
           currency: 'U',
-          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）`,
+          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
           metadata: {
             cards_count: checkedInCount,
             total_released: totalReleased,
             to_u: uAmount,
-            to_transfer: toTransfer,
+            to_burn: toBurn,
             release_rate: releaseRate
           },
           created_at: timestamp
@@ -392,7 +388,7 @@ export class MiningService extends BaseService {
         
         console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
         console.log(`   余额变化：U ${currentUBalance} → ${user.u_balance} (+${uAmount.toFixed(2)})`)
-        console.log(`   互转积分：${currentTransferPoints} → ${user.transfer_points} (+${toTransfer.toFixed(2)})`)
+        console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
       }
 
       return {
@@ -465,7 +461,7 @@ export class MiningService extends BaseService {
       // 计算每日释放量
       const dailyRelease = machine.initial_points * releaseRate
       
-      // 检查是否会超过total_points（10倍出局）
+      // 检查是否会超过total_points（3倍出局）
       const potentialRelease = machine.released_points + dailyRelease
       let actualRelease = dailyRelease
       let shouldExit = false
@@ -757,8 +753,8 @@ export class MiningService extends BaseService {
         return { success: false, error: '学习机还在学习中，无需重启' }
       }
 
-      // 🔥 V3.0 重启机制：所有积分清0销毁，重新开始2倍出局
-      const newTotalPoints = machine.initial_points * MiningConfig.EXIT_MULTIPLIER // 2倍 = 200积分
+      // 🔥 V4.0 重启机制：所有积分清0销毁，重新开始3倍出局
+      const newTotalPoints = machine.initial_points * AILearningConfig.MACHINE.EXIT_MULTIPLIER // 3倍 = 300积分
       
       const { error: updateError } = await supabase
         .from('mining_machines')
@@ -775,12 +771,12 @@ export class MiningService extends BaseService {
 
       if (updateError) throw updateError
 
-      console.log(`🔄 学习机 ${machineId} 重启成功，2倍出局（${newTotalPoints}积分），所有积分已清0销毁`)
+      console.log(`🔄 学习卡 ${machineId} 重启成功，3倍出局（${newTotalPoints}积分），所有积分已清0销毁`)
 
       return {
         success: true,
         data: true,
-        message: `🔄 重启成功！所有积分清0销毁，学习机重新开始2倍出局（${newTotalPoints}积分），5%释放率`
+        message: `🔄 重启成功！所有积分清0销毁，学习卡重新开始3倍出局（${newTotalPoints}积分），2-20%释放率`
       }
     } catch (error) {
       return this.handleError(error)
@@ -806,7 +802,7 @@ export class MiningService extends BaseService {
 
       // 批量重启
       for (const machine of machines) {
-        const newTotalPoints = machine.initial_points * MiningConfig.EXIT_MULTIPLIER // 2倍
+        const newTotalPoints = machine.initial_points * AILearningConfig.MACHINE.EXIT_MULTIPLIER // 3倍
 
         await supabase
           .from('mining_machines')

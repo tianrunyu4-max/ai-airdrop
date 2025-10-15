@@ -1,7 +1,7 @@
 /**
  * AI学习卡系统配置 V4.0
- * 更新日期：2025-10-11
- * 核心变更：签到释放 + 2%基础 + 10倍出局 + 直推加速3% + 70%到账30%销毁
+ * 更新日期：2025-10-15
+ * 核心变更：签到释放 + 2%基础 + 3倍出局 + 直推加速3% + 70%到账30%销毁
  */
 
 export const AILearningConfig = {
@@ -10,9 +10,9 @@ export const AILearningConfig = {
     NAME: 'AI学习卡',
     COST: 100,                    // 100积分
     COST_IN_U: 8,                 // 8U可兑换100积分
-    EXIT_MULTIPLIER: 10,          // 10倍出局
-    TOTAL_POINTS: 1000,           // 总产出1000积分（100×10）
-    TOTAL_OUTPUT: 1000,           // 总产出1000积分（100×10）
+    EXIT_MULTIPLIER: 3,           // 3倍出局
+    TOTAL_POINTS: 300,            // 总产出300积分（100×3）
+    TOTAL_OUTPUT: 300,            // 总产出300积分（100×3）
     BASE_RELEASE_RATE: 0.02,      // 基础释放率2%/天
     DAILY_OUTPUT: 2,              // 每日产出2积分（100×2%）
     MAX_STACK: 10,                // 最多10张/人
