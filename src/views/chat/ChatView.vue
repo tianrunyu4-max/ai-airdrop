@@ -868,11 +868,14 @@ const openUserCard = (userId: string) => {
     console.warn('⚠️ 无效的用户ID，无法查看名片')
     
     if (isDevMode) {
+      // 开发模式：显示提示
       alert('开发模式下暂不支持查看模拟用户的名片\n请在生产环境中测试此功能')
     } else {
-      alert('用户ID格式无效\n此数据可能来自开发环境，已自动清理')
+      // 生产环境：静默清理，不显示弹窗
+      console.log('🧹 检测到无效用户ID，自动清理中...')
       // 重新加载消息以清理无效数据
       loadMessages()
+      console.log('✅ 清理完成！页面将显示有效消息')
     }
     return
   }
