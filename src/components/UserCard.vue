@@ -153,6 +153,13 @@ const defaultAvatar = computed(() => {
 const loadCard = async () => {
   if (!props.userId) return
 
+  // 验证 UUID 格式
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(props.userId)) {
+    error.value = '无效的用户ID格式'
+    return
+  }
+
   loading.value = true
   error.value = ''
 

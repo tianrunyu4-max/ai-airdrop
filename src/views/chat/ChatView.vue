@@ -843,6 +843,15 @@ const startAutoCleanup = () => {
 
 // 用户名片相关方法
 const openUserCard = (userId: string) => {
+  // 验证是否为有效的 UUID（排除开发模式的模拟 ID）
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  
+  if (!uuidRegex.test(userId)) {
+    console.warn('⚠️ 无效的用户ID，无法查看名片（开发模式）')
+    alert('开发模式下暂不支持查看模拟用户的名片\n请在生产环境中测试此功能')
+    return
+  }
+  
   selectedUserId.value = userId
   showUserCard.value = true
 }
