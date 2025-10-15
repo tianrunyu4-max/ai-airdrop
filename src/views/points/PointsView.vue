@@ -86,7 +86,22 @@
               {{ (releaseRate * 100).toFixed(1) }}%/天
             </div>
             <div class="text-xs text-gray-500 mt-2">
-              基础 2.5% + 直推加速 {{ ((releaseRate - 0.025) * 100).toFixed(1) }}%
+              基础 1% + 直推加速 {{ ((releaseRate - 0.01) * 100).toFixed(1) }}%
+            </div>
+            <div class="mt-3 pt-3 border-t border-green-200">
+              <div class="text-xs text-gray-600 mb-1">每张卡每日释放</div>
+              <div class="flex items-center justify-center gap-4">
+                <div class="text-blue-600 font-bold text-lg">
+                  {{ (300 * releaseRate).toFixed(1) }} 积分
+                </div>
+                <div class="text-gray-400">→</div>
+                <div class="text-yellow-600 font-bold text-lg">
+                  {{ (300 * releaseRate * 0.7 * 0.08).toFixed(3) }} U
+                </div>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">
+                （30%销毁 {{ (300 * releaseRate * 0.3).toFixed(1) }} 积分）
+              </div>
             </div>
           </div>
         </div>
@@ -166,7 +181,7 @@
         </div>
 
         <!-- 收益分配 -->
-        <div class="bg-gradient-to-r from-yellow-100 to-yellow-50 rounded-xl p-4 mb-6 border border-yellow-300">
+        <div class="bg-gradient-to-r from-yellow-100 to-yellow-50 rounded-xl p-4 mb-4 border border-yellow-300">
           <div class="text-center text-sm font-bold text-gray-700 mb-3">📊 每日收益自动分配</div>
           <div class="space-y-2">
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
@@ -177,6 +192,32 @@
               <span class="text-gray-600">30% 自动销毁</span>
               <span class="text-red-600 font-bold">清0防泡沫</span>
             </div>
+          </div>
+        </div>
+
+        <!-- 释放量对照表 -->
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 mb-6 border border-blue-200">
+          <div class="text-center text-sm font-bold text-gray-700 mb-3">💰 每日释放量对照表</div>
+          <div class="space-y-1.5 text-xs">
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+              <span class="text-gray-600">0个直推：1%</span>
+              <span class="text-blue-600 font-bold">3积分/天 → 0.168U</span>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+              <span class="text-gray-600">1个直推：2%</span>
+              <span class="text-blue-600 font-bold">6积分/天 → 0.336U</span>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+              <span class="text-gray-600">5个直推：6%</span>
+              <span class="text-blue-600 font-bold">18积分/天 → 1.008U</span>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border-2 border-green-400">
+              <span class="text-gray-700 font-bold">9个直推：10%</span>
+              <span class="text-green-600 font-bold">30积分/天 → 1.68U</span>
+            </div>
+          </div>
+          <div class="text-center text-xs text-gray-500 mt-2">
+            💡 基于300积分总产出（3倍出局），70%到账
           </div>
         </div>
 
@@ -702,15 +743,15 @@ const calculateReleaseRate = async () => {
       }
     }
     
-    // 计算释放率：基础2% + 直推加速3%×人数，最高20%
-    const count = Math.min(referralCount, 6)
-    const rate = Math.min(0.02 + count * 0.03, 0.20)
+    // V4.2：基础1% + 直推加速1%×人数，最高10%（9个直推达到上限）
+    const count = Math.min(referralCount, 9) // 最多9个直推
+    const rate = Math.min(0.01 + count * 0.01, 0.10) // 1% + 1%/人，上限10%
     releaseRate.value = rate
     
-    console.log(`✅ 计算释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(1)}%`)
+    console.log(`✅ V4.2释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(1)}%（基础1% + 加速${count}%）`)
   } catch (error) {
     console.error('计算释放率失败:', error)
-    releaseRate.value = 0.02
+    releaseRate.value = 0.01
   }
 }
 
