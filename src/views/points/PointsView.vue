@@ -339,29 +339,7 @@
             </div>
           </div>
 
-          <!-- 操作按钮（V3.0：持续学习 送积分） -->
-          <div v-if="!machine.is_active" class="grid grid-cols-3 gap-2">
-            <button 
-              @click="compoundReinvest(machine.id)"
-              class="bg-gradient-to-r from-purple-400 to-purple-500 text-white py-2 rounded-lg font-bold text-xs hover:from-purple-500 hover:to-purple-600 transition-all"
-            >
-              💎 持续学习 送积分
-            </button>
-            <button 
-              @click="restartMachine(machine.id)"
-              class="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white py-2 rounded-lg font-bold text-xs hover:from-yellow-500 hover:to-yellow-600 transition-all"
-            >
-              🔄 重启（2倍）
-            </button>
-            <button 
-              @click="repurchaseMachine"
-              class="bg-gradient-to-r from-blue-400 to-blue-500 text-white py-2 rounded-lg font-bold text-xs hover:from-blue-500 hover:to-blue-600 transition-all"
-            >
-              🚀 复购
-            </button>
-          </div>
-
-          <div class="text-xs text-gray-500 mt-3 text-center">
+          <div class="text-xs text-gray-500 mt-2 text-center">
             开始时间：{{ formatDate(machine.created_at) }}
           </div>
         </div>
@@ -377,56 +355,6 @@
       </div>
     </div>
 
-    <!-- V3.0 说明模态框 -->
-    <dialog class="modal" :class="{ 'modal-open': showRestartInfo }">
-      <div class="modal-box bg-white max-w-2xl">
-        <h3 class="font-bold text-lg text-gray-800 mb-4">🔥 V3.0 学习机说明</h3>
-        
-        <div class="space-y-3 text-sm text-gray-700">
-          <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
-            <div class="font-bold text-purple-700 mb-1">💎 持续学习 送积分（推荐）</div>
-            <div>出局后免费升级，倍数翻倍：2倍→4倍→8倍→16倍...，保持10%释放率</div>
-          </div>
-
-          <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-            <div class="font-bold text-yellow-700 mb-1">🔄 手动重启</div>
-            <div>积分清0销毁，重新开始3倍出局（300积分），学习等级重置为0</div>
-          </div>
-          
-          <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div class="font-bold text-blue-700 mb-1">🚀 复购学习</div>
-            <div>支付100积分（8U）购买新学习卡，重新开始3倍出局</div>
-          </div>
-
-          <div class="bg-red-50 rounded-lg p-3 border border-red-200">
-            <div class="font-bold text-red-700 mb-1">🎁 代理自动送</div>
-            <div>成为AI代理自动送100积分，可以直接激活学习卡</div>
-          </div>
-          
-          <div class="bg-green-50 rounded-lg p-3 border border-green-200">
-            <div class="font-bold text-green-700 mb-1">📊 每日收益</div>
-            <div>1-10%日释放率（直推加速+1%），70%转U，30%自动销毁，3倍出局</div>
-          </div>
-        </div>
-        
-        <div class="modal-action">
-          <button class="btn bg-yellow-500 text-white hover:bg-yellow-600 border-none" @click="showRestartInfo = false">知道了</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop bg-black bg-opacity-30" @click="showRestartInfo = false">
-        <button>close</button>
-      </form>
-    </dialog>
-
-    <!-- 重启说明按钮（浮动） -->
-    <button 
-      @click="showRestartInfo = true"
-      class="fixed bottom-24 right-4 bg-yellow-500 text-white w-12 h-12 rounded-full shadow-xl flex items-center justify-center hover:bg-yellow-600 transition-all z-10"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </button>
   </div>
 </template>
 
@@ -449,7 +377,6 @@ const toast = useToast()
 const loading = ref(false)
 const purchaseCount = ref(1)
 const myMachines = ref<MiningMachine[]>([])
-const showRestartInfo = ref(false)
 const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
 
@@ -557,81 +484,6 @@ const exchangeCard = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// V3.0：持续学习 送积分（免费，倍数翻倍）
-const compoundReinvest = async (machineId: string) => {
-  const machine = myMachines.value.find(m => m.id === machineId)
-  if (!machine) return
-
-  const currentLevel = machine.compound_level || 0
-  const multipliers = [2, 4, 8, 16, 32, 64, 128, 256]
-  
-  if (currentLevel >= multipliers.length) {
-    toast.error('已达到最高学习等级')
-    return
-  }
-
-  const nextMultiplier = multipliers[currentLevel + 1]
-  
-  if (!confirm(`💎 确认持续学习 送积分吗？\n\n免费将出局倍数升级为 ${nextMultiplier}倍\n（${multipliers[currentLevel]}倍 → ${nextMultiplier}倍）\n\n继续10%日释放率，积分清0重新计算`)) {
-    return
-  }
-
-  const loadingToast = toast.info('正在升级学习等级...', 0)
-
-  try {
-    machine.is_active = true
-    machine.compound_level = currentLevel + 1
-    machine.total_points = 100 * nextMultiplier
-    machine.released_points = 0
-    machine.exited_at = null
-    machine.restart_count = (machine.restart_count || 0) + 1
-
-    localStorage.setItem('my_machines', JSON.stringify(myMachines.value))
-
-    toast.removeToast(loadingToast)
-    toast.success(`💎 升级成功！持续学习升级为${nextMultiplier}倍出局`, 3000)
-  } catch (error: any) {
-    toast.removeToast(loadingToast)
-    toast.error(error.message || '升级失败')
-  }
-}
-
-// V4.2：重启学习卡（3倍出局，积分清0销毁）
-const restartMachine = async (machineId: string) => {
-  if (!confirm('⚠️ 确认重启这台学习卡吗？\n\n重启后：\n- 所有累计积分清0销毁\n- 重新开始3倍出局（300积分）\n- 学习等级重置为0\n- 继续1-10%日释放率（直推加速+1%）')) {
-    return
-  }
-
-  const loadingToast = toast.info('正在重启...', 0)
-
-  try {
-    const machine = myMachines.value.find(m => m.id === machineId)
-    if (machine) {
-      machine.is_active = true
-      machine.total_points = 300 // 3倍出局
-      machine.released_points = 0
-      machine.exited_at = null
-      machine.restart_count = (machine.restart_count || 0) + 1
-      machine.compound_level = 0 // 重置学习等级
-
-      localStorage.setItem('my_machines', JSON.stringify(myMachines.value))
-
-      toast.removeToast(loadingToast)
-      toast.success('🔄 重启成功！积分已清0，重新开始3倍出局', 3000)
-    }
-  } catch (error: any) {
-    toast.removeToast(loadingToast)
-    toast.error(error.message || '重启失败')
-  }
-}
-
-// 复购学习
-const repurchaseMachine = () => {
-  // 滚动到顶部购买区域
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-  toast.info('💡 请在上方购买新的AI学习机 😊', 3000)
 }
 
 // 获取学习等级倍数
