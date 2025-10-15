@@ -1,23 +1,86 @@
 /**
- * BinaryService - 双轨制二元系统服务 V3.0
- * 更新日期：2025-10-07
+ * BinaryService - 双轨制二元系统服务 V4.2
+ * 更新日期：2025-10-14
  * 
  * 核心功能：
  * 1. AI自动排线（弱区优先，1:1平衡）
- * 2. 1:1对碰奖励（秒结算，85%到账）
- * 3. 8代平级奖励（串糖葫芦式直推链）
- * 4. 复投机制（300U提示，30U复投）
+ * 2. 2:1/1:2对碰奖励（秒结算，85%到账）
+ * 3. 3代平级奖励（串糖葫芦式直推链）
+ * 4. 复投机制（200U提示，30U复投）
  * 5. 分红结算（直推≥10人，15%分红）
+ * 
+ * ✨ V4.2 新特性：
+ * - 支持从数据库动态读取参数（热更新）
+ * - 降级到硬编码配置（数据库不可用时）
+ * - 参数缓存优化（减少查询次数）
  */
 
 import { BaseService, type ApiResponse } from './BaseService'
 import { UserRepository } from '@/repositories'
 import { WalletManager } from '@/wallet'
-import { BinaryConfig, type BinarySide, calculatePairingBonus, calculateLevelBonus } from '@/config/binary'
+import { BinaryConfig, type BinarySide, calculatePairingBonus, calculateLevelBonus, calculatePairingReadyCounts } from '@/config/binary'
+import { SystemParamsService } from './SystemParamsService'
 import { supabase } from '@/lib/supabase'
 import { DividendService } from './DividendService'
 
 export class BinaryService extends BaseService {
+  /**
+   * 获取动态配置参数（支持热更新）
+   * 优先从数据库读取，数据库不可用时降级到硬编码配置
+   */
+  private static async getDynamicConfig() {
+    try {
+      const [
+        pairingBonus,
+        levelBonusDepth,
+        levelBonusAmount,
+        reinvestThreshold,
+        minDirectReferrals,
+        dividendMinReferrals,
+        memberRatio,
+        platformRatio
+      ] = await Promise.all([
+        SystemParamsService.getParam('pairing_bonus_per_pair'),
+        SystemParamsService.getParam('level_bonus_depth'),
+        SystemParamsService.getParam('level_bonus_per_person'),
+        SystemParamsService.getParam('reinvest_threshold'),
+        SystemParamsService.getParam('min_direct_referrals'),
+        SystemParamsService.getParam('dividend_min_referrals'),
+        SystemParamsService.getParam('member_ratio'),
+        SystemParamsService.getParam('platform_ratio')
+      ])
+
+      return {
+        pairingBonus: pairingBonus || BinaryConfig.PAIRING.BONUS_PER_PAIR,
+        levelBonusDepth: levelBonusDepth || BinaryConfig.LEVEL_BONUS.DEPTH,
+        levelBonusAmount: levelBonusAmount || BinaryConfig.LEVEL_BONUS.AMOUNT,
+        reinvestThreshold: reinvestThreshold || BinaryConfig.REINVEST.THRESHOLD,
+        minDirectReferrals: minDirectReferrals || BinaryConfig.LEVEL_BONUS.UNLOCK_CONDITION,
+        dividendMinReferrals: dividendMinReferrals || BinaryConfig.DIVIDEND.CONDITION,
+        memberRatio: memberRatio ? memberRatio / 100 : BinaryConfig.PAIRING.MEMBER_RATIO,
+        platformRatio: platformRatio ? platformRatio / 100 : BinaryConfig.PAIRING.PLATFORM_RATIO,
+        // 硬编码配置（暂不支持动态修改）
+        joinFee: BinaryConfig.JOIN_FEE,
+        reinvestAmount: BinaryConfig.REINVEST.AMOUNT
+      }
+    } catch (error) {
+      console.warn('⚠️ 读取动态参数失败，降级使用硬编码配置', error)
+      // 降级到硬编码配置
+      return {
+        pairingBonus: BinaryConfig.PAIRING.BONUS_PER_PAIR,
+        levelBonusDepth: BinaryConfig.LEVEL_BONUS.DEPTH,
+        levelBonusAmount: BinaryConfig.LEVEL_BONUS.AMOUNT,
+        reinvestThreshold: BinaryConfig.REINVEST.THRESHOLD,
+        minDirectReferrals: BinaryConfig.LEVEL_BONUS.UNLOCK_CONDITION,
+        dividendMinReferrals: BinaryConfig.DIVIDEND.CONDITION,
+        memberRatio: BinaryConfig.PAIRING.MEMBER_RATIO,
+        platformRatio: BinaryConfig.PAIRING.PLATFORM_RATIO,
+        joinFee: BinaryConfig.JOIN_FEE,
+        reinvestAmount: BinaryConfig.REINVEST.AMOUNT
+      }
+    }
+  }
+
   /**
    * 加入双轨制系统
    * 注意：此方法由AgentService自动调用，用户成为代理时自动加入
@@ -310,9 +373,13 @@ export class BinaryService extends BaseService {
 
   /**
    * 计算对碰奖励（2:1或1:2配对，秒结算）
+   * V4.2：支持动态参数
    */
   static async calculatePairing(userId: string): Promise<void> {
     try {
+      // ✅ 读取动态配置
+      const config = await this.getDynamicConfig()
+
       const { data: member } = await supabase
         .from('binary_members')
         .select('*')
@@ -321,29 +388,18 @@ export class BinaryService extends BaseService {
 
       if (!member) return
 
-      // 获取待配对的数量
       const aPending = member.a_side_pending || 0
       const bPending = member.b_side_pending || 0
 
-      // V4.1: 2:1或1:2灵活配对
-      let pairsToSettle = 0
-      let pairingType = ''
-      
-      if (aPending >= 2 && bPending >= 1) {
-        // 2:1配对
-        pairsToSettle = Math.min(Math.floor(aPending / 2), bPending)
-        pairingType = '2:1'
-      } else if (aPending >= 1 && bPending >= 2) {
-        // 1:2配对
-        pairsToSettle = Math.min(aPending, Math.floor(bPending / 2))
-        pairingType = '1:2'
-      } else if (aPending >= 1 && bPending >= 1) {
-        // 1:1配对（兼容）
-        pairsToSettle = Math.min(aPending, bPending)
-        pairingType = '1:1'
+      // V4.2：仅在满足 2:1 或 1:2 条件时结算
+      const settlement = calculatePairingReadyCounts(aPending, bPending)
+
+      if (!settlement) {
+        // 不足以形成 2:1 / 1:2，对碰继续等待
+        return
       }
 
-      if (pairsToSettle === 0) return
+      const { pairsToSettle, pairingType } = settlement
 
       // ✅ 新增：检查对碰解锁状态（防止躺平获利）
       const { count: directReferrals } = await supabase
@@ -361,15 +417,15 @@ export class BinaryService extends BaseService {
 
       const totalPairings = pairingCount || 0
 
-      // ✅ 新规则：0直推最多10次对碰，≥2直推无限次
+      // ✅ 新规则：0直推最多10次对碰，≥2直推无限次（使用动态参数）
       const MAX_FREE_PAIRINGS = 10 // 未解锁用户的对碰次数限制
-      const isUnlocked = referralCount >= BinaryConfig.UNLOCK.MIN_DIRECT_REFERRALS
+      const isUnlocked = referralCount >= config.minDirectReferrals
 
       console.log(`💰 对碰计算 - 用户${userId}：${pairingType}配对，${pairsToSettle}组，直推${referralCount}人，已对碰${totalPairings}单，${isUnlocked ? '已解锁无限对碰' : `剩余${MAX_FREE_PAIRINGS - totalPairings}单`}`)
 
       // 如果未解锁且已达到限制次数
       if (!isUnlocked && totalPairings >= MAX_FREE_PAIRINGS) {
-        console.log(`⚠️ 用户${userId}未解锁且已达对碰上限（${MAX_FREE_PAIRINGS}单），需推荐≥2人解锁无限对碰`)
+        console.log(`⚠️ 用户${userId}未解锁且已达对碰上限（${MAX_FREE_PAIRINGS}单），需推荐≥${config.minDirectReferrals}人解锁无限对碰`)
         
         // 更新待配对数量（扣除但不奖励，防止累积）
         await this.updatePendingCounts(userId, pairsToSettle, pairingType)
@@ -385,10 +441,10 @@ export class BinaryService extends BaseService {
         console.log(`⚠️ 用户${userId}未解锁，本次对碰限制为${actualPairsToSettle}对（剩余${remainingPairings}单）`)
       }
 
-      // 计算实际奖励（使用限制后的对碰数量）
-      const basePairingBonus = calculatePairingBonus(actualPairsToSettle)
+      // ✅ 使用动态参数计算奖励
+      const basePairingBonus = actualPairsToSettle * config.pairingBonus * config.memberRatio
       const actualPairingBonus = basePairingBonus // 100% 发放（已通过次数限制）
-      const platformFee = actualPairsToSettle * BinaryConfig.PAIRING.BONUS_PER_PAIR * BinaryConfig.PAIRING.PLATFORM_RATIO
+      const platformFee = actualPairsToSettle * config.pairingBonus * config.platformRatio
 
       // 15%进入分红池
       await DividendService.addToPool(platformFee, 'pairing_bonus')
@@ -398,7 +454,7 @@ export class BinaryService extends BaseService {
         userId,
         actualPairingBonus,
         'binary_pairing',
-        `对碰奖励：${actualPairsToSettle}组(${pairingType}) × ${BinaryConfig.PAIRING.MEMBER_AMOUNT}U = ${actualPairingBonus.toFixed(2)}U${!isUnlocked ? ` (剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}单)` : ''}`
+        `对碰奖励：${actualPairsToSettle}组(${pairingType}) × ${(config.pairingBonus * config.memberRatio).toFixed(2)}U = ${actualPairingBonus.toFixed(2)}U${!isUnlocked ? ` (剩余${MAX_FREE_PAIRINGS - totalPairings - actualPairsToSettle}单)` : ''}`
       )
 
       // 记录对碰奖励到 pairing_bonuses 表（用于统计次数）
@@ -442,7 +498,7 @@ export class BinaryService extends BaseService {
   /**
    * 更新待配对数量（根据配对类型）
    */
-  private static async updatePendingCounts(userId: string, pairs: number, pairingType: string): Promise<void> {
+  private static async updatePendingCounts(userId: string, pairs: number, pairingType: '2:1' | '1:2'): Promise<void> {
     const { data: member } = await supabase
       .from('binary_members')
       .select('a_side_pending, b_side_pending')
@@ -454,20 +510,12 @@ export class BinaryService extends BaseService {
     let aDeduct = 0
     let bDeduct = 0
 
-    switch (pairingType) {
-      case '2:1':
-        aDeduct = pairs * 2
-        bDeduct = pairs * 1
-        break
-      case '1:2':
-        aDeduct = pairs * 1
-        bDeduct = pairs * 2
-        break
-      case '1:1':
-      default:
-        aDeduct = pairs
-        bDeduct = pairs
-        break
+    if (pairingType === '2:1') {
+      aDeduct = pairs * BinaryConfig.PAIRING.REQUIRED_UNITS.TWO_ONE.A
+      bDeduct = pairs * BinaryConfig.PAIRING.REQUIRED_UNITS.TWO_ONE.B
+    } else {
+      aDeduct = pairs * BinaryConfig.PAIRING.REQUIRED_UNITS.ONE_TWO.A
+      bDeduct = pairs * BinaryConfig.PAIRING.REQUIRED_UNITS.ONE_TWO.B
     }
 
     await supabase
@@ -537,28 +585,32 @@ export class BinaryService extends BaseService {
   }
 
   /**
-   * 触发平级奖励（向上追溯8代直推链）
+   * 触发平级奖励（向上追溯N代直推链）
+   * V4.2：支持动态参数
    */
   private static async triggerLevelBonus(
     triggerId: string,
     pairsCount: number
   ): Promise<void> {
     try {
+      // ✅ 读取动态配置
+      const config = await this.getDynamicConfig()
+
       // 获取触发者的用户信息
       const triggerUser = await UserRepository.findById(triggerId)
       
-      // 向上追溯8代直推链（串糖葫芦式）
+      // 向上追溯N代直推链（使用动态配置）
       let currentUserId = triggerUser.inviter_id
       let generation = 1
 
-      while (currentUserId && generation <= BinaryConfig.LEVEL_BONUS.DEPTH) {
+      while (currentUserId && generation <= config.levelBonusDepth) {
         // 获取当前上级
         const upline = await UserRepository.findById(currentUserId)
         
-        // 检查是否符合条件（直推≥2人）
-        if (upline.direct_referral_count >= BinaryConfig.LEVEL_BONUS.UNLOCK_CONDITION) {
-          // 发放平级奖
-          const levelBonus = BinaryConfig.LEVEL_BONUS.AMOUNT * pairsCount
+        // 检查是否符合条件（直推≥N人，使用动态配置）
+        if (upline.direct_referral_count >= config.minDirectReferrals) {
+          // ✅ 使用动态配置发放平级奖
+          const levelBonus = config.levelBonusAmount * pairsCount
           
           await WalletManager.add(
             currentUserId,
@@ -590,9 +642,12 @@ export class BinaryService extends BaseService {
 
   /**
    * 检查并自动复投（原点复投）
-   * 说明：累计收益达到300U的倍数时，自动增加1单
+   * V4.2：支持动态参数
    */
   private static async checkReinvestRequired(userId: string): Promise<void> {
+    // ✅ 读取动态配置
+    const config = await this.getDynamicConfig()
+
     const { data: member } = await supabase
       .from('binary_members')
       .select('*, position_side, upline_id')
@@ -601,8 +656,8 @@ export class BinaryService extends BaseService {
 
     if (!member) return
 
-    // 检查是否达到复投阈值（200U的倍数）
-    const threshold = BinaryConfig.REINVEST.THRESHOLD * (member.reinvest_count + 1)
+    // ✅ 使用动态配置检查是否达到复投阈值
+    const threshold = config.reinvestThreshold * (member.reinvest_count + 1)
     
     if (member.total_earnings >= threshold) {
       console.log(`🔄 自动复投触发：用户${userId}，收益${member.total_earnings.toFixed(2)}U ≥ ${threshold}U`)
@@ -659,11 +714,15 @@ export class BinaryService extends BaseService {
 
   /**
    * 获取用户二元信息
+   * V4.2：支持动态参数
    */
   static async getBinaryInfo(userId: string): Promise<ApiResponse<any>> {
     this.validateRequired({ userId }, ['userId'])
 
     try {
+      // ✅ 读取动态配置
+      const config = await this.getDynamicConfig()
+
       // 使用 maybeSingle() 避免在没有记录时产生错误
       const { data: member, error } = await supabase
         .from('binary_members')
@@ -695,16 +754,19 @@ export class BinaryService extends BaseService {
       const bPending = member.b_side_pending || 0
       const readyPairs = Math.min(aPending, bPending)
 
+      // ✅ 使用动态配置计算预估奖励
+      const estimatedBonus = readyPairs * config.pairingBonus * config.memberRatio
+
       return {
         success: true,
         data: {
           ...member,
           username: user.username,
           direct_referrals: user.direct_referral_count,
-          level_bonus_unlocked: user.direct_referral_count >= BinaryConfig.LEVEL_BONUS.UNLOCK_CONDITION,
-          dividend_eligible: user.direct_referral_count >= BinaryConfig.DIVIDEND.CONDITION,
+          level_bonus_unlocked: user.direct_referral_count >= config.minDirectReferrals,
+          dividend_eligible: user.direct_referral_count >= config.dividendMinReferrals,
           ready_pairs: readyPairs,
-          estimated_pairing_bonus: calculatePairingBonus(readyPairs)
+          estimated_pairing_bonus: estimatedBonus
         }
       }
     } catch (error) {

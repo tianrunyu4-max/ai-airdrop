@@ -157,7 +157,7 @@ if (transaction) {
 
 **方法**：`checkRepurchase(userId: string)`
 
-**描述**：全网收益达300U时，自动扣除30U复购
+**描述**：全网收益达200U时，自动扣除30U复购
 
 **输入**：
 ```typescript
@@ -170,7 +170,7 @@ boolean  // 是否触发复购
 ```
 
 **业务规则**：
-- 全网收益（total_earnings）≥ 300U
+- 全网收益（total_earnings）≥ 200U
 - 余额（u_balance）≥ 30U
 - 扣除30U后重置收益计数
 - 如果是分红日，触发直推分红

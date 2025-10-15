@@ -1,87 +1,94 @@
 /**
- * 双轨制二元系统配置 V4.1
- * 更新日期：2025-10-11
- * 核心：AI自动排线 + 2:1/1:2对碰 + 8代平级奖 + 分红 + 弱区补贴 + 滑落机制
+ * 双轨制二元系统配置 V5.0 简化版
+ * 更新日期：2025-10-15
+ * 核心：团队内部排线 + 2:1/1:2对碰 + 定时结算 + 复购补弱区
+ * 
+ * ✨ V5.0重大升级（简化版）：
+ * 1. 自动排线：取消全局弱区优先 → 改为团队内部滑落（直推下面按弱边排）
+ * 2. 对碰结算：取消即时结算 → 改为每天凌晨12点统一结算
+ * 3. 奖励机制：删除平级奖、删除贡献奖、删除分红池 → 只保留对碰奖
+ * 4. 对碰奖分配：85%给会员，15%预留（暂不分配）
+ * 5. 复投机制：200U复投 → 改为240U（8倍）复投，复购单自动补弱区
  */
 
 export const BinaryConfig = {
   // ========== 加入费用 ==========
   JOIN_FEE: 30,                    // 入单费用30U
   
-  // ========== 对碰奖励（配对奖励）V4.1 ==========
+  // ========== 对碰奖励（配对奖励）V5.0 ==========
   PAIRING: {
     BONUS_PER_PAIR: 10,            // 每单对碰奖励10U
-    MEMBER_RATIO: 0.85,            // 85%自动到账会员
+    MEMBER_RATIO: 0.85,            // 85%自动到账会员（8.5U）
     MEMBER_AMOUNT: 8.5,            // 会员实际获得：10U × 85% = 8.5U
-    PLATFORM_RATIO: 0.15,          // 15%平台分红池
-    RATIO: '2:1_OR_1:2',          // 对碰比例2:1或1:2（灵活配对）
+    RESERVED_RATIO: 0.15,          // 15%预留（1.5U，暂不分配）
+    RATIO: '2:1_OR_1:2',           // 对碰比例2:1或1:2（灵活配对）
+    REQUIRED_UNITS: {
+      TWO_ONE: { A: 2, B: 1 },     // 2:1 配对所需单量
+      ONE_TWO: { A: 1, B: 2 }      // 1:2 配对所需单量
+    },
     SLIDE_ENABLED: true,           // 启用滑落机制
-    WEAK_SIDE_SUBSIDY: true,       // 启用弱区补贴
-    SUBSIDY_AMOUNT: 1,             // 弱区补贴单量（每次补贴1单）
     NO_RESET: true,                // 不归零
-    INSTANT_SETTLEMENT: true       // 秒结算
+    SCHEDULED_SETTLEMENT: true,    // ✨ V5.0：定时结算（每天凌晨12点）
+    SETTLEMENT_TIME: '00:00'       // 结算时间：凌晨12点
   },
   
-  // ========== 平级奖（向上奖励）==========
-  LEVEL_BONUS: {
-    AMOUNT: 2,                     // 每次平级奖2U
-    DEPTH: 8,                      // 追溯8代直推链（串糖葫芦式）
-    UNLOCK_CONDITION: 2,           // 直推≥2人解锁伞下平级奖
-    TRIGGER_ON_PAIRING: true,      // 下线触发对碰奖时触发
-    MAX_RECIPIENTS: 8              // 最多8个人获得（8代）
-  },
   
-  // ========== 自动排线（AI智能）==========
+  // ========== 自动排线（AI智能）V5.0 ==========
   AUTO_PLACEMENT: {
     ENABLED: true,                 // 启用自动排线
-    WEAK_SIDE_PRIORITY: true,      // 弱区优先填补
-    BALANCE_RATIO: '1:1',          // 保持1:1平衡
+    STRATEGY: 'TEAM_INTERNAL',     // ✨ V5.0：团队内部滑落（取消弱区优先）
+    SLIDE_TO_DIRECT_REFERRAL: true,// 滑落到直推下面（而非全局弱区）
+    WEAK_SIDE_PRIORITY: true,      // 在直推下面选择弱边
+    BALANCE_RATIO: '1:1',          // 保持直推下面左右平衡
     SIDES: ['A', 'B'],             // A区和B区
-    MAX_DEPTH: 100,                // 最大深度
-    AUTO_BALANCE: true             // 自动平衡强弱区
+    MAX_DEPTH: 100                 // 最大深度
   },
   
-  // ========== 复投机制 V4.1 ==========
+  // ========== 复投机制 V5.0 ==========
   REINVEST: {
-    THRESHOLD: 200,                // 总收益达到200U提示复投（从300U降低）
+    THRESHOLD: 240,                // ✨ V5.0：总收益达到240U（8倍）提示复投
     AMOUNT: 30,                    // 复投金额30U
     AUTO_AVAILABLE: true,          // 支持自动复投
     FREEZE_TRANSFER_IF_NOT: true,  // 不复投无法互转
     CONTINUE_AFTER: true,          // 复投后继续累积计算
     SLIDE_MECHANISM: true,         // 启用滑落机制
-    WEAK_SIDE_SUBSIDY: true        // 启用弱区补贴
+    ADD_TO_WEAK_SIDE: true         // ✨ V5.0：复购单自动添加到弱区pending
   },
   
-  // ========== 分红结算 ==========
+  // ========== 分红结算 V5.0 ==========
   DIVIDEND: {
-    CONDITION: 10,                 // 直推≥10人获得排线分红
-    RATIO: 0.15,                   // 15%分红比例
-    SETTLEMENT_DAYS: [1, 3, 5, 0], // 每周一、三、五、日结算
-    TIME: '00:00',                 // 结算时间
-    POOL_SOURCE: 'pairing_platform' // 分红池来源：对碰奖的15%
+    ENABLED: false,                // ✨ V5.0：删除分红机制
+    CONDITION: 10,                 // 直推≥10人获得排线分红（已废弃）
+    RATIO: 0.15,                   // 15%分红比例（已废弃）
+    SETTLEMENT_DAYS: [1, 3, 5, 0], // 每周一、三、五、日结算（已废弃）
+    TIME: '00:00',                 // 结算时间（已废弃）
+    POOL_SOURCE: 'pairing_platform' // 分红池来源（已废弃）
   },
   
-  // ========== 解锁条件 ==========
+  // ========== 解锁条件 V5.0 ==========
   UNLOCK: {
-    MIN_DIRECT_REFERRALS: 2,       // 最少直推2人解锁平级奖
+    MIN_DIRECT_REFERRALS: 2,       // 最少直推2人
+    MAX_FREE_PAIRINGS: 10,         // 直推<2人最多对碰10次
     WITHOUT_UNLOCK: {
-      LEVEL_BONUS: false           // 直推<2人不触发平级奖
+      PAIRING_LIMIT: 10            // 未解锁时对碰次数限制
     }
   },
   
   // ========== 二元结构 ==========
   BINARY_TREE: {
     CALCULATION_UNIT: 'order',     // 按单量计算（不看金额）
-    PAIRING_RULE: '1:1',           // 1比1对碰
+    PAIRING_RULE: '2:1_OR_1:2',    // 对碰比例：2:1或1:2（灵活配对）
     AUTO_DEDUCT: true,             // 对碰完自动结转
     KEEP_REMAINING: true           // 未结算业绩保留
   },
   
-  // ========== 奖励结算 ==========
+  // ========== 奖励结算 V5.0 ==========
   SETTLEMENT: {
-    PAIRING_INSTANT: true,         // 对碰奖秒结算
-    LEVEL_INSTANT: true,           // 平级奖秒结算
-    DIVIDEND_SCHEDULED: true       // 分红按计划结算
+    PAIRING_SCHEDULED: true,       // ✨ V5.0：对碰奖定时结算（每天凌晨12点）
+    PAIRING_TIME: '00:00',         // 对碰结算时间
+    LEVEL_BONUS_ENABLED: false,    // 平级奖已删除
+    CONTRIBUTION_ENABLED: false,   // 贡献奖已删除
+    DIVIDEND_ENABLED: false        // 分红已删除
   }
 }
 
@@ -89,10 +96,11 @@ export const BinaryConfig = {
 export const { 
   JOIN_FEE,
   PAIRING,
-  LEVEL_BONUS,
   AUTO_PLACEMENT,
   REINVEST,
-  DIVIDEND 
+  DIVIDEND,
+  UNLOCK,
+  SETTLEMENT
 } = BinaryConfig
 
 // 类型定义
@@ -104,8 +112,50 @@ export const calculatePairingBonus = (pairs: number) => {
   return pairs * PAIRING.BONUS_PER_PAIR * PAIRING.MEMBER_RATIO
 }
 
-export const calculateLevelBonus = (recipients: number) => {
-  return Math.min(recipients, LEVEL_BONUS.MAX_RECIPIENTS) * LEVEL_BONUS.AMOUNT
+/**
+ * 计算对碰奖中的预留金额
+ * @param pairs 对碰组数
+ * @returns 预留金额（15%）
+ */
+export const calculateReservedAmount = (pairs: number): number => {
+  return pairs * PAIRING.BONUS_PER_PAIR * PAIRING.RESERVED_RATIO
+}
+
+export const calculatePairingReadyCounts = (aPending: number, bPending: number): {
+  pairsToSettle: number
+  pairingType: '2:1' | '1:2'
+} | null => {
+  const required = BinaryConfig.PAIRING.REQUIRED_UNITS
+
+  const canTwoOne = aPending >= required.TWO_ONE.A && bPending >= required.TWO_ONE.B
+  if (canTwoOne) {
+    const pairs = Math.min(
+      Math.floor(aPending / required.TWO_ONE.A),
+      Math.floor(bPending / required.TWO_ONE.B)
+    )
+    if (pairs > 0) {
+      return {
+        pairsToSettle: pairs,
+        pairingType: '2:1'
+      }
+    }
+  }
+
+  const canOneTwo = aPending >= required.ONE_TWO.A && bPending >= required.ONE_TWO.B
+  if (canOneTwo) {
+    const pairs = Math.min(
+      Math.floor(aPending / required.ONE_TWO.A),
+      Math.floor(bPending / required.ONE_TWO.B)
+    )
+    if (pairs > 0) {
+      return {
+        pairsToSettle: pairs,
+        pairingType: '1:2'
+      }
+    }
+  }
+
+  return null
 }
 
 

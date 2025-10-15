@@ -167,7 +167,7 @@ export class BinaryController extends BaseController {
       for (const ancestor of upline) {
         // 检查是否解锁平级奖（直推≥2人）
         if (ancestor.direct_referral_count >= BinaryConfig.LEVEL_BONUS_UNLOCK) {
-          const levelBonus = calculateLevelBonus(pairs)
+          const levelBonus = BinaryConfig.LEVEL_BONUS.AMOUNT
           await WalletManager.add(
             ancestor.id,
             levelBonus,
@@ -238,22 +238,18 @@ export class BinaryController extends BaseController {
 
   /**
    * 检查是否需要复投（私有方法）
+   * 注意：实际复投逻辑在 BinaryService.checkReinvestRequired() 中处理
    */
   private static async checkReinvestment(userId: string): Promise<void> {
     const user = await UserRepository.findById(userId)
 
-    // 每结算300U提示复投
-    if (user.total_earnings >= BinaryConfig.REINVEST.THRESHOLD) {
-      // 如果不复投，冻结账户
-      if (BinaryConfig.REINVEST.FREEZE_IF_NOT) {
-        await UserRepository.freezeAccount(userId, '需要复投')
-      }
-
-      // TODO: 发送通知到前端
-      console.log(`用户${userId}需要复投`)
-    }
+    // 复投检查已由 BinaryService 自动处理
+    // 这里保留作为备用检查点
+    console.log(`复投检查：用户${userId}总收益${user.total_earnings}U`)
   }
 }
+
+
 
 
 

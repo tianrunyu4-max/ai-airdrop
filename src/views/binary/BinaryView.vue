@@ -3,7 +3,7 @@
     <!-- 顶部标题 -->
     <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-6 py-8">
       <h1 class="text-3xl font-bold text-white text-center mb-2">💎 双轨制二元系统</h1>
-      <p class="text-center text-yellow-100 text-sm">AI智能排线 · 2:1/1:2对碰 · 秒结算</p>
+      <p class="text-center text-yellow-100 text-sm">团队内部排线 · 2:1/1:2对碰 · 定时结算</p>
     </div>
 
     <!-- 未加入提示 -->
@@ -16,7 +16,7 @@
         </div>
         
         <h2 class="text-2xl font-bold text-gray-800 mb-4">立即加入双轨制系统</h2>
-        <p class="text-gray-600 mb-6">AI自动排线 + 2:1/1:2对碰 + 8代平级奖</p>
+        <p class="text-gray-600 mb-6">团队内部排线 + 2:1/1:2对碰 + 定时结算</p>
         
         <!-- 加入费用 -->
         <div class="bg-yellow-50 rounded-xl p-6 mb-6 border-2 border-yellow-300">
@@ -27,20 +27,20 @@
         <!-- 核心优势 -->
         <div class="grid grid-cols-2 gap-3 mb-6 text-left">
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
-            <div class="text-yellow-600 font-bold mb-1">🤖 AI排线</div>
-            <div class="text-xs text-gray-600">自动分配弱区</div>
+            <div class="text-yellow-600 font-bold mb-1">🤖 团队排线</div>
+            <div class="text-xs text-gray-600">直推下面弱边</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
-            <div class="text-yellow-600 font-bold mb-1">⚡ 秒结算</div>
-            <div class="text-xs text-gray-600">2:1/1:2对碰即时</div>
+            <div class="text-yellow-600 font-bold mb-1">⏰ 定时结算</div>
+            <div class="text-xs text-gray-600">每天凌晨12点</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
             <div class="text-yellow-600 font-bold mb-1">💰 85%到账</div>
             <div class="text-xs text-gray-600">每单8.5U</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
-            <div class="text-yellow-600 font-bold mb-1">🎁 8代平级</div>
-            <div class="text-xs text-gray-600">每人2U奖励</div>
+            <div class="text-yellow-600 font-bold mb-1">💎 15%预留</div>
+            <div class="text-xs text-gray-600">每单1.5U预留</div>
           </div>
         </div>
 
@@ -63,25 +63,21 @@
             <div class="text-4xl font-bold text-yellow-600">{{ binaryInfo.total_earnings?.toFixed(2) || '0.00' }} U</div>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 mb-4">
+          <div class="grid grid-cols-2 gap-3 mb-4">
             <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
               <div class="text-gray-600 text-xs mb-1">对碰奖</div>
               <div class="text-yellow-700 font-bold">{{ binaryInfo.total_pairing_bonus?.toFixed(2) || '0.00' }}U</div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
-              <div class="text-gray-600 text-xs mb-1">平级奖</div>
-              <div class="text-yellow-700 font-bold">{{ binaryInfo.total_level_bonus?.toFixed(2) || '0.00' }}U</div>
-            </div>
-            <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
-              <div class="text-gray-600 text-xs mb-1">分红</div>
-              <div class="text-yellow-700 font-bold">{{ binaryInfo.total_dividend?.toFixed(2) || '0.00' }}U</div>
+              <div class="text-gray-600 text-xs mb-1">对碰次数</div>
+              <div class="text-yellow-700 font-bold">{{ binaryInfo.total_pairings || '0' }}次</div>
             </div>
           </div>
 
           <!-- 复投提示 -->
           <div v-if="!binaryInfo.is_active" class="bg-red-50 rounded-xl p-4 mb-4 border-2 border-red-300">
             <div class="text-center text-red-600 font-bold mb-2">⚠️ 需要复投</div>
-            <div class="text-sm text-gray-700 mb-3">累计收益已达200U，请复投30U继续获得奖励</div>
+            <div class="text-sm text-gray-700 mb-3">累计收益已达240U（8倍），请复投30U继续获得奖励</div>
             <button 
               @click="handleReinvest"
               class="w-full bg-gradient-to-r from-red-400 to-red-500 text-white py-3 rounded-lg font-bold hover:from-red-500 hover:to-red-600 transition-all"
@@ -172,45 +168,21 @@
         </div>
       </div>
 
-      <!-- 解锁状态 -->
+      <!-- 直推数量 -->
       <div class="px-4 mt-6">
         <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
           <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
-          解锁状态
+          直推团队
         </h3>
 
-        <div class="space-y-3">
-          <!-- 平级奖解锁 -->
-          <div class="bg-white rounded-xl p-4 border-2" :class="binaryInfo.level_bonus_unlocked ? 'border-green-300' : 'border-gray-200'">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-bold" :class="binaryInfo.level_bonus_unlocked ? 'text-green-600' : 'text-gray-600'">
-                  💎 平级奖（8代）
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                  直推 {{ binaryInfo.direct_referrals || 0 }}/2 人
-                </div>
-              </div>
-              <div class="px-4 py-2 rounded-full font-bold text-sm" :class="binaryInfo.level_bonus_unlocked ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
-                {{ binaryInfo.level_bonus_unlocked ? '✅ 已解锁' : '🔒 未解锁' }}
-              </div>
+        <div class="bg-white rounded-xl p-6 border-2 border-yellow-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-bold text-gray-600 text-lg">👥 直推人数</div>
+              <div class="text-xs text-gray-500 mt-1">解锁条件：≥2人</div>
             </div>
-          </div>
-
-          <!-- 分红资格 -->
-          <div class="bg-white rounded-xl p-4 border-2" :class="binaryInfo.dividend_eligible ? 'border-green-300' : 'border-gray-200'">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-bold" :class="binaryInfo.dividend_eligible ? 'text-green-600' : 'text-gray-600'">
-                  🎁 排线分红
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                  直推 {{ binaryInfo.direct_referrals || 0 }}/10 人
-                </div>
-              </div>
-              <div class="px-4 py-2 rounded-full font-bold text-sm" :class="binaryInfo.dividend_eligible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'">
-                {{ binaryInfo.dividend_eligible ? '✅ 有资格' : '🔒 未达标' }}
-              </div>
+            <div class="text-4xl font-bold text-yellow-600">
+              {{ binaryInfo.direct_referrals || 0 }}
             </div>
           </div>
         </div>
@@ -220,37 +192,32 @@
     <!-- 系统说明模态框 -->
     <dialog class="modal" :class="{ 'modal-open': showInfoModal }">
       <div class="modal-box bg-white max-w-2xl">
-        <h3 class="font-bold text-lg text-gray-800 mb-4">💎 双轨制系统说明</h3>
+        <h3 class="font-bold text-lg text-gray-800 mb-4">💎 双轨制系统说明（V5.0简化版）</h3>
         
         <div class="space-y-3 text-sm text-gray-700">
           <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-            <div class="font-bold text-yellow-700 mb-1">🤖 AI智能排线</div>
-            <div>新单30U自动进入弱区，系统自动保持2:1/1:2平衡</div>
+            <div class="font-bold text-yellow-700 mb-1">🤖 团队内部排线</div>
+            <div>新用户自动滑落到推荐人直推的弱边，团队内部发展</div>
           </div>
 
           <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div class="font-bold text-blue-700 mb-1">⚡ 2:1/1:2对碰奖</div>
-            <div>灵活配对：2:1或1:2，每单10U，85%到账（8.5U），秒结算，不封顶</div>
-          </div>
-          
-          <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
-            <div class="font-bold text-purple-700 mb-1">💎 8代平级奖</div>
-            <div>下线触发对碰时，向上追溯8代直推链，每人2U（需直推≥2人解锁）</div>
+            <div>灵活配对：2:1或1:2，每单10U，85%到账（8.5U）+15%预留（1.5U），每天凌晨12点统一结算</div>
           </div>
 
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
             <div class="font-bold text-green-700 mb-1">🔄 复投机制</div>
-            <div>总收益达200U提示复投30U，不复投无法互转</div>
+            <div>总收益达240U（8倍）提示复投30U，复购单自动补弱区</div>
           </div>
           
           <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
-            <div class="font-bold text-orange-700 mb-1">🎯 滑落机制</div>
-            <div>弱区补贴：自动识别弱区并补贴单量，加速对碰平衡发展</div>
+            <div class="font-bold text-orange-700 mb-1">💎 预留资金</div>
+            <div>每单对碰15%（1.5U）预留，暂不分配，留作将来使用</div>
           </div>
 
-          <div class="bg-red-50 rounded-lg p-3 border border-red-200">
-            <div class="font-bold text-red-700 mb-1">🎁 排线分红</div>
-            <div>直推≥10人，每周一、三、五、日结算15%分红</div>
+          <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
+            <div class="font-bold text-purple-700 mb-1">⏰ 定时结算</div>
+            <div>每天凌晨12点统一对碰结算，减少系统负载，更加公平</div>
           </div>
         </div>
         

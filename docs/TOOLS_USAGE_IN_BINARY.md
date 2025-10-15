@@ -268,7 +268,7 @@ export class BinaryService extends BaseService {
   private static async checkReinvestment(userId: string) {
     const user = await UserRepository.findById(userId)
     
-    // 每结算300U提示复投
+    // 每结算200U提示复投
     if (user.total_earnings >= BinaryConfig.REINVEST_THRESHOLD) {
       // 1. 冻结账户
       await UserRepository.freezeAccount(userId)
@@ -729,7 +729,7 @@ export const BinaryConfig = {
   },
   
   // 复投
-  REINVEST_THRESHOLD: 300,
+  REINVEST_THRESHOLD: 200,
   REINVEST_AMOUNT: 30,
   
   // 分红
@@ -856,6 +856,8 @@ Scheduler记录任务执行日志
 ---
 
 **按照这个架构实现，系统将非常健壮、可维护、可扩展！** 💪
+
+
 
 
 

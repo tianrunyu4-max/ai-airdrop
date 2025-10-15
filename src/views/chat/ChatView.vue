@@ -388,14 +388,33 @@ const switchGroup = async (group: ChatGroup) => {
 
   try {
     loading.value = true
-    currentGroup.value = group
-    messages.value = []
     
-    // 加载该群组的消息
+    // 🔥 关键修复1：取消旧的订阅和定时器
+    if (messageSubscription) {
+      console.log('🧹 取消旧群组订阅')
+      messageSubscription.unsubscribe()
+      messageSubscription = null
+    }
+    if (botInterval) {
+      console.log('🧹 清理机器人定时器')
+      clearInterval(botInterval)
+      botInterval = null
+    }
+    
+    // 🔥 关键修复2：先清空消息，再切换群组
+    messages.value = []
+    currentGroup.value = group
+    
+    console.log(`🔄 切换到群组: ${group.name} (ID: ${group.id})`)
+    
+    // 🔥 关键修复3：加载该群组的消息（传入groupId）
     await loadMessages(group.id)
     
     // 加入群组
     await joinGroup(group.id)
+    
+    // 🔥 关键修复4：重新订阅新群组消息
+    subscribeToMessages()
     
     // 如果是开发模式，启动机器人
     if (isDevMode) {
@@ -410,17 +429,25 @@ const switchGroup = async (group: ChatGroup) => {
 }
 
 // 加载消息 - 简化版本，只使用localStorage，并清理10分钟前的消息
-const loadMessages = () => {
+const loadMessages = (groupId?: string) => {
   try {
-    console.log('🔍 开始加载消息')
+    // 🔥 关键修复：使用群组ID作为存储key
+    const targetGroupId = groupId || currentGroup.value?.id
+    if (!targetGroupId) {
+      console.log('⚠️ 没有群组ID，无法加载消息')
+      messages.value = []
+      return
+    }
     
-    // 从localStorage加载消息
-    const storageKey = 'chat_messages'
+    console.log(`🔍 开始加载群组 ${targetGroupId} 的消息`)
+    
+    // 🔥 关键修复：每个群组单独存储消息
+    const storageKey = `chat_messages_${targetGroupId}`
     const storedMessages = localStorage.getItem(storageKey)
     
     if (storedMessages) {
       const parsedMessages = JSON.parse(storedMessages)
-      console.log('✅ 从localStorage加载消息:', parsedMessages.length)
+      console.log(`✅ 从localStorage加载群组 ${targetGroupId} 的消息:`, parsedMessages.length)
       
       // 过滤掉10分钟前的消息
       const tenMinutesAgo = Date.now() - 10 * 60 * 1000
@@ -439,7 +466,7 @@ const loadMessages = () => {
       messages.value = validMessages
       scrollToBottom()
     } else {
-      console.log('📝 localStorage没有消息')
+      console.log(`📝 群组 ${targetGroupId} 没有历史消息`)
       messages.value = []
     }
   } catch (error) {
@@ -588,6 +615,7 @@ const viewImage = (url: string) => {
 const sendMessage = async () => {
   if (!messageInput.value.trim() && !selectedImage.value) return
   if (!authStore.user) return
+  if (!currentGroup.value) return
 
   try {
     sending.value = true
@@ -598,6 +626,7 @@ const sendMessage = async () => {
     // 创建消息对象
     const newMessage = {
       id: `msg-${Date.now()}`,
+      chat_group_id: currentGroup.value.id,  // 🔥 关键修复：添加群组ID
       user_id: authStore.user.id,
       username: authStore.user.username,
       content: messageContent,
@@ -614,13 +643,13 @@ const sendMessage = async () => {
     messages.value.push(newMessage)
     scrollToBottom()
 
-    // 保存到localStorage
-    const storageKey = 'chat_messages'
+    // 🔥 关键修复：按群组ID保存到localStorage
+    const storageKey = `chat_messages_${currentGroup.value.id}`
     const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
     storedMessages.push(newMessage)
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
     
-    console.log('✅ 消息已保存到localStorage:', newMessage)
+    console.log(`✅ 消息已保存到群组 ${currentGroup.value.id}:`, newMessage)
     
     messageInput.value = ''
     cancelImage()
@@ -788,11 +817,33 @@ const startAutoCleanup = () => {
 }
 
 // 生命周期
-onMounted(() => {
-  // 简化版本：直接加载消息，不订阅数据库
+onMounted(async () => {
+  // 🔥 关键修复：先初始化群组！
+  if (isDevMode) {
+    // 开发模式：使用模拟数据
+    initDevMode()
+    startBotSimulation()
+  } else {
+    // 生产模式：从数据库加载默认群组
+    if (!authStore.user) {
+      console.warn('⚠️ 用户未登录，无法初始化聊天')
+      loading.value = false
+      return
+    }
+    
+    try {
+      loading.value = true
+      await getDefaultGroup()  // getDefaultGroup 内部会调用 joinGroup
+      subscribeToMessages()
+    } catch (error) {
+      console.error('初始化群组失败:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  // 加载消息
   loadMessages()
-  // 不再订阅数据库消息，完全使用localStorage
-  // subscribeToMessages()
   
   // 启动自动清理
   startAutoCleanup()

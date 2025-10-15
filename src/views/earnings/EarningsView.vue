@@ -17,18 +17,14 @@
         <div class="text-gray-600 text-sm mb-1">总收益</div>
         <div class="text-3xl font-bold text-yellow-600 mb-4">{{ totalEarnings.toFixed(2) }} U</div>
         
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3">
           <div class="text-center">
             <div class="text-xl font-bold text-yellow-600">{{ pairingBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600">对碰奖</div>
+            <div class="text-xs text-gray-600">对碰奖（85%）</div>
           </div>
           <div class="text-center">
-            <div class="text-xl font-bold text-green-600">{{ levelBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600">平级奖</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-blue-600">{{ dividend.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600">分红</div>
+            <div class="text-xl font-bold text-purple-600">{{ (pairingBonus * 0.15 / 0.85).toFixed(2) }}</div>
+            <div class="text-xs text-gray-600">预留（15%）</div>
           </div>
         </div>
       </div>
@@ -256,7 +252,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-green-500">🎁</span>
-            <span><strong class="text-gray-800">平级奖：</strong>下线触发对碰奖，向上8代直推链各得2U</span>
+            <span><strong class="text-gray-800">平级奖：</strong>下线触发对碰奖，向上3代直推链各得2U</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-blue-500">💎</span>
@@ -299,9 +295,7 @@ const dividendRecords = ref<any[]>([])
 // Tab配置
 const tabs = [
   { label: '签到释放', value: 'checkin' as const },
-  { label: '对碰奖', value: 'pairing' as const },
-  { label: '平级奖', value: 'level' as const },
-  { label: '分红', value: 'dividend' as const }
+  { label: '对碰奖', value: 'pairing' as const }
 ]
 
 // 格式化日期

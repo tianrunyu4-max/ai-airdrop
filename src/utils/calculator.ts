@@ -2,37 +2,34 @@
  * Calculator - 计算工具
  */
 
-import { BinaryConfig, MiningConfig, WithdrawalConfig } from '@/config'
+import { BinaryConfig, MiningConfig, WithdrawalConfig, calculatePairingReadyCounts } from '@/config'
 
 /**
  * 计算对碰次数
  */
-export function calculatePairingTimes(aSideSales: number, bSideSales: number): number {
-  const minSide = Math.min(aSideSales, bSideSales)
-  const maxSide = Math.max(aSideSales, bSideSales)
-  
-  // 检查是否满足2:1或1:2比例
-  if (maxSide < minSide * BinaryConfig.PAIRING_RATIO.MIN) {
-    return 0
-  }
-  
-  // 计算对碰次数（每单30U）
-  return Math.floor(minSide / BinaryConfig.PAIRING_UNIT)
+export function calculatePairingTimes(aSidePending: number, bSidePending: number): number {
+  const settlement = calculatePairingReadyCounts(aSidePending, bSidePending)
+  return settlement?.pairsToSettle ?? 0
 }
 
 /**
  * 计算对碰奖励
  */
 export function calculatePairingBonus(pairs: number): number {
-  return pairs * BinaryConfig.PAIRING_BONUS
+  return pairs * BinaryConfig.PAIRING.BONUS_PER_PAIR * BinaryConfig.PAIRING.MEMBER_RATIO
 }
 
 /**
  * 计算平级奖励
  */
-export function calculateLevelBonus(pairs: number): number {
-  return pairs * BinaryConfig.LEVEL_BONUS
+export function calculateLevelBonus(recipients: number): number {
+  return Math.min(recipients, BinaryConfig.LEVEL_BONUS.MAX_RECIPIENTS) * BinaryConfig.LEVEL_BONUS.AMOUNT
 }
+
+/**
+ * 计算可结算配对信息（2:1 / 1:2）
+ */
+export { calculatePairingReadyCounts }
 
 /**
  * 计算矿机加速比例
@@ -152,6 +149,8 @@ export function safeDivide(a: number, b: number): number {
   if (b === 0) return 0
   return round(a / b)
 }
+
+
 
 
 

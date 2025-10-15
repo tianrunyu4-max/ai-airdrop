@@ -181,8 +181,8 @@
             <h3 class="text-xl font-bold text-gray-800 mb-2">加入Binary对碰系统</h3>
             <div class="text-sm text-gray-600 space-y-1 mb-4">
               <div>✅ A+B双区公排自动化排线</div>
-              <div>✅ 对碰奖励（10U/对）</div>
-              <div>✅ 8代平级奖（2U/人）</div>
+              <div>✅ 对碰奖励（10U/对，2:1 / 1:2）</div>
+              <div>✅ 3代平级奖（2U/人）</div>
               <div>✅ 全系统分红（15%）</div>
               <div>✅ 解锁积分互转+AI学习机</div>
               <div class="text-purple-600 font-medium mt-2">仅需支付 30U 永久有效！</div>
@@ -275,86 +275,89 @@
       </div>
     </div>
 
-    <!-- 关注我们 -->
+    <!-- 官方频道 -->
     <div class="px-4 mt-6">
-      <div class="text-gray-800 font-bold mb-3 text-sm">关注我们</div>
+      <div class="text-gray-800 font-bold mb-3 text-sm">📺 官方视频频道</div>
       <div class="grid grid-cols-2 gap-3">
-        <!-- 抖音 -->
-        <button 
-          @click="openSocialModal('douyin')"
-          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
-        >
-          <div class="w-12 h-12 flex items-center justify-center mb-2">
-            <span class="text-3xl">🎵</span>
-          </div>
-          <div class="font-bold text-gray-800 text-sm">抖音</div>
-          <div v-if="socialAccounts.douyin" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
-        </button>
-
-        <!-- 小红书 -->
-        <button 
-          @click="openSocialModal('xiaohongshu')"
-          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
-        >
-          <div class="w-12 h-12 flex items-center justify-center mb-2">
-            <span class="text-3xl">📕</span>
-          </div>
-          <div class="font-bold text-gray-800 text-sm">小红书</div>
-          <div v-if="socialAccounts.xiaohongshu" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
-        </button>
-
         <!-- B站 -->
-        <button 
-          @click="openSocialModal('bilibili')"
+        <a 
+          :href="platformContacts.bilibili"
+          target="_blank"
           class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
         >
           <div class="w-12 h-12 flex items-center justify-center mb-2">
             <span class="text-3xl">📺</span>
           </div>
           <div class="font-bold text-gray-800 text-sm">哔哩哔哩</div>
-          <div v-if="socialAccounts.bilibili" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
-        </button>
-
-        <!-- 微博 -->
-        <button 
-          @click="openSocialModal('weibo')"
-          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
-        >
-          <div class="w-12 h-12 flex items-center justify-center mb-2">
-            <span class="text-3xl">🐦</span>
-          </div>
-          <div class="font-bold text-gray-800 text-sm">微博</div>
-          <div v-if="socialAccounts.weibo" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
-        </button>
+          <div class="text-xs text-blue-600 mt-1">点击访问</div>
+        </a>
 
         <!-- YouTube -->
-        <button 
-          @click="openSocialModal('youtube')"
+        <a 
+          :href="platformContacts.youtube"
+          target="_blank"
           class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
         >
           <div class="w-12 h-12 flex items-center justify-center mb-2">
             <span class="text-3xl">▶️</span>
           </div>
           <div class="font-bold text-gray-800 text-sm">YouTube</div>
-          <div v-if="socialAccounts.youtube" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
-        </button>
+          <div class="text-xs text-red-600 mt-1">点击访问</div>
+        </a>
+      </div>
+    </div>
 
-        <!-- 快手 -->
+    <!-- 联系我们 -->
+    <div class="px-4 mt-6">
+      <div class="text-gray-800 font-bold mb-3 text-sm">📞 联系我们</div>
+      <div class="grid grid-cols-2 gap-3">
+        <!-- 微信客服 -->
         <button 
-          @click="openSocialModal('kuaishou')"
+          @click="showContactInfo('wechat')"
           class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
         >
           <div class="w-12 h-12 flex items-center justify-center mb-2">
-            <span class="text-3xl">⚡</span>
+            <span class="text-3xl">💬</span>
           </div>
-          <div class="font-bold text-gray-800 text-sm">快手</div>
-          <div v-if="socialAccounts.kuaishou" class="text-xs text-green-600 mt-1">✓ 已设置</div>
-          <div v-else class="text-xs text-gray-400 mt-1">点击设置</div>
+          <div class="font-bold text-gray-800 text-sm">微信客服</div>
+          <div class="text-xs text-green-600 mt-1">点击查看</div>
+        </button>
+
+        <!-- Telegram -->
+        <a 
+          :href="platformContacts.telegram"
+          target="_blank"
+          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
+        >
+          <div class="w-12 h-12 flex items-center justify-center mb-2">
+            <span class="text-3xl">✈️</span>
+          </div>
+          <div class="font-bold text-gray-800 text-sm">Telegram</div>
+          <div class="text-xs text-blue-600 mt-1">点击加入</div>
+        </a>
+
+        <!-- 视频号 -->
+        <button 
+          @click="showContactInfo('shipin')"
+          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
+        >
+          <div class="w-12 h-12 flex items-center justify-center mb-2">
+            <span class="text-3xl">🎬</span>
+          </div>
+          <div class="font-bold text-gray-800 text-sm">视频号</div>
+          <div class="text-xs text-green-600 mt-1">点击查看</div>
+        </button>
+
+        <!-- 国际抖音 -->
+        <button 
+          @click="showContactInfo('tiktok')"
+          class="bg-white hover:bg-gray-50 rounded-xl p-4 flex flex-col items-center justify-center border-2 border-gray-200 transition-all"
+        >
+          <div class="w-12 h-12 flex items-center justify-center mb-2">
+            <span class="text-3xl">🎵</span>
+          </div>
+          <div class="font-bold text-gray-800 text-sm">TikTok</div>
+          <div class="text-xs text-purple-600 mt-1">点击查看</div>
         </button>
       </div>
     </div>
@@ -370,43 +373,32 @@
       </button>
     </div>
 
-    <!-- 社交账号设置Modal -->
-    <dialog class="modal" :class="{ 'modal-open': showSocialModal }">
+    <!-- 联系信息Modal -->
+    <dialog class="modal" :class="{ 'modal-open': showContactModal }">
       <div class="modal-box">
         <h3 class="font-bold text-lg text-gray-800 mb-4">
-          {{ socialPlatformNames[currentSocialPlatform] }}账号设置
+          {{ contactInfo.title }}
         </h3>
         
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">账号ID/用户名</span>
-          </label>
-          <input 
-            v-model="socialAccountInput"
-            type="text" 
-            :placeholder="`请输入${socialPlatformNames[currentSocialPlatform]}账号`"
-            class="input input-bordered"
-          />
-        </div>
-
-        <div class="form-control mt-4">
-          <label class="label">
-            <span class="label-text">主页链接（选填）</span>
-          </label>
-          <input 
-            v-model="socialLinkInput"
-            type="text" 
-            placeholder="https://..."
-            class="input input-bordered"
-          />
+        <div class="bg-yellow-50 rounded-xl p-4 border-2 border-yellow-200">
+          <div class="text-center">
+            <div class="text-4xl mb-3">{{ contactInfo.icon }}</div>
+            <div class="text-gray-700 font-bold mb-2">{{ contactInfo.name }}</div>
+            <div class="text-yellow-600 text-lg font-mono bg-white rounded-lg p-3 mb-3">
+              {{ contactInfo.account }}
+            </div>
+            <div class="text-xs text-gray-600" v-if="contactInfo.note">
+              {{ contactInfo.note }}
+            </div>
+          </div>
         </div>
 
         <div class="modal-action">
-          <button class="btn" @click="closeSocialModal">取消</button>
-          <button class="btn btn-primary" @click="saveSocialAccount">保存</button>
+          <button class="btn btn-primary w-full" @click="copyContactInfo">复制账号</button>
+          <button class="btn" @click="closeContactModal">关闭</button>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop" @click="closeSocialModal">
+      <form method="dialog" class="modal-backdrop" @click="closeContactModal">
         <button>close</button>
       </form>
     </dialog>
@@ -422,8 +414,8 @@
             <p class="font-bold">支付费用：30U</p>
             <div class="text-sm mt-2 space-y-1">
               <p>✅ A+B双区公排自动化排线</p>
-              <p>✅ 对碰奖励（10U/对）</p>
-              <p>✅ 8代平级奖（2U/人）</p>
+              <p>✅ 对碰奖励（10U/对，2:1 / 1:2）</p>
+              <p>✅ 3代平级奖（2U/人）</p>
               <p>✅ 全系统分红（15%）</p>
               <p>✅ 解锁积分互转+AI学习机</p>
             </div>
@@ -665,32 +657,29 @@ const inviteCode = computed(() => {
 
 // Modal状态
 const showSettingsModal = ref(false)
-const showSocialModal = ref(false)
+const showContactModal = ref(false)
 
 // 代理相关状态
 const becomingAgent = ref(false)
 
-// 社交账号状态
-const currentSocialPlatform = ref<string>('')
-const socialAccountInput = ref('')
-const socialLinkInput = ref('')
-const socialAccounts = ref<Record<string, any>>({
-  douyin: null,
-  xiaohongshu: null,
-  bilibili: null,
-  weibo: null,
-  youtube: null,
-  kuaishou: null
+// 平台官方联系方式（从后端配置加载）
+const platformContacts = ref({
+  bilibili: 'https://space.bilibili.com/你的B站ID',
+  youtube: 'https://youtube.com/@你的频道',
+  telegram: 'https://t.me/你的群组',
+  wechat: 'AI_TECH_2025',
+  shipin: '搜索"AI科技创新"',
+  tiktok: '@aitech_official'
 })
 
-const socialPlatformNames: Record<string, string> = {
-  douyin: '抖音',
-  xiaohongshu: '小红书',
-  bilibili: '哔哩哔哩',
-  weibo: '微博',
-  youtube: 'YouTube',
-  kuaishou: '快手'
-}
+// 联系信息展示
+const contactInfo = ref({
+  title: '',
+  icon: '',
+  name: '',
+  account: '',
+  note: ''
+})
 
 // 设置
 const selectedLanguage = ref('zh')
@@ -763,58 +752,68 @@ const cancelBecomeAgent = () => {
   inviteCodeInput.value = ''
 }
 
-// 打开社交账号设置
-const openSocialModal = (platform: string) => {
-  currentSocialPlatform.value = platform
-  const existing = socialAccounts.value[platform]
-  socialAccountInput.value = existing?.account || ''
-  socialLinkInput.value = existing?.link || ''
-  showSocialModal.value = true
-}
-
-// 关闭社交账号设置
-const closeSocialModal = () => {
-  showSocialModal.value = false
-  socialAccountInput.value = ''
-  socialLinkInput.value = ''
-  currentSocialPlatform.value = ''
-}
-
-// 保存社交账号
-const saveSocialAccount = async () => {
-  if (!socialAccountInput.value.trim()) {
-    toast.error('请输入账号信息')
-    return
+// 显示联系信息
+const showContactInfo = (type: string) => {
+  const contacts: Record<string, any> = {
+    wechat: {
+      title: '💬 微信客服',
+      icon: '💬',
+      name: '微信号',
+      account: platformContacts.value.wechat,
+      note: '添加微信，备注"AI科技"'
+    },
+    shipin: {
+      title: '🎬 微信视频号',
+      icon: '🎬',
+      name: '视频号',
+      account: platformContacts.value.shipin,
+      note: '在微信中搜索关注'
+    },
+    tiktok: {
+      title: '🎵 国际抖音',
+      icon: '🎵',
+      name: 'TikTok账号',
+      account: platformContacts.value.tiktok,
+      note: '在TikTok中搜索关注'
+    }
   }
+  
+  contactInfo.value = contacts[type] || {}
+  showContactModal.value = true
+}
 
+// 关闭联系信息Modal
+const closeContactModal = () => {
+  showContactModal.value = false
+}
+
+// 复制联系方式
+const copyContactInfo = async () => {
   try {
-    // 保存到本地存储（你也可以保存到数据库）
-    const platform = currentSocialPlatform.value
-    socialAccounts.value[platform] = {
-      account: socialAccountInput.value.trim(),
-      link: socialLinkInput.value.trim(),
-      updatedAt: new Date().toISOString()
-    }
-
-    // 保存到localStorage
-    localStorage.setItem('socialAccounts', JSON.stringify(socialAccounts.value))
-
-    toast.success(`${socialPlatformNames[platform]}账号已保存`)
-    closeSocialModal()
+    await navigator.clipboard.writeText(contactInfo.value.account)
+    toast.success('已复制到剪贴板')
   } catch (error) {
-    toast.error('保存失败')
+    toast.error('复制失败，请手动复制')
   }
 }
 
-// 加载社交账号
-const loadSocialAccounts = () => {
-  const saved = localStorage.getItem('socialAccounts')
-  if (saved) {
-    try {
-      socialAccounts.value = JSON.parse(saved)
-    } catch (error) {
-      console.error('加载社交账号失败:', error)
+// 从后端加载平台联系方式
+const loadPlatformContacts = async () => {
+  try {
+    // 从system_config表加载平台联系方式
+    const { data } = await supabase
+      .from('system_config')
+      .select('platform_contacts')
+      .single()
+    
+    if (data?.platform_contacts) {
+      platformContacts.value = {
+        ...platformContacts.value,
+        ...data.platform_contacts
+      }
     }
+  } catch (error) {
+    console.log('使用默认联系方式')
   }
 }
 
@@ -885,7 +884,7 @@ const handleLogout = async () => {
 }
 
 onMounted(() => {
-  loadSocialAccounts()
+  loadPlatformContacts()
   loadNetworkStats()
 })
 </script>

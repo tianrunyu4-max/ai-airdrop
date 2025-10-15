@@ -21,7 +21,7 @@
             <span class="text-gray-800 font-bold">{{ directReferrals }}人</span>
           </div>
           <div :class="isUnlocked ? 'text-green-600' : 'text-orange-600'" class="font-bold">
-            {{ isUnlocked ? '✅ 已解锁平级奖' : '⚠️ 未解锁（需直推≥2人）' }}
+            {{ isUnlocked ? '✅ 已解锁对碰奖' : '⚠️ 未解锁（需直推≥2人）' }}
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@
           </div>
           <div class="text-center">
             <div class="text-green-600 text-2xl font-bold">{{ totalLevelBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">平级奖</div>
+            <div class="text-xs text-gray-600 mt-1">对碰奖</div>
           </div>
           <div class="text-center">
             <div class="text-blue-600 text-2xl font-bold">{{ totalDividend.toFixed(2) }}</div>
@@ -165,14 +165,14 @@
 
       <!-- 温馨提示 -->
       <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 text-xs text-gray-700 border-2 border-yellow-300">
-        <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示</div>
+        <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示（V5.0简化版）</div>
         <ul class="space-y-1">
-          <li>• 直推≥2人解锁平级奖，下线触发对碰时你也能获得2U</li>
-          <li>• 系统自动排线，优先补弱区，2:1/1:2灵活配对</li>
-          <li>• 对碰奖每组10U（会员收益85%），2:1/1:2灵活配对</li>
-          <li>• 直推≥10人可参与分红，每周一三五七结算</li>
-          <li class="text-orange-700 font-bold">• 每结算200U需复投30U，否则账户冻结</li>
-          <li class="text-purple-700 font-bold">• 滑落机制：弱区自动补贴，加速对碰平衡发展</li>
+          <li>• 直推≥2人解锁无限次对碰，否则最多10次</li>
+          <li>• 团队内部排线：新用户滑到推荐人直推的弱边</li>
+          <li>• 对碰奖每组10U：85%到账（8.5U）+15%预留（1.5U）</li>
+          <li>• 每天凌晨12点统一对碰结算，2:1/1:2灵活配对</li>
+          <li class="text-orange-700 font-bold">• 每结算240U（8倍）需复投30U，复购单自动补弱区</li>
+          <li class="text-purple-700 font-bold">• 规则简化：只保留对碰奖，删除平级奖和分红</li>
         </ul>
       </div>
     </div>
