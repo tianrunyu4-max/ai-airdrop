@@ -156,10 +156,13 @@
 
         <!-- 用户消息 -->
         <div v-else class="flex gap-2" :class="message.user_id === authStore.user?.id ? 'flex-row-reverse' : ''">
-          <!-- 头像 -->
-          <div class="avatar placeholder flex-shrink-0">
+          <!-- 头像 - 可点击查看名片 -->
+          <div 
+            class="avatar placeholder flex-shrink-0 cursor-pointer" 
+            @click="openUserCard(message.user_id)"
+          >
             <div 
-              class="w-8 h-8 rounded-full"
+              class="w-8 h-8 rounded-full hover:ring-2 hover:ring-yellow-500 transition-all"
               :class="message.user_id === authStore.user?.id ? 'bg-secondary' : 'bg-primary'"
             >
               <span class="text-xs text-white">{{ message.username?.[0] || '?' }}</span>
@@ -280,6 +283,21 @@
       </form>
     </div>
 
+    <!-- 用户名片 -->
+    <UserCard 
+      :user-id="selectedUserId"
+      :is-open="showUserCard"
+      @close="closeUserCard"
+      @edit="openCardEditor"
+    />
+
+    <!-- 用户名片编辑器 -->
+    <UserCardEditor 
+      :is-open="showUserCardEditor"
+      @close="closeCardEditor"
+      @saved="onCardSaved"
+    />
+
   </div>
 </template>
 
@@ -292,6 +310,8 @@ import { supabase, isDevMode } from '@/lib/supabase'
 import type { Message, ChatGroup } from '@/types'
 import { format } from 'date-fns'
 import GroupSelector from '@/components/GroupSelector.vue'
+import UserCard from '@/components/UserCard.vue'
+import UserCardEditor from '@/components/UserCardEditor.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -307,6 +327,11 @@ const onlineCount = ref(1)
 const selectedImage = ref<File | null>(null)
 const imagePreview = ref<string>('')
 const fileInput = ref<HTMLInputElement>()
+
+// 用户名片相关
+const showUserCard = ref(false)
+const showUserCardEditor = ref(false)
+const selectedUserId = ref<string | null>(null)
 
 // 订阅实时消息
 let messageSubscription: any = null
@@ -814,6 +839,29 @@ const startAutoCleanup = () => {
     console.log('⏰ 定时清理旧消息')
     loadMessages() // loadMessages 会自动过滤并清理旧消息
   }, 60000) // 每60秒检查一次
+}
+
+// 用户名片相关方法
+const openUserCard = (userId: string) => {
+  selectedUserId.value = userId
+  showUserCard.value = true
+}
+
+const closeUserCard = () => {
+  showUserCard.value = false
+  selectedUserId.value = null
+}
+
+const openCardEditor = () => {
+  showUserCardEditor.value = true
+}
+
+const closeCardEditor = () => {
+  showUserCardEditor.value = false
+}
+
+const onCardSaved = () => {
+  console.log('名片已保存')
 }
 
 // 生命周期
