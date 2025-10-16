@@ -28,25 +28,11 @@ export function generateAvatar(username: string, size: number = 200): string {
   // 获取用户名首字母，如果是中文则取第一个字
   const firstChar = username.charAt(0).toUpperCase()
   
-  // 生成正方形SVG
-  const svg = `
-    <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${size}" height="${size}" fill="${color}"/>
-      <text 
-        x="50%" 
-        y="50%" 
-        text-anchor="middle" 
-        dy=".3em" 
-        fill="white" 
-        font-size="${size / 2}" 
-        font-weight="bold"
-        font-family="Arial, sans-serif, '微软雅黑'"
-      >${firstChar}</text>
-    </svg>
-  `
+  // 生成正方形SVG（使用 URL 编码以避免 btoa 中文问题）
+  const svg = `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><rect width="${size}" height="${size}" fill="${color}"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="${size / 2}" font-weight="bold" font-family="Arial, sans-serif">${firstChar}</text></svg>`
   
-  // 返回Base64编码的DataURL
-  return `data:image/svg+xml;base64,${btoa(svg)}`
+  // 返回 URL 编码的 DataURL（支持中文）
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 /**
@@ -69,23 +55,10 @@ export function generateConsistentAvatar(username: string, size: number = 200): 
   // 获取用户名首字母
   const firstChar = username.charAt(0).toUpperCase()
   
-  // 生成正方形SVG
-  const svg = `
-    <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${size}" height="${size}" fill="${color}"/>
-      <text 
-        x="50%" 
-        y="50%" 
-        text-anchor="middle" 
-        dy=".3em" 
-        fill="white" 
-        font-size="${size / 2}" 
-        font-weight="bold"
-        font-family="Arial, sans-serif, '微软雅黑'"
-      >${firstChar}</text>
-    </svg>
-  `
+  // 生成正方形SVG（使用 URL 编码以避免 btoa 中文问题）
+  const svg = `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><rect width="${size}" height="${size}" fill="${color}"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="${size / 2}" font-weight="bold" font-family="Arial, sans-serif">${firstChar}</text></svg>`
   
-  return `data:image/svg+xml;base64,${btoa(svg)}`
+  // 返回 URL 编码的 DataURL（支持中文）
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
