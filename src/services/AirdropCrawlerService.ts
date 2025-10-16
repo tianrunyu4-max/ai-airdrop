@@ -11,19 +11,28 @@
 import { BaseService, type ApiResponse } from './BaseService'
 import { supabase } from '@/lib/supabase'
 
-// RSS源配置
+// RSS源配置 - 币安和欧易去中心化项目资讯
 const RSS_FEEDS = [
   {
-    name: 'Binance Announcements',
+    name: '币安公告（空投/Launchpool）',
     url: 'https://www.binance.com/en/support/announcement/rss',
     exchange: 'binance',
-    enabled: true
+    enabled: true,
+    autoPush: true // 自动推送到核心群
   },
   {
-    name: 'CoinMarketCap Airdrops',
+    name: 'OKX（欧易）公告',
+    url: 'https://www.okx.com/support/hc/en-us/articles/rss',
+    exchange: 'okx',
+    enabled: true,
+    autoPush: true // 自动推送到核心群
+  },
+  {
+    name: 'CoinMarketCap 空投',
     url: 'https://coinmarketcap.com/airdrop/rss.xml',
     exchange: 'coinmarketcap',
-    enabled: true
+    enabled: true,
+    autoPush: false // 只手动推送
   }
 ]
 
@@ -219,21 +228,31 @@ export class AirdropCrawlerService extends BaseService {
   }
 
   /**
-   * 推送到群聊
+   * 推送到群聊（自动推送：只推送到核心群）
    */
-  private static async pushToChat(airdrop: any): Promise<void> {
+  private static async pushToChat(airdrop: any, autoPush: boolean = true): Promise<void> {
     try {
-      // 1. 获取所有活跃群组
-      const { data: groups } = await supabase
+      // 1. 获取目标群组
+      let query = supabase
         .from('chat_groups')
-        .select('id')
+        .select('id, name')
         .eq('is_active', true)
+      
+      if (autoPush) {
+        // 自动推送：只推送到核心群（type = 'default_hall'）
+        query = query.eq('type', 'default_hall')
+      }
+      
+      const { data: groups } = await query
 
-      if (!groups || groups.length === 0) return
+      if (!groups || groups.length === 0) {
+        console.log('⚠️ 没有找到目标群组')
+        return
+      }
 
       // 2. 构建消息
       const message = `━━━━━━━━━━━━━━━━━━━━
-🎁 新空投通知（自动）
+🎁 ${autoPush ? '自动空投通知' : '新空投通知'}
 
 【标题】${airdrop.title}
 【交易所】${airdrop.exchange.toUpperCase()}
@@ -241,24 +260,112 @@ export class AirdropCrawlerService extends BaseService {
 【AI评分】${airdrop.ai_score}/10
 
 ${airdrop.description ? `【说明】${airdrop.description.substring(0, 200)}...\n\n` : ''}${airdrop.url ? `【链接】${airdrop.url}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━
-💡 自动抓取，立即参与！
+💡 ${autoPush ? '每2小时自动爬取' : '手动推送'}，立即参与！
 ━━━━━━━━━━━━━━━━━━━━`
 
-      // 3. 推送到所有群组
+      // 3. 推送到目标群组
       for (const group of groups) {
         await supabase
           .from('messages')
           .insert({
-            group_id: group.id,
+            chat_group_id: group.id,
             user_id: null,
             content: message,
-            message_type: 'system'
+            type: 'text',
+            is_bot: true
           })
       }
 
-      console.log(`📢 已推送到 ${groups.length} 个群组`)
+      console.log(`📢 已推送到 ${groups.length} 个群组: ${groups.map(g => g.name).join(', ')}`)
     } catch (error) {
       console.error('推送到群聊失败:', error)
+    }
+  }
+
+  /**
+   * 手动推送到指定群组（管理后台使用）
+   */
+  static async manualPushToGroups(airdropId: string, groupIds: string[]): Promise<ApiResponse<any>> {
+    try {
+      // 1. 获取空投信息
+      const { data: airdrop, error: airdropError } = await supabase
+        .from('airdrops')
+        .select('*')
+        .eq('id', airdropId)
+        .single()
+
+      if (airdropError || !airdrop) {
+        return {
+          success: false,
+          error: '空投不存在'
+        }
+      }
+
+      // 2. 获取目标群组
+      const { data: groups, error: groupsError } = await supabase
+        .from('chat_groups')
+        .select('id, name')
+        .in('id', groupIds)
+
+      if (groupsError || !groups || groups.length === 0) {
+        return {
+          success: false,
+          error: '群组不存在'
+        }
+      }
+
+      // 3. 构建消息
+      const message = `━━━━━━━━━━━━━━━━━━━━
+🎁 新空投通知（管理员推送）
+
+【标题】${airdrop.title}
+【交易所】${airdrop.exchange.toUpperCase()}
+【奖励】${airdrop.rewards}
+【AI评分】${airdrop.ai_score}/10
+
+${airdrop.description ? `【说明】${airdrop.description}\n\n` : ''}${airdrop.url ? `【链接】${airdrop.url}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━
+💡 立即参与，早鸟有奖！
+━━━━━━━━━━━━━━━━━━━━`
+
+      // 4. 推送到所有选中的群组
+      let successCount = 0
+      let failCount = 0
+
+      for (const group of groups) {
+        try {
+          const { error } = await supabase
+            .from('messages')
+            .insert({
+              chat_group_id: group.id,
+              user_id: null,
+              content: message,
+              type: 'text',
+              is_bot: true
+            })
+
+          if (error) {
+            console.error(`推送到群组${group.name}失败:`, error)
+            failCount++
+          } else {
+            successCount++
+          }
+        } catch (err) {
+          console.error(`推送到群组${group.name}异常:`, err)
+          failCount++
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          successCount,
+          failCount,
+          totalGroups: groups.length
+        },
+        message: `推送完成！成功：${successCount}个群组，失败：${failCount}个群组`
+      }
+    } catch (error) {
+      return this.handleError(error)
     }
   }
 
