@@ -17,6 +17,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       
+      // 检查并修复localStorage数据
+      await ensureDefaultUser()
+      
       // 始终从localStorage恢复登录状态（开发和生产环境都使用）
       const currentUser = localStorage.getItem('current_user')
       
@@ -35,6 +38,43 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Initialize auth error:', error)
     } finally {
       loading.value = false
+    }
+  }
+
+  // 确保有默认用户（防止localStorage被清理）
+  async function ensureDefaultUser() {
+    try {
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+      
+      // 如果没有用户，创建一个默认的boss用户
+      if (Object.keys(registeredUsers).length === 0) {
+        console.log('🔧 检测到localStorage为空，创建默认用户...')
+        
+        const defaultUser = {
+          password: 'boss123',
+          userData: {
+            id: '3314e79e-2d9d-4b08-81a9-5ece03c495ff',
+            username: 'boss',
+            email: 'boss@example.com',
+            is_agent: true,
+            invite_code: 'DEFAULT01',
+            inviter_id: null,
+            created_at: new Date().toISOString(),
+            balance: 1000,
+            points_balance: 500
+          }
+        }
+        
+        registeredUsers['boss'] = defaultUser
+        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+        
+        console.log('✅ 默认用户创建成功: boss / boss123')
+        console.log('📋 当前已注册用户:', Object.keys(registeredUsers))
+      } else {
+        console.log('📋 当前已注册用户:', Object.keys(registeredUsers))
+      }
+    } catch (error) {
+      console.error('创建默认用户失败:', error)
     }
   }
 
@@ -64,13 +104,19 @@ export const useAuthStore = defineStore('auth', () => {
       // 从localStorage获取已注册的用户
       const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
       
+      console.log('🔍 登录检查 - 已注册用户:', Object.keys(registeredUsers))
+      console.log('🔍 尝试登录用户:', username)
+      
       // 验证用户是否已注册
       if (!registeredUsers[username]) {
+        console.error('❌ 用户不存在:', username)
+        console.log('📋 当前已注册用户列表:', Object.keys(registeredUsers))
         throw new Error('用户名不存在，请先注册')
       }
       
       // 验证密码
       if (registeredUsers[username].password !== password) {
+        console.error('❌ 密码错误:', username)
         throw new Error('密码错误')
       }
       
