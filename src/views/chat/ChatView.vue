@@ -149,13 +149,10 @@
 
         <!-- 用户消息 -->
         <div v-else class="flex gap-2" :class="message.user_id === authStore.user?.id ? 'flex-row-reverse' : ''">
-          <!-- 头像 - 自动生成 -->
+          <!-- 头像 - 自动生成卡通正方形头像 -->
           <div class="avatar placeholder flex-shrink-0">
-            <div 
-              class="w-8 h-8 rounded-full"
-              :class="message.user_id === authStore.user?.id ? 'bg-secondary' : 'bg-primary'"
-            >
-              <span class="text-xs text-white">{{ message.username?.[0] || '?' }}</span>
+            <div class="w-8 h-8 rounded-sm">
+              <img :src="generateConsistentAvatar(message.username || 'User', 80)" :alt="message.username" class="w-full h-full" />
             </div>
           </div>
 
@@ -286,6 +283,7 @@ import type { Message, ChatGroup } from '@/types'
 import { format } from 'date-fns'
 import GroupSelector from '@/components/GroupSelector.vue'
 import { CacheManager, CacheType } from '@/utils/cacheManager'
+import { generateConsistentAvatar } from '@/utils/avatarGenerator'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -421,6 +419,12 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
+    // 🔥 新增：切换群聊时清除旧群组的缓存（在更新 currentGroup 之前）
+    if (currentGroup.value?.id) {
+      const oldStorageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
+      localStorage.removeItem(oldStorageKey)
+    }
+    
     // 🔥 优化2：立即更新群组和清空消息（提升响应速度）
     currentGroup.value = group
     messages.value = []
@@ -466,11 +470,11 @@ const loadMessages = (groupId?: string) => {
     if (storedMessages) {
       const parsedMessages = JSON.parse(storedMessages)
       
-      // 过滤掉10分钟前的消息 + 过滤掉无效的UUID（生产环境）
-      const tenMinutesAgo = Date.now() - 10 * 60 * 1000
+      // 过滤掉2分钟前的消息 + 过滤掉无效的UUID（生产环境）
+      const twoMinutesAgo = Date.now() - 2 * 60 * 1000
       const validMessages = parsedMessages.filter((msg: any) => {
         const messageTime = new Date(msg.created_at).getTime()
-        const isTimeValid = messageTime > tenMinutesAgo
+        const isTimeValid = messageTime > twoMinutesAgo
         
         // 生产环境额外验证UUID（静默过滤）
         if (!isDevMode && msg.user_id) {
