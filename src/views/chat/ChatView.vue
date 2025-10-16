@@ -865,18 +865,11 @@ const startAutoCleanup = () => {
 const openUserCard = (userId: string) => {
   // 验证是否为有效的 UUID
   if (!isValidUUID(userId)) {
-    console.warn('⚠️ 无效的用户ID，无法查看名片')
+    console.warn('⚠️ 无效的用户ID，无法查看名片:', userId)
     
-    if (isDevMode) {
-      // 开发模式：显示提示
-      alert('开发模式下暂不支持查看模拟用户的名片\n请在生产环境中测试此功能')
-    } else {
-      // 生产环境：静默清理，不显示弹窗
-      console.log('🧹 检测到无效用户ID，自动清理中...')
-      // 重新加载消息以清理无效数据
-      loadMessages()
-      console.log('✅ 清理完成！页面将显示有效消息')
-    }
+    // 静默处理，不影响用户体验
+    // 在开发模式和生产模式都不弹窗，避免打扰用户
+    console.log('💡 提示：这可能是开发模式的模拟用户，忽略即可')
     return
   }
   
@@ -937,6 +930,33 @@ const cleanupOldLocalStorage = () => {
       console.log(`✅ 清理完成！共清理 ${cleanedCount} 条旧数据`)
     } else {
       console.log('✨ 无需清理，localStorage数据已是最新')
+    }
+    
+    // 🔥 额外步骤：清理当前群组中的无效消息（生产环境）
+    if (!isDevMode && currentGroup.value?.id) {
+      const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
+      const storedMessages = localStorage.getItem(storageKey)
+      if (storedMessages) {
+        try {
+          const parsedMessages = JSON.parse(storedMessages)
+          const validMessages = parsedMessages.filter((msg: any) => {
+            if (msg.user_id && !isValidUUID(msg.user_id)) {
+              console.log(`  🗑️  清理无效UUID消息: ${msg.user_id}`)
+              return false
+            }
+            return true
+          })
+          
+          if (validMessages.length !== parsedMessages.length) {
+            localStorage.setItem(storageKey, JSON.stringify(validMessages))
+            console.log(`✅ 已清理 ${parsedMessages.length - validMessages.length} 条无效UUID消息`)
+            // 刷新当前显示
+            messages.value = validMessages
+          }
+        } catch (e) {
+          console.error('清理无效消息失败:', e)
+        }
+      }
     }
   } catch (error) {
     console.error('清理localStorage失败:', error)
