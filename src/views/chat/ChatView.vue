@@ -425,12 +425,10 @@ const switchGroup = async (group: ChatGroup) => {
     
     // 🔥 关键修复1：取消旧的订阅和定时器
     if (messageSubscription) {
-      console.log('🧹 取消旧群组订阅')
       messageSubscription.unsubscribe()
       messageSubscription = null
     }
     if (botInterval) {
-      console.log('🧹 清理机器人定时器')
       clearInterval(botInterval)
       botInterval = null
     }
@@ -438,8 +436,6 @@ const switchGroup = async (group: ChatGroup) => {
     // 🔥 关键修复2：先清空消息，再切换群组
     messages.value = []
     currentGroup.value = group
-    
-    console.log(`🔄 切换到群组: ${group.name} (ID: ${group.id})`)
     
     // 🔥 关键修复3：加载该群组的消息（传入groupId）
     await loadMessages(group.id)
@@ -473,7 +469,7 @@ const loadMessages = (groupId?: string) => {
       return
     }
     
-    console.log(`🔍 开始加载群组 ${targetGroupId} 的消息 [${isDevMode ? '开发' : '生产'}模式]`)
+    // 静默加载，避免控制台日志过多
     
     // 🔥 关键修复：每个群组单独存储消息，并区分开发/生产环境
     const storageKey = `${ENV_PREFIX}chat_messages_${targetGroupId}`
@@ -481,7 +477,6 @@ const loadMessages = (groupId?: string) => {
     
     if (storedMessages) {
       const parsedMessages = JSON.parse(storedMessages)
-      console.log(`✅ 从localStorage加载群组 ${targetGroupId} 的消息:`, parsedMessages.length)
       
       // 过滤掉10分钟前的消息 + 过滤掉无效的UUID（生产环境）
       const tenMinutesAgo = Date.now() - 10 * 60 * 1000
@@ -489,21 +484,16 @@ const loadMessages = (groupId?: string) => {
         const messageTime = new Date(msg.created_at).getTime()
         const isTimeValid = messageTime > tenMinutesAgo
         
-        // 生产环境额外验证UUID
+        // 生产环境额外验证UUID（静默过滤）
         if (!isDevMode && msg.user_id) {
           const isUUIDValid = isValidUUID(msg.user_id)
-          if (!isUUIDValid) {
-            console.warn(`🧹 清理无效UUID消息: ${msg.user_id}`)
-          }
           return isTimeValid && isUUIDValid
         }
         
         return isTimeValid
       })
       
-      console.log(`🧹 清理无效消息: ${parsedMessages.length} -> ${validMessages.length}`)
-      
-      // 更新localStorage
+      // 更新localStorage（仅当有变化时）
       if (validMessages.length !== parsedMessages.length) {
         localStorage.setItem(storageKey, JSON.stringify(validMessages))
       }
@@ -511,7 +501,6 @@ const loadMessages = (groupId?: string) => {
       messages.value = validMessages
       scrollToBottom()
     } else {
-      console.log(`📝 群组 ${targetGroupId} 没有历史消息`)
       messages.value = []
     }
   } catch (error) {
@@ -694,8 +683,6 @@ const sendMessage = async () => {
     storedMessages.push(newMessage)
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
     
-    console.log(`✅ 消息已保存到群组 ${currentGroup.value.id} [${isDevMode ? '开发' : '生产'}模式]:`, newMessage)
-    
     messageInput.value = ''
     cancelImage()
   } catch (error) {
@@ -856,7 +843,6 @@ const initDevMode = () => {
 // 自动清理旧消息（每分钟检查一次）
 const startAutoCleanup = () => {
   cleanupInterval = setInterval(() => {
-    console.log('⏰ 定时清理旧消息')
     loadMessages() // loadMessages 会自动过滤并清理旧消息
   }, 60000) // 每60秒检查一次
 }
@@ -865,11 +851,7 @@ const startAutoCleanup = () => {
 const openUserCard = (userId: string) => {
   // 验证是否为有效的 UUID
   if (!isValidUUID(userId)) {
-    console.warn('⚠️ 无效的用户ID，无法查看名片:', userId)
-    
-    // 静默处理，不影响用户体验
-    // 在开发模式和生产模式都不弹窗，避免打扰用户
-    console.log('💡 提示：这可能是开发模式的模拟用户，忽略即可')
+    // 静默处理，不输出任何日志，避免控制台混乱
     return
   }
   
@@ -894,73 +876,44 @@ const onCardSaved = () => {
   console.log('名片已保存')
 }
 
-// 清理旧的localStorage数据（自动迁移）
+// 清理旧的localStorage数据（自动迁移）- 异步执行，不阻塞UI
 const cleanupOldLocalStorage = () => {
-  try {
-    console.log('🧹 开始清理旧的localStorage数据...')
-    
-    let cleanedCount = 0
-    const keysToRemove: string[] = []
-    
-    // 遍历所有localStorage keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (!key) continue
+  // 使用 setTimeout 将清理任务放到下一个事件循环，避免阻塞UI
+  setTimeout(() => {
+    try {
+      let cleanedCount = 0
+      const keysToRemove: string[] = []
       
-      // 清理旧的不带环境前缀的聊天消息
-      if (key.startsWith('chat_messages_') && !key.startsWith(ENV_PREFIX)) {
-        keysToRemove.push(key)
-        cleanedCount++
-      }
-      
-      // 生产环境：额外清理开发环境的数据
-      if (!isDevMode && key.startsWith('dev_')) {
-        keysToRemove.push(key)
-        cleanedCount++
-      }
-    }
-    
-    // 删除标记的keys
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key)
-      console.log(`  🗑️  删除旧数据: ${key}`)
-    })
-    
-    if (cleanedCount > 0) {
-      console.log(`✅ 清理完成！共清理 ${cleanedCount} 条旧数据`)
-    } else {
-      console.log('✨ 无需清理，localStorage数据已是最新')
-    }
-    
-    // 🔥 额外步骤：清理当前群组中的无效消息（生产环境）
-    if (!isDevMode && currentGroup.value?.id) {
-      const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
-      const storedMessages = localStorage.getItem(storageKey)
-      if (storedMessages) {
-        try {
-          const parsedMessages = JSON.parse(storedMessages)
-          const validMessages = parsedMessages.filter((msg: any) => {
-            if (msg.user_id && !isValidUUID(msg.user_id)) {
-              console.log(`  🗑️  清理无效UUID消息: ${msg.user_id}`)
-              return false
-            }
-            return true
-          })
-          
-          if (validMessages.length !== parsedMessages.length) {
-            localStorage.setItem(storageKey, JSON.stringify(validMessages))
-            console.log(`✅ 已清理 ${parsedMessages.length - validMessages.length} 条无效UUID消息`)
-            // 刷新当前显示
-            messages.value = validMessages
-          }
-        } catch (e) {
-          console.error('清理无效消息失败:', e)
+      // 遍历所有localStorage keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (!key) continue
+        
+        // 清理旧的不带环境前缀的聊天消息
+        if (key.startsWith('chat_messages_') && !key.startsWith(ENV_PREFIX)) {
+          keysToRemove.push(key)
+          cleanedCount++
+        }
+        
+        // 生产环境：额外清理开发环境的数据
+        if (!isDevMode && key.startsWith('dev_')) {
+          keysToRemove.push(key)
+          cleanedCount++
         }
       }
+      
+      // 删除标记的keys
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key)
+      })
+      
+      if (cleanedCount > 0) {
+        console.log(`✅ 后台清理完成！共清理 ${cleanedCount} 条旧数据`)
+      }
+    } catch (error) {
+      console.error('清理localStorage失败:', error)
     }
-  } catch (error) {
-    console.error('清理localStorage失败:', error)
-  }
+  }, 100) // 延迟100ms执行，让页面先加载
 }
 
 // 生命周期
@@ -1001,9 +954,7 @@ onMounted(async () => {
 
 // 监听路由变化，当返回聊天页面时重新加载消息
 watch(() => route.path, (newPath, oldPath) => {
-  console.log('🔄 路由变化:', oldPath, '->', newPath)
   if (newPath === '/chat' && oldPath !== '/chat') {
-    console.log('🔄 返回聊天页面，重新加载消息')
     loadMessages()
   }
 })
