@@ -292,6 +292,7 @@ import { supabase, isDevMode } from '@/lib/supabase'
 import type { Message, ChatGroup } from '@/types'
 import { format } from 'date-fns'
 import GroupSelector from '@/components/GroupSelector.vue'
+import { CacheManager, CacheType } from '@/utils/cacheManager'
 
 const { t } = useI18n()
 const authStore = useAuthStore()

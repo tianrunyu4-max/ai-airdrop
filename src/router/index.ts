@@ -61,6 +61,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/cache',
+    name: 'cache-management',
+    component: () => import('@/views/system/CacheManagement.vue'),
+    meta: { requiresAuth: false } // 缓存管理不需要登录
+  },
+  {
     path: '/admin',
     redirect: '/admin/dashboard'
   },
