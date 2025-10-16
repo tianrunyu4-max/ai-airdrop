@@ -32,18 +32,11 @@
         </div>
       </div>
       <div class="flex-none flex items-center gap-2">
-        <!-- 实时推送 - 横向显示 -->
-        <div class="badge badge-success badge-sm gap-1 font-bold">
+        <!-- 实时推送 - 和群组选择器一样大 -->
+        <button class="btn btn-success btn-sm gap-1 font-bold">
           <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-          <span class="whitespace-nowrap text-xs">实时推送</span>
-        </div>
-        <!-- 每日实操 -->
-        <div class="badge badge-info badge-sm gap-1 font-bold">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="whitespace-nowrap text-xs">每日实操</span>
-        </div>
+          <span class="whitespace-nowrap">实时推送</span>
+        </button>
         <!-- 群组选择器 - 所有人可见 -->
         <GroupSelector 
           :current-group-id="currentGroup?.id || null"
