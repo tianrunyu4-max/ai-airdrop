@@ -58,7 +58,7 @@
             <div class="text-xs text-gray-600 mt-1">团队人数</div>
           </div>
           <div class="text-center px-2">
-            <div class="text-3xl font-bold text-blue-600">{{ user?.total_earnings.toFixed(2) || '0.00' }}</div>
+            <div class="text-3xl font-bold text-blue-600">{{ (user?.total_earnings || 0).toFixed(2) }}</div>
             <div class="text-xs text-gray-600 mt-1">总收益(U)</div>
           </div>
         </div>
@@ -72,7 +72,7 @@
           <div>
             <div class="text-gray-600 text-sm">账户余额</div>
             <div class="text-4xl font-bold text-yellow-600 mt-1">
-              {{ user?.u_balance.toFixed(2) || '0.00' }} U
+              {{ (user?.u_balance || 0).toFixed(2) }} U
             </div>
           </div>
           <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
