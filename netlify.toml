@@ -1,45 +1,8 @@
-# Netlify部署配置
-
 [build]
   command = "npm run build"
   publish = "dist"
 
-# 🚫 禁用所有文件的缓存（开发阶段）
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-# 特别处理HTML文件
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-# 特别处理JS/CSS文件
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-# Service Worker文件（如果存在）
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-[[headers]]
-  for = "/workbox-*.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
