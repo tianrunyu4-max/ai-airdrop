@@ -1,5 +1,5 @@
 /**
- * MiningService - AI学习卡系统服务 V4.2
+ * MiningService - AI学习卡系统服务 V4.4
  * 使用新架构：Repository + Wallet + Config
  * 
  * 实现AI学习卡核心业务逻辑：
@@ -8,11 +8,11 @@
  * 3. 每日签到释放（不签到不释放）
  * 4. 基础释放率1%/天 + 直推加速1%/人，最高10%
  * 5. 3倍出局（30-300天）
- * 6. 70%到账U余额，30%自动销毁清0
+ * 6. 85%到账U余额，15%自动清0
  * 7. 自动重启机制（总释放>新积分时触发）
  * 8. 叠加机制（最多10张）
  * 
- * 更新日期：2025-10-15
+ * 更新日期：2025-10-16
  */
 
 import { BaseService, type ApiResponse } from './BaseService'
@@ -337,12 +337,12 @@ export class MiningService extends BaseService {
       })))
 
       // 6. 分配释放的积分到用户账户
-      // 70% 转 U (兑换价：100积分=8U，即1积分=0.08U)
-      const toU = totalReleased * 0.70
+      // 85% 转 U (兑换价：100积分=8U，即1积分=0.08U)
+      const toU = totalReleased * 0.85
       const uAmount = toU * 0.08 // 1积分 = 0.08U (100积分=8U)
       
-      // 30% 销毁（V4.0：防泡沫机制，不再转互转积分）
-      const toBurn = totalReleased * 0.30
+      // 15% 销毁（防泡沫机制，自动清0）
+      const toBurn = totalReleased * 0.15
 
       // 更新用户余额
       const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
@@ -398,7 +398,7 @@ export class MiningService extends BaseService {
           totalReleased,
           releaseRate
         },
-        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分销毁）`
+        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分自动清0）`
       }
     } catch (error) {
       return this.handleError(error)
@@ -450,7 +450,7 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * V4.0 每日释放积分（签到后执行，70%到账U，30%销毁）
+   * V4.4 每日释放积分（签到后执行，85%到账U，15%自动清0）
    */
   private static async releaseDailyPointsV4(machineId: string, releaseRate: number): Promise<number> {
     try {
@@ -494,11 +494,11 @@ export class MiningService extends BaseService {
         return 0
       }
 
-      // 分配：70%到账U，30%销毁
+      // 分配：85%到账U，15%自动清0
       const toU = actualRelease * AILearningConfig.DISTRIBUTION.TO_U_PERCENT
       const toBurn = actualRelease * AILearningConfig.DISTRIBUTION.TO_BURN_PERCENT
 
-      // 70%转U余额
+      // 85%转U余额
       const uAmount = toU * 0.08 // 100积分 = 8U，所以积分×0.08=U
       await WalletManager.add(
         machine.user_id,
@@ -508,8 +508,8 @@ export class MiningService extends BaseService {
         `AI学习卡释放${toU.toFixed(2)}积分，兑换${uAmount.toFixed(2)}U`
       )
 
-      // 30%销毁（记录日志即可，不实际存储）
-      console.log(`学习卡 ${machineId} 销毁 ${toBurn.toFixed(2)} 积分`)
+      // 15%自动清0（记录日志即可，不实际存储）
+      console.log(`学习卡 ${machineId} 自动清0 ${toBurn.toFixed(2)} 积分`)
 
       // 更新学习卡释放记录
       const updateData: any = {

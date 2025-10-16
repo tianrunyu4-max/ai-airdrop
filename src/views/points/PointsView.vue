@@ -96,11 +96,11 @@
                 </div>
                 <div class="text-gray-400">→</div>
                 <div class="text-yellow-600 font-bold text-lg">
-                  {{ (300 * releaseRate * 0.7 * 0.08).toFixed(3) }} U
+                  {{ (300 * releaseRate * 0.85 * 0.08).toFixed(3) }} U
                 </div>
               </div>
               <div class="text-xs text-gray-400 mt-1">
-                （30%销毁 {{ (300 * releaseRate * 0.3).toFixed(1) }} 积分）
+                （15%自动清0 {{ (300 * releaseRate * 0.15).toFixed(1) }} 积分）
               </div>
             </div>
           </div>
@@ -151,9 +151,9 @@
 
         <!-- V4.0 核心参数 -->
         <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
-          <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.0 签到制升级</div>
+          <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.4 签到制升级</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 1-15%释放 · 3倍出局 · 70%到账30%销毁
+            每日签到 · 1-15%释放 · 3倍出局 · 85%到账15%自动清0
           </div>
         </div>
 
@@ -185,47 +185,47 @@
           <div class="text-center text-sm font-bold text-gray-700 mb-3">📊 每日收益自动分配</div>
           <div class="space-y-2">
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">70% 自动转U</span>
+              <span class="text-gray-600">85% 自动转U</span>
               <span class="text-yellow-600 font-bold">直接到账</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">30% 自动销毁</span>
-              <span class="text-red-600 font-bold">清0防泡沫</span>
+              <span class="text-gray-600">15% 自动清0</span>
+              <span class="text-red-600 font-bold">防泡沫</span>
             </div>
           </div>
         </div>
 
-        <!-- 释放量对照表 V4.3 -->
+        <!-- 释放量对照表 V4.4 -->
         <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 mb-6 border border-blue-200">
           <div class="text-center text-sm font-bold text-gray-700 mb-3">💰 每日释放量对照表</div>
           <div class="space-y-1.5 text-xs">
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
               <span class="text-gray-600">0个直推：1%</span>
-              <span class="text-blue-600 font-bold">3积分/天 → 0.168U</span>
+              <span class="text-blue-600 font-bold">3积分/天 → 0.204U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
               <span class="text-gray-600">1个直推：3%</span>
-              <span class="text-blue-600 font-bold">9积分/天 → 0.504U</span>
+              <span class="text-blue-600 font-bold">9积分/天 → 0.612U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
               <span class="text-gray-600">2个直推：6%</span>
-              <span class="text-blue-600 font-bold">18积分/天 → 1.008U</span>
+              <span class="text-blue-600 font-bold">18积分/天 → 1.224U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
               <span class="text-gray-600">3个直推：9%</span>
-              <span class="text-blue-600 font-bold">27积分/天 → 1.512U</span>
+              <span class="text-blue-600 font-bold">27积分/天 → 1.836U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
               <span class="text-gray-600">4个直推：12%</span>
-              <span class="text-green-600 font-bold">36积分/天 → 2.016U</span>
+              <span class="text-green-600 font-bold">36积分/天 → 2.448U</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border-2 border-green-400">
               <span class="text-gray-700 font-bold">5个直推：15%</span>
-              <span class="text-green-600 font-bold">45积分/天 → 2.52U</span>
+              <span class="text-green-600 font-bold">45积分/天 → 3.06U</span>
             </div>
           </div>
           <div class="text-center text-xs text-gray-500 mt-2">
-            💡 基于300积分总产出（3倍出局），70%到账，5个直推封顶
+            💡 基于300积分总产出（3倍出局），85%到账，5个直推封顶
           </div>
         </div>
 
