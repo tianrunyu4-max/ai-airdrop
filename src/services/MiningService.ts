@@ -398,7 +398,7 @@ export class MiningService extends BaseService {
           totalReleased,
           releaseRate
         },
-        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toTransfer.toFixed(2)}互转积分）`
+        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分销毁）`
       }
     } catch (error) {
       return this.handleError(error)
