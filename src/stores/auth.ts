@@ -20,13 +20,20 @@ export const useAuthStore = defineStore('auth', () => {
       // 检查并修复localStorage数据
       await ensureDefaultUser()
       
+      // 🔧 修复：确保boss用户有is_admin权限
+      const registeredUsersStr = localStorage.getItem('registered_users')
+      const registeredUsers = JSON.parse(registeredUsersStr || '{}')
+      if (registeredUsers['boss'] && !registeredUsers['boss'].userData.is_admin) {
+        console.log('🔧 修复boss用户权限...')
+        registeredUsers['boss'].userData.is_admin = true
+        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+        console.log('✅ boss用户权限已修复')
+      }
+      
       // 始终从localStorage恢复登录状态（开发和生产环境都使用）
       const currentUser = localStorage.getItem('current_user')
       
       if (currentUser) {
-        const registeredUsersStr = localStorage.getItem('registered_users')
-        const registeredUsers = JSON.parse(registeredUsersStr || '{}')
-        
         if (registeredUsers[currentUser]) {
           user.value = registeredUsers[currentUser].userData
           console.log('✅ 从localStorage恢复登录状态:', currentUser)
@@ -57,6 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
             username: 'boss',
             email: 'boss@example.com',
             is_agent: true,
+            is_admin: true, // 🔐 管理员权限
             invite_code: 'DEFAULT01',
             inviter_id: null,
             created_at: new Date().toISOString(),
