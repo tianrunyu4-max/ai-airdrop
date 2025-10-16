@@ -1,180 +1,166 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>强制刷新 - 修复签到功能</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        .step {
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            border-left: 5px solid #4CAF50;
-        }
-        .step h3 {
-            margin-top: 0;
-            color: #4CAF50;
-        }
-        .button {
-            display: inline-block;
-            background: #4CAF50;
-            color: white;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 25px;
-            margin: 10px 5px;
-            transition: all 0.3s;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        }
-        .button:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
-        .warning {
-            background: rgba(255, 193, 7, 0.2);
-            border: 2px solid #ffc107;
-            color: #ffc107;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4CAF50;
-            color: #4CAF50;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            margin: 10px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>强制刷新 - AI智能空投</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 500px;
+      text-align: center;
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+    .status {
+      font-size: 18px;
+      margin: 20px 0;
+      color: #333;
+    }
+    .success {
+      color: #10b981;
+      font-weight: bold;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: transform 0.2s;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .steps {
+      text-align: left;
+      margin: 20px 0;
+      padding: 20px;
+      background: #f3f4f6;
+      border-radius: 10px;
+    }
+    .steps li {
+      margin: 10px 0;
+      padding-left: 10px;
+    }
+    .warning {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔧 强制刷新修复签到功能</h1>
-        
-        <div class="warning">
-            <strong>⚠️ 重要：</strong> 如果签到功能仍然显示 "c.raw is not a function" 错误，请按照以下步骤操作。
-        </div>
-
-        <div class="step">
-            <h3>🚀 方法1：自动修复（推荐）</h3>
-            <p>点击下面的按钮，系统会自动清除所有缓存并重新加载：</p>
-            <button class="button" onclick="forceRefresh()">🔄 自动修复并刷新</button>
-            <div id="status" class="success" style="display: none;">
-                ✅ 缓存已清除，正在重新加载页面...
-            </div>
-        </div>
-
-        <div class="step">
-            <h3>⌨️ 方法2：手动快捷键</h3>
-            <p>在浏览器中按以下组合键：</p>
-            <div class="code">
-                Windows/Linux: <strong>Ctrl + Shift + R</strong><br>
-                Mac: <strong>Cmd + Shift + R</strong>
-            </div>
-        </div>
-
-        <div class="step">
-            <h3>🛠️ 方法3：开发者工具</h3>
-            <p>如果上述方法无效，请使用开发者工具：</p>
-            <ol>
-                <li>按 <strong>F12</strong> 打开开发者工具</li>
-                <li>右键点击浏览器的刷新按钮</li>
-                <li>选择 <strong>"清空缓存并硬性重新加载"</strong></li>
-            </ol>
-        </div>
-
-        <div class="step">
-            <h3>🌐 方法4：清除浏览器数据</h3>
-            <p>在浏览器设置中：</p>
-            <ol>
-                <li>进入浏览器设置</li>
-                <li>找到"隐私和安全" → "清除浏览数据"</li>
-                <li>选择"缓存的图片和文件"</li>
-                <li>点击"清除数据"</li>
-            </ol>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px;">
-            <a href="/points" class="button">🎯 返回AI学习页面</a>
-            <a href="/" class="button">🏠 返回首页</a>
-        </div>
-
-        <div class="success">
-            <strong>💡 提示：</strong> 修复后，签到功能应该可以正常工作，不再显示英文错误信息。
-        </div>
+  <div class="container">
+    <h1>🔄 强制清除缓存</h1>
+    
+    <div class="warning">
+      <strong>⚠️ 注意：</strong><br>
+      此操作将清除所有浏览器缓存，可能会退出登录状态
     </div>
+    
+    <div class="status" id="status">
+      点击下方按钮开始清理...
+    </div>
+    
+    <div class="steps">
+      <strong>将执行以下操作：</strong>
+      <ol>
+        <li>清除所有 localStorage 数据</li>
+        <li>清除所有 sessionStorage 数据</li>
+        <li>清除所有 Cookie</li>
+        <li>清除 Service Worker 缓存</li>
+        <li>强制重新加载页面</li>
+      </ol>
+    </div>
+    
+    <button class="btn" onclick="clearAllCache()" id="clearBtn">
+      🗑️ 立即清除缓存
+    </button>
+    
+    <button class="btn" onclick="goHome()" id="homeBtn" style="display:none; background: #10b981;">
+      🏠 返回首页
+    </button>
+  </div>
 
-    <script>
-        function forceRefresh() {
-            const status = document.getElementById('status');
-            status.style.display = 'block';
-            
-            // 清除所有可能的缓存
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
-            }
-            
-            // 清除存储
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // 清除IndexedDB
-            if ('indexedDB' in window) {
-                indexedDB.databases().then(databases => {
-                    databases.forEach(db => {
-                        indexedDB.deleteDatabase(db.name);
-                    });
-                });
-            }
-            
-            // 强制重新加载
-            setTimeout(() => {
-                window.location.href = '/points';
-            }, 2000);
+  <script>
+    async function clearAllCache() {
+      const statusEl = document.getElementById('status')
+      const clearBtn = document.getElementById('clearBtn')
+      const homeBtn = document.getElementById('homeBtn')
+      
+      clearBtn.disabled = true
+      statusEl.innerHTML = '正在清理中...'
+      
+      try {
+        // 1. 清除 localStorage
+        localStorage.clear()
+        statusEl.innerHTML += '<br>✅ localStorage 已清除'
+        
+        // 2. 清除 sessionStorage
+        sessionStorage.clear()
+        statusEl.innerHTML += '<br>✅ sessionStorage 已清除'
+        
+        // 3. 清除 Cookie
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        })
+        statusEl.innerHTML += '<br>✅ Cookie 已清除'
+        
+        // 4. 清除 Service Worker 缓存
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          for(let registration of registrations) {
+            await registration.unregister()
+          }
+          statusEl.innerHTML += '<br>✅ Service Worker 已清除'
         }
         
-        // 页面加载时自动检查
-        window.addEventListener('load', function() {
-            console.log('🔧 强制刷新页面已加载');
-            console.log('📱 如果签到功能仍有问题，请使用上述方法清除缓存');
-        });
-    </script>
+        // 5. 清除 Cache API
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          for(let cacheName of cacheNames) {
+            await caches.delete(cacheName)
+          }
+          statusEl.innerHTML += '<br>✅ Cache API 已清除'
+        }
+        
+        statusEl.innerHTML += '<br><br><span class="success">🎉 缓存清理完成！</span>'
+        clearBtn.style.display = 'none'
+        homeBtn.style.display = 'inline-block'
+        
+      } catch (error) {
+        statusEl.innerHTML += '<br>❌ 清理失败: ' + error.message
+        clearBtn.disabled = false
+      }
+    }
+    
+    function goHome() {
+      // 强制刷新并跳转到首页
+      window.location.href = '/?t=' + Date.now()
+    }
+  </script>
 </body>
 </html>
