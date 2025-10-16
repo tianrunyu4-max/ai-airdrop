@@ -1,5 +1,5 @@
 [build]
-  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
+  command = "npm ci && npx vite@4.5.14 build"
   publish = "dist"
 
 [[redirects]]
