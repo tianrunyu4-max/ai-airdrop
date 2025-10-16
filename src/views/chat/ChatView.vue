@@ -419,17 +419,10 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🔥 新增：切换群聊时清除旧群组的缓存（在更新 currentGroup 之前）
-    if (currentGroup.value?.id) {
-      const oldStorageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
-      localStorage.removeItem(oldStorageKey)
-    }
-    
-    // 🔥 优化2：立即更新群组和清空消息（提升响应速度）
+    // 🔥 优化1：立即更新群组（提升响应速度）
     currentGroup.value = group
-    messages.value = []
     
-    // 🔥 优化3：先加载消息（从本地缓存），再异步加入群组
+    // 🔥 优化2：立即从缓存加载该群组的消息（快速显示）
     loadMessages(group.id)
     
     // 🔥 优化4：异步加入群组（不阻塞 UI）
@@ -470,11 +463,11 @@ const loadMessages = (groupId?: string) => {
     if (storedMessages) {
       const parsedMessages = JSON.parse(storedMessages)
       
-      // 过滤掉2分钟前的消息 + 过滤掉无效的UUID（生产环境）
-      const twoMinutesAgo = Date.now() - 2 * 60 * 1000
+      // 过滤掉30分钟前的消息 + 过滤掉无效的UUID（生产环境）
+      const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
       const validMessages = parsedMessages.filter((msg: any) => {
         const messageTime = new Date(msg.created_at).getTime()
-        const isTimeValid = messageTime > twoMinutesAgo
+        const isTimeValid = messageTime > thirtyMinutesAgo
         
         // 生产环境额外验证UUID（静默过滤）
         if (!isDevMode && msg.user_id) {
@@ -714,7 +707,7 @@ const startBotSimulation = () => {
 
   // 添加欢迎消息（带广告）
   setTimeout(() => {
-    messages.value.push({
+    const welcomeMsg = {
       id: 'bot-welcome',
       chat_group_id: 'dev-group',
       user_id: 'bot',
@@ -724,7 +717,16 @@ const startBotSimulation = () => {
       is_bot: true,
       ad_data: adPool[0], // 欢迎消息也带广告
       created_at: new Date().toISOString()
-    } as any)
+    } as any
+    
+    messages.value.push(welcomeMsg)
+    
+    // 🔥 保存到缓存
+    const storageKey = `${ENV_PREFIX}chat_messages_dev-group`
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    stored.push(welcomeMsg)
+    localStorage.setItem(storageKey, JSON.stringify(stored))
+    
     scrollToBottom()
   }, 1000)
 
@@ -756,7 +758,7 @@ const startBotSimulation = () => {
     // 所有消息都带广告（100%显示）
     const randomAd = adPool[Math.floor(Math.random() * adPool.length)]
     
-    messages.value.push({
+    const botMsg = {
       id: `bot-${Date.now()}`,
       chat_group_id: 'dev-group',
       user_id: 'bot',
@@ -770,7 +772,15 @@ const startBotSimulation = () => {
       },
       ad_data: randomAd, // 广告数据（可能为null）
       created_at: new Date().toISOString()
-    } as any)
+    } as any
+    
+    messages.value.push(botMsg)
+    
+    // 🔥 保存到缓存
+    const storageKey = `${ENV_PREFIX}chat_messages_dev-group`
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    stored.push(botMsg)
+    localStorage.setItem(storageKey, JSON.stringify(stored))
     
     scrollToBottom()
   }, 30000) // 30秒推送一次（测试用）
@@ -799,67 +809,80 @@ const initDevMode = () => {
 
   onlineCount.value = 66
   
-  // 添加一些历史消息（包括机器人消息）
-  messages.value = [
-    {
-      id: 'bot-1',
-      chat_group_id: 'dev-group',
-      user_id: 'bot',
-      username: 'AI空投机器人',
-      content: '🔥 币安新空投！\n\n项目：BNB质押奖励\n奖励：预计50 USDT\nAI评分：8.5/10\n\n✅ 参与方式：质押BNB即可\n⏰ 截止时间：本月底',
-      type: 'bot',
-      is_bot: true,
-      airdrop_data: {
-        exchange: '币安',
-        score: 8.5
+  // 🔥 先尝试从缓存加载消息
+  const storageKey = `${ENV_PREFIX}chat_messages_dev-group`
+  const cachedMessages = localStorage.getItem(storageKey)
+  
+  if (cachedMessages) {
+    // 有缓存，立即加载
+    messages.value = JSON.parse(cachedMessages)
+    console.log('✅ 从缓存加载消息:', messages.value.length, '条')
+  } else {
+    // 无缓存，创建初始消息
+    messages.value = [
+      {
+        id: 'bot-1',
+        chat_group_id: 'dev-group',
+        user_id: 'bot',
+        username: 'AI空投机器人',
+        content: '🔥 币安新空投！\n\n项目：BNB质押奖励\n奖励：预计50 USDT\nAI评分：8.5/10\n\n✅ 参与方式：质押BNB即可\n⏰ 截止时间：本月底',
+        type: 'bot',
+        is_bot: true,
+        airdrop_data: {
+          exchange: '币安',
+          score: 8.5
+        },
+        created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() // 10分钟前
       },
-      created_at: new Date(Date.now() - 600000).toISOString()
-    },
-    {
-      id: 'msg-1',
-      chat_group_id: 'dev-group',
-      user_id: 'user-1',
-      username: 'Alice',
-      content: '大家好！有人参加币安的空投吗？',
-      type: 'text',
-      is_bot: false,
-      created_at: new Date(Date.now() - 300000).toISOString()
-    },
-    {
-      id: 'msg-2',
-      chat_group_id: 'dev-group',
-      user_id: 'user-2',
-      username: 'Bob',
-      content: '参加了，这个评分挺高的',
-      type: 'text',
-      is_bot: false,
-      created_at: new Date(Date.now() - 240000).toISOString()
-    },
-    {
-      id: 'bot-2',
-      chat_group_id: 'dev-group',
-      user_id: 'bot',
-      username: 'AI空投机器人',
-      content: '💎 高分推荐！\n\n项目：Launchpool - XXX代币\n奖励：预计100 USDT\nAI评分：9.2/10 ⭐⭐⭐\n\n✅ 参与方式：质押BNB/FDUSD\n⏰ 截止时间：7天',
-      type: 'bot',
-      is_bot: true,
-      airdrop_data: {
-        exchange: '币安',
-        score: 9.2
+      {
+        id: 'msg-1',
+        chat_group_id: 'dev-group',
+        user_id: 'user-1',
+        username: 'Alice',
+        content: '大家好！有人参加币安的空投吗？',
+        type: 'text',
+        is_bot: false,
+        created_at: new Date(Date.now() - 8 * 60 * 1000).toISOString() // 8分钟前
       },
-      created_at: new Date(Date.now() - 120000).toISOString()
-    }
-  ] as any
+      {
+        id: 'msg-2',
+        chat_group_id: 'dev-group',
+        user_id: 'user-2',
+        username: 'Bob',
+        content: '参加了，这个评分挺高的',
+        type: 'text',
+        is_bot: false,
+        created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() // 5分钟前
+      },
+      {
+        id: 'bot-2',
+        chat_group_id: 'dev-group',
+        user_id: 'bot',
+        username: 'AI空投机器人',
+        content: '💎 高分推荐！\n\n项目：Launchpool - XXX代币\n奖励：预计100 USDT\nAI评分：9.2/10 ⭐⭐⭐\n\n✅ 参与方式：质押BNB/FDUSD\n⏰ 截止时间：7天',
+        type: 'bot',
+        is_bot: true,
+        airdrop_data: {
+          exchange: '币安',
+          score: 9.2
+        },
+        created_at: new Date(Date.now() - 3 * 60 * 1000).toISOString() // 3分钟前
+      }
+    ] as any
+    
+    // 保存到缓存
+    localStorage.setItem(storageKey, JSON.stringify(messages.value))
+  }
 
   scrollToBottom()
   startBotSimulation()
 }
 
-// 自动清理旧消息（每分钟检查一次）
+// 自动清理旧消息（每5分钟检查一次）
 const startAutoCleanup = () => {
   cleanupInterval = setInterval(() => {
     loadMessages() // loadMessages 会自动过滤并清理旧消息
-  }, 60000) // 每60秒检查一次
+  }, 5 * 60 * 1000) // 每5分钟检查一次（降低频率）
 }
 
 // 清理旧的localStorage数据（自动迁移）- 异步执行，不阻塞UI
