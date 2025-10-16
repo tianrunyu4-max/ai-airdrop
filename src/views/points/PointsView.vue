@@ -252,7 +252,7 @@
             </button>
           </div>
           <div class="text-center text-sm text-gray-600 mt-2">
-            总成本：{{ (purchaseCount * 6).toFixed(0) }}U = {{ (purchaseCount * 100) }}积分
+            总成本：{{ (purchaseCount * 8).toFixed(0) }}U = {{ (purchaseCount * 100) }}积分
           </div>
         </div>
 
@@ -270,8 +270,8 @@
           <div v-if="!user?.is_agent" class="text-purple-600 font-medium mb-2">
             💡 需要先加入Binary对碰系统（30U）才能兑换学习卡
           </div>
-          <div v-else-if="(user?.u_balance || 0) < purchaseCount * 6" class="text-red-600 font-medium mb-2">
-            余额不足，需要 {{ (purchaseCount * 6).toFixed(2) }}U
+          <div v-else-if="(user?.u_balance || 0) < purchaseCount * 8" class="text-red-600 font-medium mb-2">
+            余额不足，需要 {{ (purchaseCount * 8).toFixed(2) }}U
           </div>
           <div>💳 加入代理自动送100积分，可激活第1张学习卡</div>
         </div>
@@ -453,7 +453,7 @@ const exchangeCard = async () => {
   }
   
   // 检查余额
-  const totalCost = purchaseCount.value * 6
+  const totalCost = purchaseCount.value * 8
   if ((user.value.u_balance || 0) < totalCost) {
     toast.error(`U余额不足，需要${totalCost}U`)
     return
