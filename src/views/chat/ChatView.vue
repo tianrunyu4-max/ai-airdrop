@@ -58,8 +58,8 @@
       class="flex-1 overflow-y-auto p-6 space-y-4 bg-white min-h-0 pt-20"
     >
       <!-- 机器人消息（空投推送） -->
-      <div
-        v-for="message in messages"
+      <div 
+        v-for="message in validMessages"
         :key="message.id"
         class="animate-fade-in"
       >
@@ -200,7 +200,7 @@
       </div>
 
       <!-- 空状态 - 醒目设计 -->
-      <div v-if="messages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
+      <div v-if="validMessages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
         <div class="text-8xl mb-6 animate-bounce">🤖</div>
         <h3 class="text-3xl font-bold text-primary mb-3">欢迎来到 AI科技</h3>
         <p class="text-xl text-base-content/70 mb-6">等待AI智能推送欧易 币安交易所空投资讯</p>
@@ -302,7 +302,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -341,6 +341,20 @@ const isValidUUID = (uuid: string): boolean => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   return uuidRegex.test(uuid)
 }
+
+// 计算属性：过滤后的消息（生产环境下只显示有效UUID的消息）
+const validMessages = computed(() => {
+  if (isDevMode) {
+    return messages.value // 开发模式显示所有消息
+  }
+  // 生产环境：过滤掉无效UUID的消息
+  return messages.value.filter(msg => {
+    // 机器人消息总是显示
+    if (msg.is_bot) return true
+    // 用户消息：验证UUID
+    return msg.user_id && isValidUUID(msg.user_id)
+  })
+})
 
 // 订阅实时消息
 let messageSubscription: any = null
