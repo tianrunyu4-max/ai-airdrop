@@ -156,13 +156,10 @@
 
         <!-- 用户消息 -->
         <div v-else class="flex gap-2" :class="message.user_id === authStore.user?.id ? 'flex-row-reverse' : ''">
-          <!-- 头像 - 可点击查看名片 -->
-          <div 
-            class="avatar placeholder flex-shrink-0 cursor-pointer" 
-            @click="openUserCard(message.user_id)"
-          >
+          <!-- 头像 - 自动生成 -->
+          <div class="avatar placeholder flex-shrink-0">
             <div 
-              class="w-8 h-8 rounded-full hover:ring-2 hover:ring-yellow-500 transition-all"
+              class="w-8 h-8 rounded-full"
               :class="message.user_id === authStore.user?.id ? 'bg-secondary' : 'bg-primary'"
             >
               <span class="text-xs text-white">{{ message.username?.[0] || '?' }}</span>
@@ -283,21 +280,6 @@
       </form>
     </div>
 
-    <!-- 用户名片 -->
-    <UserCard 
-      :user-id="selectedUserId"
-      :is-open="showUserCard"
-      @close="closeUserCard"
-      @edit="openCardEditor"
-    />
-
-    <!-- 用户名片编辑器 -->
-    <UserCardEditor 
-      :is-open="showUserCardEditor"
-      @close="closeCardEditor"
-      @saved="onCardSaved"
-    />
-
   </div>
 </template>
 
@@ -310,8 +292,6 @@ import { supabase, isDevMode } from '@/lib/supabase'
 import type { Message, ChatGroup } from '@/types'
 import { format } from 'date-fns'
 import GroupSelector from '@/components/GroupSelector.vue'
-import UserCard from '@/components/UserCard.vue'
-import UserCardEditor from '@/components/UserCardEditor.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -327,11 +307,6 @@ const onlineCount = ref(1)
 const selectedImage = ref<File | null>(null)
 const imagePreview = ref<string>('')
 const fileInput = ref<HTMLInputElement>()
-
-// 用户名片相关
-const showUserCard = ref(false)
-const showUserCardEditor = ref(false)
-const selectedUserId = ref<string | null>(null)
 
 // 环境标识：区分开发和生产环境的localStorage
 const ENV_PREFIX = isDevMode ? 'dev_' : 'prod_'
@@ -859,35 +834,6 @@ const startAutoCleanup = () => {
   cleanupInterval = setInterval(() => {
     loadMessages() // loadMessages 会自动过滤并清理旧消息
   }, 60000) // 每60秒检查一次
-}
-
-// 用户名片相关方法
-const openUserCard = (userId: string) => {
-  // 验证是否为有效的 UUID
-  if (!isValidUUID(userId)) {
-    // 静默处理，不输出任何日志，避免控制台混乱
-    return
-  }
-  
-  selectedUserId.value = userId
-  showUserCard.value = true
-}
-
-const closeUserCard = () => {
-  showUserCard.value = false
-  selectedUserId.value = null
-}
-
-const openCardEditor = () => {
-  showUserCardEditor.value = true
-}
-
-const closeCardEditor = () => {
-  showUserCardEditor.value = false
-}
-
-const onCardSaved = () => {
-  console.log('名片已保存')
 }
 
 // 清理旧的localStorage数据（自动迁移）- 异步执行，不阻塞UI
