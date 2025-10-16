@@ -403,6 +403,11 @@ const scrollToBottom = () => {
 
 // 切换群组
 const switchGroup = async (group: ChatGroup) => {
+  // 🔥 优化1：避免重复切换
+  if (currentGroup.value?.id === group.id) {
+    return
+  }
+
   // 检查是否是代理
   if (!authStore.user?.is_agent && group.type !== 'default_hall') {
     // 非代理用户尝试进入非默认群，显示订阅提示
@@ -423,15 +428,15 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🔥 关键修复2：先清空消息，再切换群组
-    messages.value = []
+    // 🔥 优化2：立即更新群组和清空消息（提升响应速度）
     currentGroup.value = group
+    messages.value = []
     
-    // 🔥 关键修复3：加载该群组的消息（传入groupId）
-    await loadMessages(group.id)
+    // 🔥 优化3：先加载消息（从本地缓存），再异步加入群组
+    loadMessages(group.id)
     
-    // 加入群组
-    await joinGroup(group.id)
+    // 🔥 优化4：异步加入群组（不阻塞 UI）
+    joinGroup(group.id).catch(() => {})
     
     // 🔥 关键修复4：重新订阅新群组消息
     subscribeToMessages()
@@ -545,17 +550,23 @@ const getDefaultGroup = async () => {
 // 加入群组
 const joinGroup = async (groupId: string) => {
   try {
+    // 🔥 优化：静默加入，失败不影响用户体验
     // 检查是否已经是成员
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('group_members')
       .select('id')
       .eq('group_id', groupId)
       .eq('user_id', authStore.user!.id)
-      .single()
+      .maybeSingle() // 使用 maybeSingle 替代 single，避免 406 错误
+
+    // 如果查询失败（表不存在等），静默跳过
+    if (checkError && checkError.code !== 'PGRST116') {
+      return
+    }
 
     if (!existing) {
-      // 添加成员
-      await supabase
+      // 尝试添加成员（静默失败）
+      const { error: insertError } = await supabase
         .from('group_members')
         .insert({
           group_id: groupId,
@@ -563,17 +574,27 @@ const joinGroup = async (groupId: string) => {
           role: 'member'
         })
 
-      // 更新成员计数
-      await supabase.rpc('increment_group_members', { group_id: groupId })
+      // 409 冲突（已存在）或其他错误，静默跳过
+      if (insertError) {
+        return
+      }
+
+      // 更新成员计数（静默失败）
+      await supabase.rpc('increment_group_members', { group_id: groupId }).catch(() => {})
     }
   } catch (error) {
-    console.error('Join group error:', error)
+    // 静默处理所有错误，不影响切换体验
   }
 }
 
 // 订阅实时消息
 const subscribeToMessages = () => {
   if (!currentGroup.value) return
+
+  // 🔥 优化：取消旧订阅，避免重复
+  if (messageSubscription) {
+    messageSubscription.unsubscribe()
+  }
 
   messageSubscription = supabase
     .channel(`messages:${currentGroup.value.id}`)
@@ -586,16 +607,23 @@ const subscribeToMessages = () => {
         filter: `chat_group_id=eq.${currentGroup.value.id}`
       },
       async (payload) => {
-        // 获取用户名
-        const { data: user } = await supabase
-          .from('users')
-          .select('username')
-          .eq('id', payload.new.user_id)
-          .single()
+        // 🔥 优化：静默获取用户名，失败使用默认值
+        let username = 'Unknown'
+        try {
+          const { data: user } = await supabase
+            .from('users')
+            .select('username')
+            .eq('id', payload.new.user_id)
+            .maybeSingle()
+          
+          username = user?.username || 'Unknown'
+        } catch {
+          // 静默失败
+        }
 
         messages.value.push({
           ...payload.new,
-          username: user?.username || 'Unknown'
+          username
         } as Message)
 
         scrollToBottom()
