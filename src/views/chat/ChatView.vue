@@ -939,29 +939,9 @@ onMounted(async () => {
   // 🧹 首先清理旧的localStorage数据
   cleanupOldLocalStorage()
   
-  // 🔥 关键修复：先初始化群组！
-  if (isDevMode) {
-    // 开发模式：使用模拟数据
-    initDevMode()
-    startBotSimulation()
-  } else {
-    // 生产模式：从数据库加载默认群组
-    if (!authStore.user) {
-      console.warn('⚠️ 用户未登录，无法初始化聊天')
-      loading.value = false
-      return
-    }
-    
-    try {
-      loading.value = true
-      await getDefaultGroup()  // getDefaultGroup 内部会调用 joinGroup
-      subscribeToMessages()
-    } catch (error) {
-      console.error('初始化群组失败:', error)
-    } finally {
-      loading.value = false
-    }
-  }
+  // 🔥 关键修复：统一使用"AI科技"主群（开发和生产模式都一样）
+  initDevMode()
+  startBotSimulation()
   
   // 加载消息
   loadMessages()
