@@ -69,3 +69,8 @@ SELECT id, username, invite_code, is_admin FROM users WHERE username = 'admin';
 
 
 
+
+
+
+
+

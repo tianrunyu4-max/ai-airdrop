@@ -317,43 +317,7 @@ const loadReferralList = async () => {
     const userId = authStore.user?.id
     if (!userId) return
 
-    if (isDevMode) {
-      // 开发模式：模拟数据
-      referralList.value = [
-        {
-          id: '1',
-          username: '用户A',
-          network_side: 'A',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          username: '用户B',
-          network_side: 'B',
-          created_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: '3',
-          username: '用户C',
-          network_side: 'A',
-          created_at: new Date(Date.now() - 172800000).toISOString()
-        },
-        {
-          id: '4',
-          username: '用户D',
-          network_side: 'B',
-          created_at: new Date(Date.now() - 259200000).toISOString()
-        },
-        {
-          id: '5',
-          username: '用户E',
-          network_side: 'A',
-          created_at: new Date(Date.now() - 604800000).toISOString()
-        }
-      ]
-      return
-    }
-
+    // 🔥 生产模式：从数据库查询直推用户
     const { data, error } = await supabase
       .from('users')
       .select('id, username, network_side, created_at')
@@ -361,12 +325,16 @@ const loadReferralList = async () => {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) throw error
+    if (error) {
+      // 查询失败，使用空数组
+      referralList.value = []
+      return
+    }
 
     referralList.value = data || []
-  } catch (error: any) {
-    console.error('加载直推列表失败:', error)
-    toast.error('加载直推列表失败')
+  } catch (error) {
+    // 加载失败，使用空数组
+    referralList.value = []
   }
 }
 
