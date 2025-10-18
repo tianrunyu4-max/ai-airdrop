@@ -6,6 +6,9 @@
         <div class="flex justify-between items-center">
           <h3 class="card-title">空投管理</h3>
           <div class="flex gap-2">
+            <button class="btn btn-info btn-sm" @click="showHistoryModal = true">
+              📋 推送历史
+            </button>
             <button class="btn btn-success" @click="autoCrawl" :disabled="crawling">
               <span v-if="crawling" class="loading loading-spinner loading-sm"></span>
               {{ crawling ? '爬取中...' : '🕷️ 自动爬取' }}
@@ -157,6 +160,92 @@
         </div>
       </div>
     </dialog>
+
+    <!-- 推送选择模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': showPushModal }">
+      <div class="modal-box max-w-2xl">
+        <h3 class="font-bold text-lg mb-4">📢 选择推送群组</h3>
+        
+        <div v-if="pushingAirdrop" class="alert alert-info mb-4">
+          <div>
+            <div class="font-bold">{{ pushingAirdrop.title }}</div>
+            <div class="text-sm">{{ pushingAirdrop.exchange.toUpperCase() }} | AI评分: {{ pushingAirdrop.ai_score }}/10</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mb-4">
+          <button class="btn btn-sm btn-outline" @click="selectAllGroups">全选</button>
+          <button class="btn btn-sm btn-outline" @click="clearSelection">清空</button>
+          <div class="flex-1"></div>
+          <span class="text-sm text-base-content/60">已选择 {{ selectedGroups.length }} 个群组</span>
+        </div>
+
+        <div class="space-y-2 max-h-96 overflow-y-auto">
+          <label v-for="group in availableGroups" :key="group.id" class="flex items-center gap-3 p-3 border rounded-lg hover:bg-base-200 cursor-pointer">
+            <input 
+              type="checkbox" 
+              :value="group.id" 
+              v-model="selectedGroups"
+              class="checkbox checkbox-primary"
+            />
+            <div class="flex-1">
+              <div class="font-semibold">{{ group.name }}</div>
+              <div class="text-xs text-base-content/60">
+                {{ group.type === 'default_hall' ? '主群' : group.type === 'agent_only' ? '代理群' : '普通群' }} | 
+                成员: {{ group.member_count || 0 }}
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn" @click="showPushModal = false" :disabled="pushing">取消</button>
+          <button class="btn btn-primary" @click="confirmPush" :disabled="pushing || selectedGroups.length === 0">
+            <span v-if="pushing" class="loading loading-spinner loading-sm"></span>
+            {{ pushing ? '推送中...' : '确认推送' }}
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 推送历史模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': showHistoryModal }">
+      <div class="modal-box max-w-4xl">
+        <h3 class="font-bold text-lg mb-4">📋 推送历史记录</h3>
+        
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>空投标题</th>
+                <th>交易所</th>
+                <th>群组数量</th>
+                <th>成功/失败</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="record in pushHistory" :key="record.id">
+                <td class="text-xs">{{ format(new Date(record.created_at), 'MM-dd HH:mm') }}</td>
+                <td class="max-w-xs truncate">{{ record.airdrops?.title || '已删除' }}</td>
+                <td>
+                  <span class="badge badge-xs badge-primary">{{ record.airdrops?.exchange?.toUpperCase() || '--' }}</span>
+                </td>
+                <td>{{ record.group_ids?.length || 0 }}</td>
+                <td>
+                  <span class="text-success">{{ record.success_count }}</span> / 
+                  <span class="text-error">{{ record.fail_count }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn" @click="showHistoryModal = false">关闭</button>
+        </div>
+      </div>
+    </dialog>
   </div>
 </template>
 
@@ -172,6 +261,8 @@ const airdrops = ref<Airdrop[]>([])
 const showAddModal = ref(false)
 const editingAirdrop = ref<Airdrop | null>(null)
 const crawling = ref(false)
+const pushHistory = ref<any[]>([])
+const showHistoryModal = ref(false)
 
 const form = ref({
   exchange: 'binance',
@@ -281,12 +372,18 @@ const toggleStatus = async (airdrop: Airdrop) => {
 }
 
 // 推送到群聊
+const showPushModal = ref(false)
+const pushingAirdrop = ref<Airdrop | null>(null)
+const availableGroups = ref<any[]>([])
+const selectedGroups = ref<string[]>([])
+const pushing = ref(false)
+
 const pushToChat = async (airdrop: Airdrop) => {
   try {
-    // 1. 获取所有群组
+    // 加载可用群组
     const { data: groups, error: groupsError } = await supabase
       .from('chat_groups')
-      .select('id, name')
+      .select('id, name, type, member_count')
       .eq('is_active', true)
       .order('name')
 
@@ -297,11 +394,35 @@ const pushToChat = async (airdrop: Airdrop) => {
       return
     }
 
-    // 2. 让管理员选择群组（简单版：推送到所有群组）
-    const confirmed = confirm(`确认要将此空投信息推送到所有群组吗？\n\n标题：${airdrop.title}\n群组数量：${groups.length}`)
-    if (!confirmed) return
+    availableGroups.value = groups
+    pushingAirdrop.value = airdrop
+    selectedGroups.value = [] // 清空选择
+    showPushModal.value = true
+  } catch (error: any) {
+    alert(`加载群组失败：${error.message || '未知错误'}`)
+  }
+}
 
-    // 3. 构建消息内容
+const selectAllGroups = () => {
+  selectedGroups.value = availableGroups.value.map(g => g.id)
+}
+
+const clearSelection = () => {
+  selectedGroups.value = []
+}
+
+const confirmPush = async () => {
+  if (!pushingAirdrop.value || selectedGroups.value.length === 0) {
+    alert('请至少选择一个群组')
+    return
+  }
+
+  pushing.value = true
+
+  try {
+    const airdrop = pushingAirdrop.value
+
+    // 构建消息内容
     const message = `━━━━━━━━━━━━━━━━━━━━
 🎁 新空投通知
 
@@ -315,39 +436,49 @@ ${airdrop.description ? `【说明】${airdrop.description}\n\n` : ''}${airdrop.
 💡 立即参与，早鸟有奖！
 ━━━━━━━━━━━━━━━━━━━━`
 
-    // 4. 推送到所有群组
     let successCount = 0
     let failCount = 0
 
-    for (const group of groups) {
+    // 推送到选中的群组
+    for (const groupId of selectedGroups.value) {
       try {
         const { error } = await supabase
           .from('messages')
           .insert({
-            group_id: group.id,
-            user_id: null, // 系统消息
+            group_id: groupId,
+            user_id: null,
             content: message,
-            message_type: 'system'
+            message_type: 'system',
+            is_bot: true
           })
 
         if (error) {
-          console.error(`推送到群组${group.name}失败:`, error)
           failCount++
         } else {
           successCount++
         }
       } catch (err) {
-        console.error(`推送到群组${group.name}异常:`, err)
         failCount++
       }
     }
 
-    // 5. 显示结果
-    alert(`推送完成！\n\n成功：${successCount}个群组\n失败：${failCount}个群组`)
+    // 记录推送历史
+    await supabase
+      .from('airdrop_push_history')
+      .insert({
+        airdrop_id: airdrop.id,
+        group_ids: selectedGroups.value,
+        success_count: successCount,
+        fail_count: failCount
+      })
 
+    alert(`推送完成！\n\n成功：${successCount}个群组\n失败：${failCount}个群组`)
+    showPushModal.value = false
+    loadPushHistory()
   } catch (error: any) {
-    console.error('Push to chat error:', error)
     alert(`推送失败：${error.message || '未知错误'}`)
+  } finally {
+    pushing.value = false
   }
 }
 
@@ -379,8 +510,30 @@ const autoCrawl = async () => {
   }
 }
 
+const loadPushHistory = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('airdrop_push_history')
+      .select(`
+        *,
+        airdrops (
+          title,
+          exchange
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (error) throw error
+    pushHistory.value = data || []
+  } catch (error) {
+    console.error('Load push history error:', error)
+  }
+}
+
 onMounted(() => {
   loadAirdrops()
+  loadPushHistory()
 })
 </script>
 
