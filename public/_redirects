@@ -1,19 +1,5 @@
 # 静态HTML文件直接返回（不重定向）
-/fix-balance.html    /fix-balance.html    200
-/emergency-login.html    /emergency-login.html    200
-/check-storage.html    /check-storage.html    200
-/clear-cache.html    /clear-cache.html    200
-/edge-fix.html    /edge-fix.html    200
-/mobile-fix.html    /mobile-fix.html    200
-/test-withdrawal.html    /test-withdrawal.html    200
-/test.html    /test.html    200
 /help.html    /help.html    200
-/m.html    /m.html    200
-/login-fix.html    /login-fix.html    200
-/fix-now.html    /fix-now.html    200
-/qr-mobile-fix.html    /qr-mobile-fix.html    200
-/cache-buster.html    /cache-buster.html    200
-/force-refresh.html    /force-refresh.html    200
 
 # SPA fallback（其他所有请求重定向到index.html）
 /*    /index.html    200
