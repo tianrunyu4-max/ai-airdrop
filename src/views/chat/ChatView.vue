@@ -648,11 +648,22 @@ const viewImage = (url: string) => {
 
 // 发送消息 - 简化版本，只使用localStorage
 const sendMessage = async () => {
-  if (!messageInput.value.trim() && !selectedImage.value) return
-  if (!currentGroup.value) return
+  console.log('🚀 sendMessage 被调用')
+  console.log('📝 messageInput:', messageInput.value)
+  console.log('🤖 currentGroup:', currentGroup.value)
+  
+  if (!messageInput.value.trim() && !selectedImage.value) {
+    console.log('❌ 消息内容为空')
+    return
+  }
+  if (!currentGroup.value) {
+    console.log('❌ 没有当前群组')
+    return
+  }
 
   try {
     sending.value = true
+    console.log('✅ 开始发送消息...')
 
     const messageContent = messageInput.value.trim() || '发送了一张图片'
     const messageType = selectedImage.value ? 'image' : 'text'
@@ -673,12 +684,15 @@ const sendMessage = async () => {
       created_at: new Date().toISOString()
     }
 
+    console.log('📨 新消息:', newMessage)
+
     if (selectedImage.value && imagePreview.value) {
       newMessage.image_url = imagePreview.value
     }
 
     // 添加到界面显示
     messages.value.push(newMessage)
+    console.log('✅ 消息已添加到界面，总消息数:', messages.value.length)
     scrollToBottom()
 
     // 🔥 关键修复：按群组ID和环境保存到localStorage
@@ -686,11 +700,13 @@ const sendMessage = async () => {
     const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
     storedMessages.push(newMessage)
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
+    console.log('✅ 消息已保存到localStorage')
     
     messageInput.value = ''
     cancelImage()
+    console.log('✅ 发送完成！')
   } catch (error) {
-    console.error('Send message error:', error)
+    console.error('❌ Send message error:', error)
     alert('发送失败: ' + (error as Error).message)
   } finally {
     sending.value = false
