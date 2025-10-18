@@ -407,7 +407,8 @@ const switchGroup = async (group: ChatGroup) => {
   }
 
   try {
-    loading.value = true
+    // ⚡ 极速优化：不显示 loading，直接切换
+    // loading.value = true  // 移除加载状态，避免白屏
     
     // 🔥 关键修复1：取消旧的订阅和定时器
     if (messageSubscription) {
@@ -422,14 +423,16 @@ const switchGroup = async (group: ChatGroup) => {
     // 🔥 优化1：立即更新群组（提升响应速度）
     currentGroup.value = group
     
-    // 🔥 优化2：立即从缓存加载该群组的消息（快速显示）
+    // 🔥 优化2：立即从缓存加载该群组的消息（快速显示，同步执行）
     loadMessages(group.id)
     
-    // 🔥 优化4：异步加入群组（不阻塞 UI）
-    joinGroup(group.id).catch(() => {})
-    
-    // 🔥 关键修复4：重新订阅新群组消息
-    subscribeToMessages()
+    // ⚡ 极速优化：所有 API 调用都在后台执行，不阻塞 UI
+    // 异步加入群组（静默执行，不等待）
+    if (!isDevMode) {
+      joinGroup(group.id).catch(() => {})
+      // 重新订阅新群组消息（后台执行）
+      subscribeToMessages()
+    }
     
     // 如果是开发模式，启动机器人
     if (isDevMode) {
@@ -437,24 +440,21 @@ const switchGroup = async (group: ChatGroup) => {
     }
   } catch (error) {
     console.error('Switch group error:', error)
-    alert('切换群聊失败')
+    // alert('切换群聊失败')  // 移除 alert，避免打断用户
   } finally {
-    loading.value = false
+    // loading.value = false  // 移除，因为没有设置 loading
   }
 }
 
-// 加载消息 - 简化版本，只使用localStorage，并清理10分钟前的消息
+// ⚡ 加载消息 - 极速版本，完全同步，无延迟
 const loadMessages = (groupId?: string) => {
   try {
     // 🔥 关键修复：使用群组ID作为存储key
     const targetGroupId = groupId || currentGroup.value?.id
     if (!targetGroupId) {
-      console.log('⚠️ 没有群组ID，无法加载消息')
       messages.value = []
       return
     }
-    
-    // 静默加载，避免控制台日志过多
     
     // 🔥 关键修复：每个群组单独存储消息，并区分开发/生产环境
     const storageKey = `${ENV_PREFIX}chat_messages_${targetGroupId}`
@@ -463,28 +463,37 @@ const loadMessages = (groupId?: string) => {
     if (storedMessages) {
       const parsedMessages = JSON.parse(storedMessages)
       
-      // 过滤掉30分钟前的消息 + 过滤掉无效的UUID（生产环境）
-      const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
-      const validMessages = parsedMessages.filter((msg: any) => {
-        const messageTime = new Date(msg.created_at).getTime()
-        const isTimeValid = messageTime > thirtyMinutesAgo
-        
-        // 生产环境额外验证UUID（静默过滤）
-        if (!isDevMode && msg.user_id) {
-          const isUUIDValid = isValidUUID(msg.user_id)
-          return isTimeValid && isUUIDValid
-        }
-        
-        return isTimeValid
+      // ⚡ 极速优化：直接加载所有缓存消息，跳过过滤（提升速度）
+      // 过滤操作移到后台定时清理
+      messages.value = parsedMessages
+      
+      // 使用 nextTick 确保 DOM 更新后滚动
+      nextTick(() => {
+        scrollToBottom()
       })
       
-      // 更新localStorage（仅当有变化时）
-      if (validMessages.length !== parsedMessages.length) {
-        localStorage.setItem(storageKey, JSON.stringify(validMessages))
-      }
-      
-      messages.value = validMessages
-      scrollToBottom()
+      // ⚡ 后台异步清理过期消息（不阻塞 UI）
+      setTimeout(() => {
+        const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
+        const validMessages = parsedMessages.filter((msg: any) => {
+          const messageTime = new Date(msg.created_at).getTime()
+          const isTimeValid = messageTime > thirtyMinutesAgo
+          
+          // 生产环境额外验证UUID（静默过滤）
+          if (!isDevMode && msg.user_id) {
+            const isUUIDValid = isValidUUID(msg.user_id)
+            return isTimeValid && isUUIDValid
+          }
+          
+          return isTimeValid
+        })
+        
+        // 更新localStorage（仅当有变化时）
+        if (validMessages.length !== parsedMessages.length) {
+          localStorage.setItem(storageKey, JSON.stringify(validMessages))
+          messages.value = validMessages
+        }
+      }, 0)
     } else {
       messages.value = []
     }
