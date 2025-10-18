@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase, isDevMode } from '@/lib/supabase'
 import type { User } from '@/types'
+import bcrypt from 'bcryptjs'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -85,9 +86,10 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('用户名不存在，请先注册')
       }
       
-      // 验证密码（注意：生产环境应该使用加密后的密码对比）
-      // TODO: 实现密码加密（bcrypt或类似库）
-      if (users.password_hash !== password) {
+      // 🔐 使用 bcrypt 验证加密密码
+      const isPasswordValid = await bcrypt.compare(password, users.password_hash)
+      
+      if (!isPasswordValid) {
         throw new Error('密码错误')
       }
       
@@ -151,12 +153,15 @@ export const useAuthStore = defineStore('auth', () => {
       
       const isFirstUser = (count || 0) === 0
       
+      // 🔐 使用 bcrypt 加密密码
+      const hashedPassword = await bcrypt.hash(password, 10)
+      
       // 创建新用户
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           username,
-          password_hash: password, // TODO: 使用 bcrypt 加密
+          password_hash: hashedPassword, // ✅ 存储加密后的密码
           invite_code: userInviteCode,
           inviter_id: null,
           referral_position: 1,
