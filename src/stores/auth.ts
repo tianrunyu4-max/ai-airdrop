@@ -17,72 +17,41 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       
-      // 检查并修复localStorage数据
-      await ensureDefaultUser()
-      
-      // 🔧 修复：确保boss用户有is_admin权限
-      const registeredUsersStr = localStorage.getItem('registered_users')
-      const registeredUsers = JSON.parse(registeredUsersStr || '{}')
-      if (registeredUsers['boss'] && !registeredUsers['boss'].userData.is_admin) {
-        console.log('🔧 修复boss用户权限...')
-        registeredUsers['boss'].userData.is_admin = true
-        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
-        console.log('✅ boss用户权限已修复')
-      }
-      
-      // 始终从localStorage恢复登录状态（开发和生产环境都使用）
+      // 🔥 生产模式：从 localStorage 恢复会话（如果存在）
       const currentUser = localStorage.getItem('current_user')
+      const userSession = localStorage.getItem('user_session')
       
-      if (currentUser) {
-        if (registeredUsers[currentUser]) {
-          user.value = registeredUsers[currentUser].userData
-          console.log('✅ 从localStorage恢复登录状态:', currentUser)
+      if (currentUser && userSession) {
+        try {
+          const cachedUser = JSON.parse(userSession)
+          
+          // 从数据库验证并刷新用户数据
+          const { data: freshUser, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', currentUser)
+            .single()
+          
+          if (!error && freshUser) {
+            user.value = freshUser
+            // 更新缓存
+            localStorage.setItem('user_session', JSON.stringify(freshUser))
+          } else {
+            // 如果数据库查询失败，使用缓存数据
+            user.value = cachedUser
+          }
+        } catch (e) {
+          // 缓存数据解析失败，清除会话
+          localStorage.removeItem('current_user')
+          localStorage.removeItem('user_session')
         }
       }
       
       initialized.value = true
     } catch (error) {
-      console.error('Initialize auth error:', error)
+      // 初始化失败不影响应用启动
     } finally {
       loading.value = false
-    }
-  }
-
-  // 确保有默认用户（防止localStorage被清理）
-  async function ensureDefaultUser() {
-    try {
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      
-      // 如果没有用户，创建一个默认的boss用户
-      if (Object.keys(registeredUsers).length === 0) {
-        console.log('🔧 检测到localStorage为空，创建默认用户...')
-        
-        const defaultUser = {
-          password: 'boss123',
-          userData: {
-            id: '3314e79e-2d9d-4b08-81a9-5ece03c495ff',
-            username: 'boss',
-            email: 'boss@example.com',
-            is_agent: true,
-            is_admin: true, // 🔐 管理员权限
-            invite_code: 'DEFAULT01',
-            inviter_id: null,
-            created_at: new Date().toISOString(),
-            balance: 1000,
-            points_balance: 500
-          }
-        }
-        
-        registeredUsers['boss'] = defaultUser
-        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
-        
-        console.log('✅ 默认用户创建成功: boss / boss123')
-        console.log('📋 当前已注册用户:', Object.keys(registeredUsers))
-      } else {
-        console.log('📋 当前已注册用户:', Object.keys(registeredUsers))
-      }
-    } catch (error) {
-      console.error('创建默认用户失败:', error)
     }
   }
 
@@ -105,40 +74,32 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       
-      // 始终使用localStorage登录（开发和生产环境）
-      // 快速登录，减少延迟
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // 🔥 生产模式：从 Supabase 数据库查询用户
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single()
       
-      // 从localStorage获取已注册的用户
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      
-      console.log('🔍 登录检查 - 已注册用户:', Object.keys(registeredUsers))
-      console.log('🔍 尝试登录用户:', username)
-      
-      // 验证用户是否已注册
-      if (!registeredUsers[username]) {
-        console.error('❌ 用户不存在:', username)
-        console.log('📋 当前已注册用户列表:', Object.keys(registeredUsers))
+      if (error || !users) {
         throw new Error('用户名不存在，请先注册')
       }
       
-      // 验证密码
-      if (registeredUsers[username].password !== password) {
-        console.error('❌ 密码错误:', username)
+      // 验证密码（注意：生产环境应该使用加密后的密码对比）
+      // TODO: 实现密码加密（bcrypt或类似库）
+      if (users.password_hash !== password) {
         throw new Error('密码错误')
       }
       
-      // 登录成功，恢复用户数据
-      user.value = registeredUsers[username].userData
+      // 登录成功，保存用户数据
+      user.value = users
       
-      // 保存当前登录用户
+      // 保存到 localStorage 作为会话缓存
       localStorage.setItem('current_user', username)
-      
-      console.log('✅ 登录成功:', username)
+      localStorage.setItem('user_session', JSON.stringify(users))
       
       return { success: true }
     } catch (error: any) {
-      console.error('Login error:', error)
       return { success: false, error: error.message }
     } finally {
       loading.value = false
@@ -149,80 +110,83 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
 
-      // 始终使用localStorage注册（开发和生产环境）
-      // 快速注册，减少延迟
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // 🔥 生产模式：检查用户名是否已存在
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', username)
+        .single()
       
-      // 从localStorage获取已注册用户
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      const userCount = Object.keys(registeredUsers).length
-      
-      console.log(`📝 当前已注册用户数: ${userCount}`)
-      
-      // 检查用户名是否已存在
-      if (registeredUsers[username]) {
+      if (existingUser) {
         throw new Error('用户名已被注册')
       }
       
-      // 生成用户专属邀请码（8位大写字母+数字）
-      const generateInviteCode = () => {
+      // 生成唯一邀请码
+      const generateInviteCode = async () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         let code = ''
         for (let i = 0; i < 8; i++) {
           code += chars.charAt(Math.floor(Math.random() * chars.length))
         }
-        // 确保邀请码唯一
-        for (const user in registeredUsers) {
-          if (registeredUsers[user].userData.invite_code === code) {
-            return generateInviteCode() // 如果重复，重新生成
-          }
+        
+        // 检查邀请码是否唯一
+        const { data: existing } = await supabase
+          .from('users')
+          .select('invite_code')
+          .eq('invite_code', code)
+          .single()
+        
+        if (existing) {
+          return generateInviteCode() // 重复则重新生成
         }
         return code
       }
       
-      const userInviteCode = generateInviteCode()
+      const userInviteCode = await generateInviteCode()
       
-      // 创建模拟用户数据
-      const isFirstUser = userCount === 0
-      const userData = {
-        id: 'mock-user-id-' + username,
-        username,
-        invite_code: userInviteCode, // 每个用户都有自己的邀请码
-        inviter_id: null, // 注册时不绑定邀请人，付费成为代理时才绑定
-        referral_position: 1,
-        has_network: false,
-        network_root_id: null,
-        direct_referral_count: 0,
-        total_earnings: 0,
-        u_balance: 50, // 给新用户50U初始余额用于测试
-        points_balance: 150, // 总积分
-        mining_points: 150, // 矿机产出积分（用于测试购买矿机和兑换U）
-        transfer_points: 0, // 互转积分
-        is_agent: isFirstUser, // 第一个用户自动成为代理（用于测试）
-        agent_paid_at: isFirstUser ? new Date().toISOString() : null,
-        qualified_for_dividend: false,
-        is_admin: isFirstUser, // 第一个用户自动成为管理员
-        language: 'zh',
-        created_at: new Date().toISOString()
+      // 检查是否是第一个用户
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+      
+      const isFirstUser = (count || 0) === 0
+      
+      // 创建新用户
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          username,
+          password_hash: password, // TODO: 使用 bcrypt 加密
+          invite_code: userInviteCode,
+          inviter_id: null,
+          referral_position: 1,
+          u_balance: 50, // 新用户初始余额
+          points_balance: 150,
+          mining_points: 150,
+          transfer_points: 0,
+          is_agent: isFirstUser,
+          agent_paid_at: isFirstUser ? new Date().toISOString() : null,
+          is_admin: isFirstUser,
+          language: 'zh'
+        })
+        .select()
+        .single()
+      
+      if (insertError || !newUser) {
+        throw new Error('注册失败，请稍后重试')
       }
       
-      console.log('✅ 用户注册成功，邀请码:', userInviteCode)
+      // 保存用户数据
+      user.value = newUser
       
-      // 保存用户到localStorage
-      registeredUsers[username] = {
-        password: password, // 保存密码用于验证
-        userData: userData
-      }
-      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+      // 缓存到 localStorage
       localStorage.setItem('current_user', username)
-      
-      user.value = userData
+      localStorage.setItem('user_session', JSON.stringify(newUser))
       
       return { 
         success: true
       }
     } catch (error: any) {
-      console.error('Register error:', error)
       return { success: false, error: error.message }
     } finally {
       loading.value = false
@@ -233,36 +197,41 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       
-      // 始终使用localStorage退出（开发和生产环境）
-      // 清除当前登录用户
+      // 🔥 生产模式：清除会话
       localStorage.removeItem('current_user')
+      localStorage.removeItem('user_session')
       user.value = null
-      console.log('✅ 退出登录成功')
+      
       return { success: true }
     } catch (error) {
-      console.error('Logout error:', error)
       return { success: false }
     } finally {
       loading.value = false
     }
   }
 
-  // 刷新用户数据（从localStorage重新加载）
+  // 刷新用户数据（从数据库重新加载）
   async function loadUser() {
     try {
       if (!user.value) return
 
-      // 始终从localStorage获取最新数据（开发和生产环境都使用）
+      // 🔥 生产模式：从数据库刷新用户数据
       const currentUsername = localStorage.getItem('current_user')
       if (currentUsername) {
-        const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-        if (registeredUsers[currentUsername]) {
-          user.value = registeredUsers[currentUsername].userData
-          console.log('✅ 刷新用户数据:', currentUsername)
+        const { data: freshUser, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('username', currentUsername)
+          .single()
+        
+        if (!error && freshUser) {
+          user.value = freshUser
+          // 更新缓存
+          localStorage.setItem('user_session', JSON.stringify(freshUser))
         }
       }
     } catch (error) {
-      console.error('Load user error:', error)
+      // 刷新失败不影响当前会话
     }
   }
 

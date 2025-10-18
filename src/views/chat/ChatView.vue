@@ -392,22 +392,18 @@ const scrollToBottom = () => {
   })
 }
 
-// 切换群组
+// 🔥 生产模式：切换群组
 const switchGroup = async (group: ChatGroup) => {
-  // 🔥 优化1：避免重复切换
-  if (currentGroup.value?.id === group.id) {
-    return
-  }
+  if (currentGroup.value?.id === group.id) return
 
-  // 检查是否是代理
+  // 检查权限
   if (!authStore.user?.is_agent && group.type !== 'default_hall') {
-    // 非代理用户尝试进入非默认群，显示订阅提示
     alert('🔒 此群聊为代理专属！\n\n订阅AI代理即可解锁更多群聊\n前往"我的" → "订阅代理"')
     return
   }
 
   try {
-    // 🔥 关键修复1：取消旧的订阅和定时器
+    // 🔥 取消旧的订阅
     if (messageSubscription) {
       messageSubscription.unsubscribe()
       messageSubscription = null
@@ -417,102 +413,106 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🔥 优化1：立即更新群组（提升响应速度）
+    // 🔥 立即更新群组
     currentGroup.value = group
     
-    // 🔥 优化2：立即从缓存加载该群组的消息（快速显示，同步执行）
-    loadMessages(group.id)
+    // 🔥 加载消息
+    await loadMessages(group.id)
     
-    // 🔥 统一使用开发模式，不调用API
-    startBotSimulation()
+    // 🔥 订阅新群组的实时消息
+    subscribeToMessages()
+    
+    // 如果需要空投机器人演示，可以启用
+    // startBotSimulation()
   } catch (error) {
-    console.error('Switch group error:', error)
+    // 切换失败不影响使用
   }
 }
 
-// ⚡ 加载消息 - 极速版本，完全同步，无延迟
-const loadMessages = (groupId?: string) => {
+// 🔥 生产模式：从 Supabase 加载消息（带缓存优化）
+const loadMessages = async (groupId?: string) => {
   try {
-    // 🔥 关键修复：使用群组ID作为存储key
     const targetGroupId = groupId || currentGroup.value?.id
     if (!targetGroupId) {
       messages.value = []
       return
     }
     
-    // 🔥 关键修复：每个群组单独存储消息，并区分开发/生产环境
     const storageKey = `${ENV_PREFIX}chat_messages_${targetGroupId}`
-    const storedMessages = localStorage.getItem(storageKey)
     
-    if (storedMessages) {
-      const parsedMessages = JSON.parse(storedMessages)
+    // 🚀 优化1：先从缓存加载（快速显示）
+    const cachedMessages = localStorage.getItem(storageKey)
+    if (cachedMessages) {
+      messages.value = JSON.parse(cachedMessages)
+      nextTick(() => scrollToBottom())
+    }
+    
+    // 🚀 优化2：异步从数据库刷新（保证数据准确）
+    const { data: freshMessages, error } = await supabase
+      .from('messages')
+      .select(`
+        *,
+        username:users(username)
+      `)
+      .eq('chat_group_id', targetGroupId)
+      .order('created_at', { ascending: true })
+      .limit(100) // 只加载最近100条消息
+    
+    if (!error && freshMessages) {
+      // 格式化消息（展开 username 对象）
+      const formattedMessages = freshMessages.map(msg => ({
+        ...msg,
+        username: msg.username?.username || 'Unknown'
+      }))
       
-      // ⚡ 极速优化：直接加载所有缓存消息，跳过过滤（提升速度）
-      // 过滤操作移到后台定时清理
-      messages.value = parsedMessages
+      messages.value = formattedMessages
       
-      // 使用 nextTick 确保 DOM 更新后滚动
-      nextTick(() => {
-        scrollToBottom()
-      })
+      // 更新缓存
+      localStorage.setItem(storageKey, JSON.stringify(formattedMessages))
       
-      // ⚡ 后台异步清理过期消息（不阻塞 UI）
-      setTimeout(() => {
-        const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
-        const validMessages = parsedMessages.filter((msg: any) => {
-          const messageTime = new Date(msg.created_at).getTime()
-          const isTimeValid = messageTime > thirtyMinutesAgo
-          
-          // 生产环境额外验证UUID（静默过滤）
-          if (!isDevMode && msg.user_id) {
-            const isUUIDValid = isValidUUID(msg.user_id)
-            return isTimeValid && isUUIDValid
-          }
-          
-          return isTimeValid
-        })
-        
-        // 更新localStorage（仅当有变化时）
-        if (validMessages.length !== parsedMessages.length) {
-          localStorage.setItem(storageKey, JSON.stringify(validMessages))
-          messages.value = validMessages
-        }
-      }, 0)
-    } else {
-      messages.value = []
+      nextTick(() => scrollToBottom())
     }
   } catch (error) {
-    console.error('Load messages error:', error)
-    messages.value = []
+    // 加载失败不影响现有缓存数据
   }
 }
 
-// 获取或创建默认群聊
+// 🔥 生产模式：获取或创建默认群聊（AI科技主群）
 const getDefaultGroup = async () => {
   try {
-    // 查找可用的默认大厅
-    const { data, error } = await supabase
+    // 优先查找"AI科技"主群
+    let { data, error } = await supabase
       .from('chat_groups')
       .select('*')
+      .eq('name', 'AI科技')
       .eq('type', 'default_hall')
-      .lt('member_count', 50000)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      throw error
+    // 如果找不到，查找任何 default_hall 类型的群
+    if (!data) {
+      const result = await supabase
+        .from('chat_groups')
+        .select('*')
+        .eq('type', 'default_hall')
+        .limit(1)
+        .maybeSingle()
+      
+      data = result.data
+      error = result.error
     }
 
-    // 如果没有可用大厅，创建新的
+    // 如果还是没有，创建"AI科技"主群
     if (!data) {
       const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
-          name: `大厅 ${Date.now()}`,
+          name: 'AI科技',
+          icon: '🤖',
           type: 'default_hall',
+          description: '核心群聊',
           member_count: 0,
-          max_members: 50000
+          max_members: 50000,
+          is_active: true
         })
         .select()
         .single()
@@ -523,62 +523,57 @@ const getDefaultGroup = async () => {
       currentGroup.value = data
     }
 
-    // 加入群组
-    await joinGroup(currentGroup.value!.id)
+    // 如果用户已登录，加入群组
+    if (authStore.user) {
+      await joinGroup(currentGroup.value!.id)
+    }
   } catch (error) {
-    console.error('Get default group error:', error)
+    // 失败不影响使用
   }
 }
 
-// 加入群组
+// 🔥 生产模式：加入群组
 const joinGroup = async (groupId: string) => {
   try {
-    // 🔥 优化：静默加入，失败不影响用户体验
+    if (!authStore.user) return // 未登录不加入群组
+
     // 检查是否已经是成员
-    const { data: existing, error: checkError } = await supabase
+    const { data: existing } = await supabase
       .from('group_members')
       .select('id')
       .eq('group_id', groupId)
-      .eq('user_id', authStore.user!.id)
-      .maybeSingle() // 使用 maybeSingle 替代 single，避免 406 错误
-
-    // 如果查询失败（表不存在等），静默跳过
-    if (checkError && checkError.code !== 'PGRST116') {
-      return
-    }
+      .eq('user_id', authStore.user.id)
+      .maybeSingle()
 
     if (!existing) {
-      // 尝试添加成员（静默失败）
-      const { error: insertError } = await supabase
+      // 添加成员
+      await supabase
         .from('group_members')
         .insert({
           group_id: groupId,
-          user_id: authStore.user!.id,
+          user_id: authStore.user.id,
           role: 'member'
         })
 
-      // 409 冲突（已存在）或其他错误，静默跳过
-      if (insertError) {
-        return
-      }
-
-      // 更新成员计数（静默失败）
+      // 更新成员计数（如果有这个RPC函数）
       await supabase.rpc('increment_group_members', { group_id: groupId }).catch(() => {})
     }
   } catch (error) {
-    // 静默处理所有错误，不影响切换体验
+    // 静默处理所有错误
   }
 }
 
-// 订阅实时消息
+// 🔥 生产模式：订阅 Supabase Realtime 消息
 const subscribeToMessages = () => {
   if (!currentGroup.value) return
 
-  // 🔥 优化：取消旧订阅，避免重复
+  // 取消旧订阅
   if (messageSubscription) {
     messageSubscription.unsubscribe()
+    messageSubscription = null
   }
 
+  // 订阅新群组的消息
   messageSubscription = supabase
     .channel(`messages:${currentGroup.value.id}`)
     .on(
@@ -590,7 +585,7 @@ const subscribeToMessages = () => {
         filter: `chat_group_id=eq.${currentGroup.value.id}`
       },
       async (payload) => {
-        // 🔥 优化：静默获取用户名，失败使用默认值
+        // 获取用户名
         let username = 'Unknown'
         try {
           const { data: user } = await supabase
@@ -604,10 +599,19 @@ const subscribeToMessages = () => {
           // 静默失败
         }
 
-        messages.value.push({
+        const newMessage = {
           ...payload.new,
           username
-        } as Message)
+        } as Message
+
+        // 添加到界面
+        messages.value.push(newMessage)
+
+        // 🔥 保存到缓存
+        const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value?.id}`
+        const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
+        storedMessages.push(newMessage)
+        localStorage.setItem(storageKey, JSON.stringify(storedMessages))
 
         scrollToBottom()
       }
@@ -646,67 +650,62 @@ const viewImage = (url: string) => {
   window.open(url, '_blank')
 }
 
-// 发送消息 - 简化版本，只使用localStorage
+// 🔥 生产模式：发送消息到 Supabase 数据库
 const sendMessage = async () => {
-  console.log('🚀 sendMessage 被调用')
-  console.log('📝 messageInput:', messageInput.value)
-  console.log('🤖 currentGroup:', currentGroup.value)
-  
-  if (!messageInput.value.trim() && !selectedImage.value) {
-    console.log('❌ 消息内容为空')
-    return
-  }
-  if (!currentGroup.value) {
-    console.log('❌ 没有当前群组')
+  if (!messageInput.value.trim() && !selectedImage.value) return
+  if (!currentGroup.value) return
+
+  // 必须登录才能发送消息
+  if (!authStore.user) {
+    alert('请先登录')
     return
   }
 
   try {
     sending.value = true
-    console.log('✅ 开始发送消息...')
 
     const messageContent = messageInput.value.trim() || '发送了一张图片'
     const messageType = selectedImage.value ? 'image' : 'text'
 
-    // 🔥 修复：使用用户信息或默认值
-    const userId = authStore.user?.id || 'guest'
-    const username = authStore.user?.username || '游客'
-
-    // 创建消息对象
-    const newMessage = {
-      id: `msg-${Date.now()}`,
-      chat_group_id: currentGroup.value.id,
-      user_id: userId,
-      username: username,
-      content: messageContent,
-      type: messageType,
-      is_bot: false,
-      created_at: new Date().toISOString()
-    }
-
-    console.log('📨 新消息:', newMessage)
-
+    // TODO: 如果有图片，需要上传到 Supabase Storage
+    let imageUrl = null
     if (selectedImage.value && imagePreview.value) {
-      newMessage.image_url = imagePreview.value
+      // 简化版：直接使用预览图（base64）
+      // 生产环境应该上传到 Supabase Storage
+      imageUrl = imagePreview.value
     }
 
-    // 添加到界面显示
-    messages.value.push(newMessage)
-    console.log('✅ 消息已添加到界面，总消息数:', messages.value.length)
-    scrollToBottom()
+    // 🔥 发送到 Supabase 数据库
+    const { data: newMessage, error } = await supabase
+      .from('messages')
+      .insert({
+        chat_group_id: currentGroup.value.id,
+        user_id: authStore.user.id,
+        content: messageContent,
+        type: messageType,
+        image_url: imageUrl,
+        is_bot: false
+      })
+      .select('*, username:users(username)')
+      .single()
 
-    // 🔥 关键修复：按群组ID和环境保存到localStorage
+    if (error) throw error
+
+    // 🔥 保存到 localStorage 缓存（性能优化）
     const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
     const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    storedMessages.push(newMessage)
+    storedMessages.push({
+      ...newMessage,
+      username: newMessage.username?.username || authStore.user.username
+    })
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
-    console.log('✅ 消息已保存到localStorage')
     
+    // 清空输入框
     messageInput.value = ''
     cancelImage()
-    console.log('✅ 发送完成！')
+    
+    // Realtime 会自动推送新消息，无需手动添加到 messages 数组
   } catch (error) {
-    console.error('❌ Send message error:', error)
     alert('发送失败: ' + (error as Error).message)
   } finally {
     sending.value = false
@@ -939,20 +938,27 @@ const cleanupOldLocalStorage = () => {
   }, 100) // 延迟100ms执行，让页面先加载
 }
 
-// 生命周期
+// 🔥 生产模式：初始化
 onMounted(async () => {
-  // 🧹 首先清理旧的localStorage数据
+  // 清理旧数据
   cleanupOldLocalStorage()
   
-  // 🔥 关键修复：统一使用"AI科技"主群（开发和生产模式都一样）
-  initDevMode()
-  startBotSimulation()
+  // 🔥 获取默认群组
+  await getDefaultGroup()
   
-  // 加载消息
-  loadMessages()
+  // 🔥 加载消息
+  if (currentGroup.value) {
+    await loadMessages(currentGroup.value.id)
+    
+    // 🔥 订阅实时消息
+    subscribeToMessages()
+  }
   
-  // 启动自动清理
-  startAutoCleanup()
+  // 如果需要机器人演示，可以启用
+  // startBotSimulation()
+  
+  // 启动自动清理（可选）
+  // startAutoCleanup()
 })
 
 // 监听路由变化，当返回聊天页面时重新加载消息
