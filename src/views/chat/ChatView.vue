@@ -649,7 +649,6 @@ const viewImage = (url: string) => {
 // 发送消息 - 简化版本，只使用localStorage
 const sendMessage = async () => {
   if (!messageInput.value.trim() && !selectedImage.value) return
-  if (!authStore.user) return
   if (!currentGroup.value) return
 
   try {
@@ -658,12 +657,16 @@ const sendMessage = async () => {
     const messageContent = messageInput.value.trim() || '发送了一张图片'
     const messageType = selectedImage.value ? 'image' : 'text'
 
+    // 🔥 修复：使用用户信息或默认值
+    const userId = authStore.user?.id || 'guest'
+    const username = authStore.user?.username || '游客'
+
     // 创建消息对象
     const newMessage = {
       id: `msg-${Date.now()}`,
-      chat_group_id: currentGroup.value.id,  // 🔥 关键修复：添加群组ID
-      user_id: authStore.user.id,
-      username: authStore.user.username,
+      chat_group_id: currentGroup.value.id,
+      user_id: userId,
+      username: username,
       content: messageContent,
       type: messageType,
       is_bot: false,
