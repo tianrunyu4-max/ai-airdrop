@@ -163,9 +163,19 @@ const loading = ref(true)
 const categories = ref<ChatCategory[]>([])
 const groups = ref<ChatGroup[]>([])
 
-// 按分类获取群组
+// 按分类获取群组（过滤掉非代理用户无法访问的群）
 const getGroupsByCategory = (categoryId: string) => {
-  return groups.value.filter(g => g.category_id === categoryId)
+  return groups.value.filter(g => {
+    // 如果是主群，所有人可见
+    if (g.type === 'default_hall') return g.category_id === categoryId
+    
+    // 如果是代理专属群，只有代理可见
+    if (g.type === 'agent_only' || g.type === 'custom') {
+      return g.category_id === categoryId && authStore.user?.is_agent
+    }
+    
+    return g.category_id === categoryId
+  })
 }
 
 // 获取分类下的群组数量
@@ -200,11 +210,11 @@ const loadData = async () => {
   ]
 
   groups.value = [
-    { id: 'dev-group', name: 'AI科技', description: '主群聊 - 人人可见', category_id: '1', type: 'default_hall', member_count: 128, max_members: 100000, owner_id: null, icon: '🤖', sort_order: 1, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '2', name: '币安空投专区', description: '币安交易所空投信息', category_id: '2', type: 'custom', member_count: 56, max_members: 100000, owner_id: null, icon: '🟡', sort_order: 2, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '3', name: 'OKX空投专区', description: 'OKX交易所空投信息', category_id: '2', type: 'custom', member_count: 43, max_members: 100000, owner_id: null, icon: '⚫', sort_order: 3, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '4', name: '高分空投推荐', description: 'AI评分8分以上', category_id: '2', type: 'custom', member_count: 89, max_members: 100000, owner_id: null, icon: '⭐', sort_order: 4, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '5', name: '合约交易策略', description: '合约交易技巧分享', category_id: '3', type: 'custom', member_count: 34, max_members: 100000, owner_id: null, icon: '📊', sort_order: 5, is_active: true, bot_enabled: false, bot_config: null, created_at: '' }
+    { id: 'dev-group', name: 'AI科技', description: '主群聊 - 所有用户可见，AI空投推送', category_id: '1', type: 'default_hall', member_count: 128, max_members: 100000, owner_id: null, icon: '🤖', sort_order: 1, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
+    { id: '2', name: '币安空投专区', description: '币安交易所空投信息（代理专属）', category_id: '2', type: 'agent_only', member_count: 56, max_members: 100000, owner_id: null, icon: '🟡', sort_order: 2, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
+    { id: '3', name: 'OKX空投专区', description: 'OKX交易所空投信息（代理专属）', category_id: '2', type: 'agent_only', member_count: 43, max_members: 100000, owner_id: null, icon: '⚫', sort_order: 3, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
+    { id: '4', name: '高分空投推荐', description: 'AI评分8分以上（代理专属）', category_id: '2', type: 'agent_only', member_count: 89, max_members: 100000, owner_id: null, icon: '⭐', sort_order: 4, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
+    { id: '5', name: '合约交易策略', description: '合约交易技巧分享（代理专属）', category_id: '3', type: 'agent_only', member_count: 34, max_members: 100000, owner_id: null, icon: '📊', sort_order: 5, is_active: true, bot_enabled: false, bot_config: null, created_at: '' }
   ]
   
   loading.value = false
