@@ -248,11 +248,11 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-yellow-500">💰</span>
-            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组10U（会员收益85%）</span>
+            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组8U（会员收益6.8U，85%）</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-green-500">🎁</span>
-            <span><strong class="text-gray-800">平级奖：</strong>下线触发对碰奖，向上3代直推链各得2U</span>
+            <span><strong class="text-gray-800">见单奖：</strong>下线对碰成功，上级5层直推链各得1U</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-blue-500">💎</span>

@@ -202,7 +202,7 @@
 
           <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div class="font-bold text-blue-700 mb-1">⚡ 2:1/1:2对碰奖</div>
-            <div>灵活配对：2:1或1:2，每单10U，85%到账（8.5U）+15%预留（1.5U），每天凌晨12点统一结算</div>
+            <div>灵活配对：2:1或1:2，每单8U，85%到账（6.8U）+15%预留（1.2U），每天凌晨12点统一结算</div>
           </div>
 
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
@@ -281,7 +281,7 @@ const joinBinary = async () => {
 
 // 复投
 const handleReinvest = async () => {
-  if (!confirm('确认复投吗？\n\n费用：30U\n复投后继续累积对碰奖和平级奖')) {
+  if (!confirm('确认复投吗？\n\n费用：30U\n复投后继续累积对碰奖和见单奖')) {
     return
   }
 
