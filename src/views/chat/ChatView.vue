@@ -715,7 +715,8 @@ const sendMessage = async () => {
 
 // 模拟AI机器人推送（开发模式）
 const startBotSimulation = () => {
-  if (!isDevMode) return
+  // 🔥 移除 isDevMode 检查，统一使用本地模式
+  // if (!isDevMode) return
 
   // 添加欢迎消息（带广告）
   setTimeout(() => {
@@ -805,7 +806,8 @@ const startBotSimulation = () => {
 
 // 初始化开发模式数据
 const initDevMode = () => {
-  if (!isDevMode) return
+  // 🔥 移除 isDevMode 检查，统一使用本地模式
+  // if (!isDevMode) return
   
   loading.value = false
   currentGroup.value = {
