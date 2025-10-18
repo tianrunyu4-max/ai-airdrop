@@ -117,7 +117,8 @@ import {
   ChatBubbleLeftRightIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
-  GiftIcon
+  GiftIcon,
+  ShareIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -156,6 +157,12 @@ const menuItems = [
     label: '见单奖报表', 
     icon: GiftIcon,
     desc: '见单奖收益统计与导出'
+  },
+  { 
+    path: '/admin/binary-network', 
+    label: 'Binary网络图', 
+    icon: ShareIcon,
+    desc: 'Binary网络结构可视化'
   },
   { 
     path: '/admin/groups', 

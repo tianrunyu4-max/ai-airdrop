@@ -101,6 +101,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/OrderBonusView.vue')
       },
       {
+        path: 'binary-network',
+        name: 'admin-binary-network',
+        component: () => import('@/views/admin/BinaryNetworkView.vue')
+      },
+      {
         path: 'system',
         name: 'admin-system',
         component: () => import('@/views/admin/SystemView.vue')
