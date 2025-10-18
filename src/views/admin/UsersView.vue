@@ -31,6 +31,29 @@
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <div v-if="selectedUsers.length > 0" class="card bg-info text-info-content shadow-lg">
+      <div class="card-body py-3">
+        <div class="flex items-center gap-4">
+          <span class="font-semibold">已选择 {{ selectedUsers.length }} 个用户</span>
+          <div class="flex gap-2 ml-auto">
+            <button class="btn btn-sm btn-outline" @click="showBatchBalanceModal = true">
+              💰 批量调整余额
+            </button>
+            <button class="btn btn-sm btn-outline" @click="showBatchRewardModal = true">
+              🎁 批量发放奖励
+            </button>
+            <button class="btn btn-sm btn-outline" @click="showBatchStatusModal = true">
+              👥 批量设置类型
+            </button>
+            <button class="btn btn-sm btn-ghost" @click="clearSelection">
+              ✕ 取消选择
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 用户列表 -->
     <div class="card bg-base-100 shadow">
       <div class="card-body">
@@ -44,6 +67,14 @@
           <table class="table table-zebra">
             <thead>
               <tr>
+                <th>
+                  <input 
+                    type="checkbox" 
+                    class="checkbox checkbox-primary" 
+                    :checked="isAllSelected"
+                    @change="toggleSelectAll"
+                  />
+                </th>
                 <th>用户名</th>
                 <th>邀请码</th>
                 <th>类型</th>
@@ -56,6 +87,14 @@
             </thead>
             <tbody>
               <tr v-for="user in users" :key="user.id">
+                <td>
+                  <input 
+                    type="checkbox" 
+                    class="checkbox checkbox-primary" 
+                    :checked="selectedUsers.includes(user.id)"
+                    @change="toggleUserSelection(user.id)"
+                  />
+                </td>
                 <td>
                   <div class="flex items-center gap-2">
                     <div class="avatar placeholder">
@@ -234,11 +273,157 @@
         <button>close</button>
       </form>
     </dialog>
+
+    <!-- 批量调整余额模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': showBatchBalanceModal }">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">批量调整余额</h3>
+        <div class="space-y-4">
+          <div class="alert alert-info">
+            <span>将对 {{ selectedUsers.length }} 个用户进行余额调整</span>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">调整类型</span>
+            </label>
+            <select v-model="batchBalanceType" class="select select-bordered w-full">
+              <option value="u">U余额</option>
+              <option value="points">积分余额</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">调整金额</span>
+            </label>
+            <input 
+              v-model.number="batchBalanceAmount" 
+              type="number" 
+              step="0.01"
+              placeholder="正数增加，负数减少"
+              class="input input-bordered w-full" 
+            />
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">备注</span>
+            </label>
+            <textarea 
+              v-model="batchBalanceNote" 
+              class="textarea textarea-bordered w-full" 
+              placeholder="请填写调整原因"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn" @click="showBatchBalanceModal = false">取消</button>
+          <button class="btn btn-primary" @click="confirmBatchBalance" :disabled="!batchBalanceAmount || !batchBalanceNote">
+            确认调整
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 批量发放奖励模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': showBatchRewardModal }">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">批量发放奖励</h3>
+        <div class="space-y-4">
+          <div class="alert alert-warning">
+            <span>将向 {{ selectedUsers.length }} 个用户发放奖励</span>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">奖励类型</span>
+            </label>
+            <select v-model="batchRewardType" class="select select-bordered w-full">
+              <option value="manual">手动发放</option>
+              <option value="activity">活动奖励</option>
+              <option value="compensation">补偿奖励</option>
+              <option value="bonus">额外奖金</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">奖励金额（U）</span>
+            </label>
+            <input 
+              v-model.number="batchRewardAmount" 
+              type="number" 
+              step="0.01"
+              min="0"
+              placeholder="每人获得的金额"
+              class="input input-bordered w-full" 
+            />
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">说明</span>
+            </label>
+            <textarea 
+              v-model="batchRewardNote" 
+              class="textarea textarea-bordered w-full" 
+              placeholder="请填写奖励说明"
+            ></textarea>
+          </div>
+
+          <div class="alert">
+            <span>总计发放：{{ (batchRewardAmount * selectedUsers.length).toFixed(2) }} U</span>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn" @click="showBatchRewardModal = false">取消</button>
+          <button class="btn btn-success" @click="confirmBatchReward" :disabled="!batchRewardAmount || !batchRewardNote">
+            确认发放
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 批量设置类型模态框 -->
+    <dialog class="modal" :class="{ 'modal-open': showBatchStatusModal }">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">批量设置用户类型</h3>
+        <div class="space-y-4">
+          <div class="alert alert-info">
+            <span>将对 {{ selectedUsers.length }} 个用户设置类型</span>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text">用户类型</span>
+            </label>
+            <select v-model="batchUserType" class="select select-bordered w-full">
+              <option value="agent">代理用户</option>
+              <option value="normal">普通用户</option>
+            </select>
+          </div>
+
+          <div v-if="batchUserType === 'agent'" class="alert alert-warning">
+            <span>⚠️ 设置为代理后，用户将获得代理权限</span>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn" @click="showBatchStatusModal = false">取消</button>
+          <button class="btn btn-primary" @click="confirmBatchStatus">
+            确认设置
+          </button>
+        </div>
+      </div>
+    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { supabase, isDevMode } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { useToast } from '@/composables/useToast'
@@ -262,6 +447,19 @@ const selectedUser = ref<User | null>(null)
 const adjustType = ref('u')
 const adjustAmount = ref(0)
 const adjustNote = ref('')
+
+// 批量操作
+const selectedUsers = ref<string[]>([])
+const showBatchBalanceModal = ref(false)
+const showBatchRewardModal = ref(false)
+const showBatchStatusModal = ref(false)
+const batchBalanceType = ref('u')
+const batchBalanceAmount = ref(0)
+const batchBalanceNote = ref('')
+const batchRewardType = ref('manual')
+const batchRewardAmount = ref(0)
+const batchRewardNote = ref('')
+const batchUserType = ref('agent')
 
 // 格式化日期
 const formatDate = (timestamp: string) => {
@@ -384,6 +582,143 @@ const confirmAdjust = async () => {
     toast.removeToast(loadingToast)
     toast.error(error.message || '余额调整失败，请重试')
     console.error('Adjust balance error:', error)
+  }
+}
+
+// 批量操作相关
+const isAllSelected = computed(() => {
+  return users.value.length > 0 && selectedUsers.value.length === users.value.length
+})
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedUsers.value = []
+  } else {
+    selectedUsers.value = users.value.map(u => u.id)
+  }
+}
+
+const toggleUserSelection = (userId: string) => {
+  const index = selectedUsers.value.indexOf(userId)
+  if (index > -1) {
+    selectedUsers.value.splice(index, 1)
+  } else {
+    selectedUsers.value.push(userId)
+  }
+}
+
+const clearSelection = () => {
+  selectedUsers.value = []
+}
+
+// 批量调整余额
+const confirmBatchBalance = async () => {
+  if (!batchBalanceAmount.value || !batchBalanceNote.value) return
+
+  const confirmed = confirm(`确认对 ${selectedUsers.value.length} 个用户调整余额吗？\n\n调整金额：${batchBalanceAmount.value} U\n备注：${batchBalanceNote.value}`)
+  if (!confirmed) return
+
+  const loadingToast = toast.info('⏳ 批量调整中...', 0)
+
+  try {
+    let successCount = 0
+    let failCount = 0
+
+    for (const userId of selectedUsers.value) {
+      try {
+        await AdminService.adjustUserBalance(
+          userId,
+          batchBalanceType.value as 'u' | 'points',
+          batchBalanceAmount.value,
+          batchBalanceNote.value
+        )
+        successCount++
+      } catch (err) {
+        failCount++
+      }
+    }
+
+    toast.removeToast(loadingToast)
+    toast.success(`✅ 批量调整完成！\n成功：${successCount}个\n失败：${failCount}个`)
+    
+    showBatchBalanceModal.value = false
+    selectedUsers.value = []
+    batchBalanceAmount.value = 0
+    batchBalanceNote.value = ''
+    await loadUsers()
+  } catch (error: any) {
+    toast.removeToast(loadingToast)
+    toast.error(error.message || '批量调整失败')
+  }
+}
+
+// 批量发放奖励
+const confirmBatchReward = async () => {
+  if (!batchRewardAmount.value || !batchRewardNote.value) return
+
+  const totalAmount = batchRewardAmount.value * selectedUsers.value.length
+  const confirmed = confirm(`确认向 ${selectedUsers.value.length} 个用户发放奖励吗？\n\n每人：${batchRewardAmount.value} U\n总计：${totalAmount.toFixed(2)} U\n说明：${batchRewardNote.value}`)
+  if (!confirmed) return
+
+  const loadingToast = toast.info('⏳ 批量发放中...', 0)
+
+  try {
+    let successCount = 0
+    let failCount = 0
+
+    for (const userId of selectedUsers.value) {
+      try {
+        await AdminService.adjustUserBalance(
+          userId,
+          'u',
+          batchRewardAmount.value,
+          `批量奖励（${batchRewardType.value}）：${batchRewardNote.value}`
+        )
+        successCount++
+      } catch (err) {
+        failCount++
+      }
+    }
+
+    toast.removeToast(loadingToast)
+    toast.success(`✅ 批量发放完成！\n成功：${successCount}个\n失败：${failCount}个\n总计：${(successCount * batchRewardAmount.value).toFixed(2)} U`)
+    
+    showBatchRewardModal.value = false
+    selectedUsers.value = []
+    batchRewardAmount.value = 0
+    batchRewardNote.value = ''
+    await loadUsers()
+  } catch (error: any) {
+    toast.removeToast(loadingToast)
+    toast.error(error.message || '批量发放失败')
+  }
+}
+
+// 批量设置类型
+const confirmBatchStatus = async () => {
+  const isAgent = batchUserType.value === 'agent'
+  const confirmed = confirm(`确认将 ${selectedUsers.value.length} 个用户设置为${isAgent ? '代理' : '普通'}用户吗？`)
+  if (!confirmed) return
+
+  const loadingToast = toast.info('⏳ 批量设置中...', 0)
+
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ is_agent: isAgent })
+      .in('id', selectedUsers.value)
+
+    if (error) throw error
+
+    toast.removeToast(loadingToast)
+    toast.success(`✅ 批量设置完成！\n已设置 ${selectedUsers.value.length} 个用户为${isAgent ? '代理' : '普通'}用户`)
+    
+    showBatchStatusModal.value = false
+    selectedUsers.value = []
+    await loadUsers()
+  } catch (error: any) {
+    toast.removeToast(loadingToast)
+    toast.error(error.message || '批量设置失败')
   }
 }
 
