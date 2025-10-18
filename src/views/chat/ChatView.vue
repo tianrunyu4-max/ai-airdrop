@@ -829,7 +829,6 @@ const initDevMode = () => {
   if (cachedMessages) {
     // 有缓存，立即加载
     messages.value = JSON.parse(cachedMessages)
-    console.log('✅ 从缓存加载消息:', messages.value.length, '条')
   } else {
     // 无缓存，创建初始消息
     messages.value = [
@@ -928,12 +927,8 @@ const cleanupOldLocalStorage = () => {
       keysToRemove.forEach(key => {
         localStorage.removeItem(key)
       })
-      
-      if (cleanedCount > 0) {
-        console.log(`✅ 后台清理完成！共清理 ${cleanedCount} 条旧数据`)
-      }
     } catch (error) {
-      console.error('清理localStorage失败:', error)
+      // 清理失败不影响使用
     }
   }, 100) // 延迟100ms执行，让页面先加载
 }
@@ -982,9 +977,8 @@ onUnmounted(() => {
 
 // 点击广告
 const openAdLink = (adData: any) => {
-  // TODO: 记录广告点击数据
-  console.log('广告点击:', adData)
   alert(`📢 广告跳转\n\n${adData.text}\n\n功能开发中...`)
+  // TODO: 记录广告点击数据
   // window.open(adData.link, '_blank')
 }
 
