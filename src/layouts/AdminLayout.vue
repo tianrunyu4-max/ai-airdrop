@@ -116,7 +116,8 @@ import {
   RocketLaunchIcon,
   ChatBubbleLeftRightIcon,
   ArrowLeftOnRectangleIcon,
-  Bars3Icon
+  Bars3Icon,
+  GiftIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -149,6 +150,12 @@ const menuItems = [
     label: '空投管理', 
     icon: RocketLaunchIcon,
     desc: '空投信息管理'
+  },
+  { 
+    path: '/admin/order-bonus', 
+    label: '见单奖报表', 
+    icon: GiftIcon,
+    desc: '见单奖收益统计与导出'
   },
   { 
     path: '/admin/groups', 
