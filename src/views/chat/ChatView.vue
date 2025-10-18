@@ -407,9 +407,6 @@ const switchGroup = async (group: ChatGroup) => {
   }
 
   try {
-    // ⚡ 极速优化：不显示 loading，直接切换
-    // loading.value = true  // 移除加载状态，避免白屏
-    
     // 🔥 关键修复1：取消旧的订阅和定时器
     if (messageSubscription) {
       messageSubscription.unsubscribe()
@@ -426,23 +423,10 @@ const switchGroup = async (group: ChatGroup) => {
     // 🔥 优化2：立即从缓存加载该群组的消息（快速显示，同步执行）
     loadMessages(group.id)
     
-    // ⚡ 极速优化：所有 API 调用都在后台执行，不阻塞 UI
-    // 异步加入群组（静默执行，不等待）
-    if (!isDevMode) {
-      joinGroup(group.id).catch(() => {})
-      // 重新订阅新群组消息（后台执行）
-      subscribeToMessages()
-    }
-    
-    // 如果是开发模式，启动机器人
-    if (isDevMode) {
-      startBotSimulation()
-    }
+    // 🔥 统一使用开发模式，不调用API
+    startBotSimulation()
   } catch (error) {
     console.error('Switch group error:', error)
-    // alert('切换群聊失败')  // 移除 alert，避免打断用户
-  } finally {
-    // loading.value = false  // 移除，因为没有设置 loading
   }
 }
 
