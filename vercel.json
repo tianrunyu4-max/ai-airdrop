@@ -17,12 +17,6 @@
     }
   ],
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm ci",
-  "cacheDirectories": [
-    "node_modules",
-    ".vite",
-    "dist"
-  ]
+  "outputDirectory": "dist"
 }
 
