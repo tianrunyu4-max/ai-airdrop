@@ -480,37 +480,24 @@ const loadMessages = async (groupId?: string) => {
 // 🔥 生产模式：获取或创建默认群聊（AI科技主群）
 const getDefaultGroup = async () => {
   try {
-    // 优先查找"AI科技"主群
+    // 查找 default_hall 类型的群（数据库表结构使用 description 存储群名）
     let { data, error } = await supabase
       .from('chat_groups')
       .select('*')
-      .eq('name', 'AI科技')
       .eq('type', 'default_hall')
+      .eq('is_active', true)
+      .limit(1)
       .maybeSingle()
 
-    // 如果找不到，查找任何 default_hall 类型的群
-    if (!data) {
-      const result = await supabase
-        .from('chat_groups')
-        .select('*')
-        .eq('type', 'default_hall')
-        .limit(1)
-        .maybeSingle()
-      
-      data = result.data
-      error = result.error
-    }
-
-    // 如果还是没有，创建"AI科技"主群
+    // 如果没有，创建"AI科技"主群
     if (!data) {
       const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
-          name: 'AI科技',
-          icon: '🤖',
           type: 'default_hall',
-          description: '核心群聊',
-          member_count: 0,
+          icon: '🤖',
+          description: 'AI科技',
+          member_count: 60,
           max_members: 50000,
           is_active: true
         })
@@ -518,10 +505,14 @@ const getDefaultGroup = async () => {
         .single()
 
       if (createError) throw createError
-      currentGroup.value = newGroup
-    } else {
-      currentGroup.value = data
+      data = newGroup
     }
+
+    // 设置当前群组，并使用 description 作为群名
+    currentGroup.value = {
+      ...data,
+      name: data.description || 'AI科技' // 使用 description 作为 name
+    } as any
 
     // 如果用户已登录，加入群组
     if (authStore.user) {
