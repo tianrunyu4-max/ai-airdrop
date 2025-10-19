@@ -200,24 +200,37 @@ const selectGroup = (group: ChatGroup) => {
   isOpen.value = false
 }
 
-// 加载数据
+// 加载数据（从Supabase加载真实群组）
 const loadData = async () => {
-  // 直接使用模拟数据（开发模式）
-  categories.value = [
-    { id: '1', name: '综合交流', description: '综合话题讨论区', icon: '💬', sort_order: 1, is_active: true, created_at: '', updated_at: '' },
-    { id: '2', name: '空投推荐', description: 'AI推荐的优质空投', icon: '🎁', sort_order: 2, is_active: true, created_at: '', updated_at: '' },
-    { id: '3', name: '交易策略', description: '交易技巧和策略分享', icon: '📈', sort_order: 3, is_active: true, created_at: '', updated_at: '' }
-  ]
+  try {
+    // 从数据库加载群组
+    const { data: groupsData, error } = await supabase
+      .from('chat_groups')
+      .select('*')
+      .eq('is_active', true)
+      .order('type', { ascending: true })
+      .order('group_number', { ascending: true })
 
-  groups.value = [
-    { id: 'dev-group', name: 'AI科技', description: '主群聊 - 所有用户可见，AI空投推送', category_id: '1', type: 'default_hall', member_count: 128, max_members: 100000, owner_id: null, icon: '🤖', sort_order: 1, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '2', name: '币安空投专区', description: '币安交易所空投信息（代理专属）', category_id: '2', type: 'agent_only', member_count: 56, max_members: 100000, owner_id: null, icon: '🟡', sort_order: 2, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '3', name: 'OKX空投专区', description: 'OKX交易所空投信息（代理专属）', category_id: '2', type: 'agent_only', member_count: 43, max_members: 100000, owner_id: null, icon: '⚫', sort_order: 3, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '4', name: '高分空投推荐', description: 'AI评分8分以上（代理专属）', category_id: '2', type: 'agent_only', member_count: 89, max_members: 100000, owner_id: null, icon: '⭐', sort_order: 4, is_active: true, bot_enabled: true, bot_config: null, created_at: '' },
-    { id: '5', name: '合约交易策略', description: '合约交易技巧分享（代理专属）', category_id: '3', type: 'agent_only', member_count: 34, max_members: 100000, owner_id: null, icon: '📊', sort_order: 5, is_active: true, bot_enabled: false, bot_config: null, created_at: '' }
-  ]
-  
-  loading.value = false
+    if (!error && groupsData) {
+      // 转换数据格式，使用 description 作为 name
+      groups.value = groupsData.map((g: any) => ({
+        ...g,
+        name: g.description || 'Unknown',
+        category_id: null,
+        owner_id: null,
+        sort_order: 0,
+        bot_enabled: g.type === 'ai_push',
+        bot_config: null
+      }))
+    }
+
+    // 不需要分类，清空分类列表
+    categories.value = []
+  } catch (error) {
+    console.error('加载群组失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
