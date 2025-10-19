@@ -450,19 +450,24 @@ const loadMessages = async (groupId?: string) => {
     // 🚀 优化2：异步从数据库刷新（保证数据准确）
     const { data: freshMessages, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        username:users(username)
-      `)
-      .eq('chat_group_id', targetGroupId)
-      .order('created_at', { ascending: true })
+      .select('*')
+      .eq('聊天群组_ID', targetGroupId)
+      .order('创建于', { ascending: true })
       .limit(100) // 只加载最近100条消息
     
     if (!error && freshMessages) {
-      // 格式化消息（展开 username 对象）
-      const formattedMessages = freshMessages.map(msg => ({
-        ...msg,
-        username: msg.username?.username || 'Unknown'
+      // 格式化消息（适配前端格式，使用英文字段名）
+      const formattedMessages = freshMessages.map((msg: any) => ({
+        id: msg.ID,
+        chat_group_id: msg.聊天群组_ID,
+        user_id: msg.用户身份,
+        content: msg.内容,
+        type: msg.类型,
+        is_bot: msg.是机器人,
+        airdrop_data: msg.空投数据,
+        ad_data: msg.广告数据,
+        created_at: msg.创建于,
+        username: 'User' // 暂时使用默认用户名，需要关联查询
       }))
       
       messages.value = formattedMessages
@@ -641,7 +646,7 @@ const subscribeToMessages = () => {
     messageSubscription = null
   }
 
-  // 订阅新群组的消息
+  // 订阅新群组的消息（使用中文列名）
   messageSubscription = supabase
     .channel(`messages:${currentGroup.value.id}`)
     .on(
@@ -650,26 +655,21 @@ const subscribeToMessages = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `chat_group_id=eq.${currentGroup.value.id}`
+        filter: `聊天群组_ID=eq.${currentGroup.value.id}`
       },
       async (payload) => {
-        // 获取用户名
-        let username = 'Unknown'
-        try {
-          const { data: user } = await supabase
-            .from('users')
-            .select('username')
-            .eq('id', payload.new.user_id)
-            .maybeSingle()
-          
-          username = user?.username || 'Unknown'
-        } catch {
-          // 静默失败
-        }
-
+        // 格式化消息（适配前端格式）
         const newMessage = {
-          ...payload.new,
-          username
+          id: payload.new.ID,
+          chat_group_id: payload.new.聊天群组_ID,
+          user_id: payload.new.用户身份,
+          content: payload.new.内容,
+          type: payload.new.类型,
+          is_bot: payload.new.是机器人,
+          airdrop_data: payload.new.空投数据,
+          ad_data: payload.new.广告数据,
+          created_at: payload.new.创建于,
+          username: authStore.user?.username || 'User'
         } as Message
 
         // 添加到界面
@@ -743,18 +743,17 @@ const sendMessage = async () => {
       imageUrl = imagePreview.value
     }
 
-    // 🔥 发送到 Supabase 数据库
+    // 🔥 发送到 Supabase 数据库（使用中文列名）
     const { data: newMessage, error } = await supabase
       .from('messages')
       .insert({
-        chat_group_id: currentGroup.value.id,
-        user_id: authStore.user.id,
-        content: messageContent,
-        type: messageType,
-        image_url: imageUrl,
-        is_bot: false
+        聊天群组_ID: currentGroup.value.id,
+        用户身份: authStore.user.id,
+        内容: messageContent,
+        类型: messageType,
+        是机器人: false
       })
-      .select('*, username:users(username)')
+      .select('*')
       .single()
 
     if (error) throw error
