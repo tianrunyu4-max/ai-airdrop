@@ -719,6 +719,13 @@ const sendMessage = async () => {
     const messageContent = messageInput.value.trim() || '发送了一张图片'
     const messageType = selectedImage.value ? 'image' : 'text'
 
+    // 获取用户ID（适配不同的字段名）
+    const userId = authStore.user.id || authStore.user['id'] || authStore.user['用户ID']
+    
+    if (!userId) {
+      throw new Error('无法获取用户ID，请重新登录')
+    }
+
     // TODO: 如果有图片，需要上传到 Supabase Storage
     let imageUrl = null
     if (selectedImage.value && imagePreview.value) {
@@ -732,7 +739,7 @@ const sendMessage = async () => {
       .from('messages')
       .insert({
         chat_group_id: currentGroup.value.id,
-        user_id: authStore.user.id,
+        user_id: userId,
         content: messageContent,
         type: messageType,
         is_bot: false

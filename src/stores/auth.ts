@@ -86,8 +86,9 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('用户名不存在，请先注册')
       }
       
-      // 🔐 使用 bcrypt 验证加密密码
-      const isPasswordValid = await bcrypt.compare(password, users.password_hash)
+      // 🔐 使用 bcrypt 验证加密密码（尝试多个可能的字段名）
+      const passwordField = users.password_hash || users.password || users['加密密码'] || users['密码哈希']
+      const isPasswordValid = await bcrypt.compare(password, passwordField)
       
       if (!isPasswordValid) {
         throw new Error('密码错误')
