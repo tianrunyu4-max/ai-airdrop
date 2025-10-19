@@ -450,16 +450,21 @@ const loadMessages = async (groupId?: string) => {
     // 🚀 优化2：异步从数据库刷新（保证数据准确）
     const { data: freshMessages, error } = await supabase
       .from('messages')
-      .select('*')
+      .select(`
+        *,
+        user:user_id (
+          username
+        )
+      `)
       .eq('chat_group_id', targetGroupId)
       .order('created_at', { ascending: true })
       .limit(100) // 只加载最近100条消息
     
     if (!error && freshMessages) {
-      // 消息已经是正确格式，只需添加用户名
+      // 消息已经包含了用户信息
       const formattedMessages = freshMessages.map((msg: any) => ({
         ...msg,
-        username: 'User' // 暂时使用默认用户名
+        username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
       messages.value = formattedMessages
@@ -477,14 +482,29 @@ const loadMessages = async (groupId?: string) => {
 // 🔥 生产模式：获取默认群（用户聊天群）
 const getDefaultGroup = async () => {
   try {
-    // 查找默认群（type = 'default'）
+    // 查找默认群（type = 'default'，并且 group_number = 1 或 null）
     let { data, error} = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
       .eq('is_active', true)
+      .or('group_number.is.null,group_number.eq.1')
       .limit(1)
       .maybeSingle()
+
+    // 如果没有找到，查找第一个默认群
+    if (!data) {
+      const result = await supabase
+        .from('chat_groups')
+        .select('*')
+        .eq('type', 'default')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      
+      data = result.data
+    }
 
     // 如果没有默认群，查找任意活跃群
     if (!data) {
@@ -506,6 +526,7 @@ const getDefaultGroup = async () => {
           type: 'default',
           icon: '💰',
           description: 'AI 自动赚钱系统',
+          group_number: 1,
           member_count: 60,
           max_members: 50000,
           is_active: true
