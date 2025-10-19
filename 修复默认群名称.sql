@@ -12,9 +12,13 @@ UPDATE chat_groups
 SET 
   description = 'AI 自动赚钱系统',
   group_number = 1
-WHERE type = 'default'
-  AND (group_number = 1 OR group_number IS NULL)
-  AND is_active = true;
+WHERE id = (
+  SELECT id 
+  FROM chat_groups 
+  WHERE type = 'default' AND is_active = true
+  ORDER BY created_at
+  LIMIT 1
+);
 
 -- 或者如果上面没找到，直接用ID更新（请替换为您的实际群ID）
 -- UPDATE chat_groups

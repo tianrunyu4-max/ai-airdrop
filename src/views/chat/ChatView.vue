@@ -791,20 +791,25 @@ const sendMessage = async () => {
       throw new Error(errorMsg)
     }
 
+    // 🔥 立即添加到界面（自己发送的消息不会触发 Realtime）
+    const displayMessage = {
+      ...newMessage,
+      username: authStore.user.username
+    }
+    messages.value.push(displayMessage)
+    
     // 🔥 保存到 localStorage 缓存（性能优化）
     const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
     const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    storedMessages.push({
-      ...newMessage,
-      username: newMessage.username?.username || authStore.user.username
-    })
+    storedMessages.push(displayMessage)
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
+    
+    // 滚动到底部
+    nextTick(() => scrollToBottom())
     
     // 清空输入框
     messageInput.value = ''
     cancelImage()
-    
-    // Realtime 会自动推送新消息，无需手动添加到 messages 数组
   } catch (error) {
     alert('发送失败: ' + (error as Error).message)
   } finally {
