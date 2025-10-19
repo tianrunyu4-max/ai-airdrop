@@ -168,12 +168,17 @@
                 : 'bg-base-200 rounded-bl-sm'"
             >
               <!-- 图片消息 -->
-              <img 
-                v-if="message.type === 'image' && message.image_url" 
-                :src="message.image_url" 
-                class="max-w-xs rounded-lg cursor-pointer hover:opacity-90"
-                @click="viewImage(message.image_url)"
-              />
+              <div v-if="message.type === 'image'">
+                <img 
+                  v-if="message.image_url" 
+                  :src="message.image_url" 
+                  class="max-w-xs rounded-lg cursor-pointer hover:opacity-90"
+                  @click="viewImage(message.image_url)"
+                />
+                <div v-else class="px-4 py-2 italic opacity-70">
+                  {{ message.content }}
+                </div>
+              </div>
               <!-- 文字消息 -->
               <div v-else class="px-4 py-2">
                 {{ message.content }}
@@ -311,11 +316,30 @@ const isValidUUID = (uuid: string): boolean => {
 
 // 计算属性：过滤后的消息（生产环境下只显示有效UUID的消息）
 const validMessages = computed(() => {
+  const now = new Date().getTime()
+  const TEN_MINUTES = 10 * 60 * 1000 // 10分钟
+  
   if (isDevMode) {
-    return messages.value // 开发模式显示所有消息
+    // 开发模式也过滤过期广告
+    return messages.value.filter(msg => {
+      if (msg.is_bot && msg.ad_data) {
+        const messageTime = new Date(msg.created_at).getTime()
+        return now - messageTime <= TEN_MINUTES
+      }
+      return true
+    })
   }
-  // 生产环境：过滤掉无效UUID的消息
+  
+  // 生产环境：过滤掉无效UUID的消息和过期广告
   return messages.value.filter(msg => {
+    // 检查是否是过期的广告消息（10分钟后自动删除）
+    if (msg.is_bot && msg.ad_data) {
+      const messageTime = new Date(msg.created_at).getTime()
+      if (now - messageTime > TEN_MINUTES) {
+        return false // 过滤掉过期广告
+      }
+    }
+    
     // 机器人消息总是显示
     if (msg.is_bot) return true
     // 用户消息：验证UUID
@@ -757,24 +781,29 @@ const sendMessage = async () => {
       throw new Error('无法获取用户ID，请重新登录')
     }
 
-    // TODO: 如果有图片，需要上传到 Supabase Storage
+    // 处理图片：暂时使用 base64（生产环境应该上传到 Supabase Storage）
     let imageUrl = null
     if (selectedImage.value && imagePreview.value) {
-      // 简化版：直接使用预览图（base64）
-      // 生产环境应该上传到 Supabase Storage
       imageUrl = imagePreview.value
     }
 
     // 🔥 发送到 Supabase 数据库（使用英文列名）
+    const messageData: any = {
+      chat_group_id: currentGroup.value.id,
+      user_id: userId,
+      content: messageContent,
+      type: messageType,
+      is_bot: false
+    }
+    
+    // 如果有图片URL，添加到数据中（需要检查数据库是否有这个字段）
+    if (imageUrl && messageType === 'image') {
+      messageData.image_url = imageUrl
+    }
+
     const { data: newMessage, error } = await supabase
       .from('messages')
-      .insert({
-        chat_group_id: currentGroup.value.id,
-        user_id: userId,
-        content: messageContent,
-        type: messageType,
-        is_bot: false
-      })
+      .insert(messageData)
       .select('*')
       .single()
 
