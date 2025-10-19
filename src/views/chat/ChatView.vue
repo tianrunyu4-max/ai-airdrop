@@ -320,9 +320,9 @@ const validMessages = computed(() => {
   const TEN_MINUTES = 10 * 60 * 1000 // 10分钟
   
   if (isDevMode) {
-    // 开发模式也过滤过期广告
+    // 开发模式：过滤掉所有超过10分钟的机器人消息
     return messages.value.filter(msg => {
-      if (msg.is_bot && msg.ad_data) {
+      if (msg.is_bot) {
         const messageTime = new Date(msg.created_at).getTime()
         return now - messageTime <= TEN_MINUTES
       }
@@ -332,16 +332,15 @@ const validMessages = computed(() => {
   
   // 生产环境：过滤掉无效UUID的消息和过期广告
   return messages.value.filter(msg => {
-    // 检查是否是过期的广告消息（10分钟后自动删除）
-    if (msg.is_bot && msg.ad_data) {
+    // 🔥 检查是否是过期的机器人消息（10分钟后自动删除所有广告）
+    if (msg.is_bot) {
       const messageTime = new Date(msg.created_at).getTime()
       if (now - messageTime > TEN_MINUTES) {
-        return false // 过滤掉过期广告
+        return false // 过滤掉超过10分钟的所有机器人消息
       }
+      return true // 10分钟内的机器人消息保留
     }
     
-    // 机器人消息总是显示
-    if (msg.is_bot) return true
     // 用户消息：验证UUID
     return msg.user_id && isValidUUID(msg.user_id)
   })
@@ -1086,10 +1085,28 @@ const cleanupOldLocalStorage = () => {
 let refreshInterval: any = null
 
 const startPeriodicRefresh = () => {
-  // 每60秒刷新一次（触发 validMessages 重新计算）
+  // 每60秒刷新一次（触发 validMessages 重新计算并清理缓存）
   refreshInterval = setInterval(() => {
-    // 强制触发 computed 重新计算（通过添加空操作）
-    messages.value = [...messages.value]
+    const now = new Date().getTime()
+    const TEN_MINUTES = 10 * 60 * 1000
+    
+    // 🔥 过滤掉过期的机器人消息
+    const filteredMessages = messages.value.filter(msg => {
+      if (msg.is_bot) {
+        const messageTime = new Date(msg.created_at).getTime()
+        return now - messageTime <= TEN_MINUTES
+      }
+      return true
+    })
+    
+    // 更新内存中的消息
+    messages.value = filteredMessages
+    
+    // 🔥 同时清理 localStorage 缓存
+    if (currentGroup.value) {
+      const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
+      localStorage.setItem(storageKey, JSON.stringify(filteredMessages))
+    }
   }, 60000) // 60秒
 }
 
