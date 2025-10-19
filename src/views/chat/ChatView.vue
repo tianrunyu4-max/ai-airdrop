@@ -314,31 +314,38 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid)
 }
 
-// 计算属性：过滤后的消息（生产环境下只显示有效UUID的消息）
+// 计算属性：过滤后的消息（根据群组类型设置不同清理时间）
 const validMessages = computed(() => {
   const now = new Date().getTime()
-  const TEN_MINUTES = 10 * 60 * 1000 // 10分钟
+  
+  // 根据群组类型设置不同的清理时间
+  let cleanupTime: number
+  if (currentGroup.value?.type === 'ai_push') {
+    cleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
+  } else {
+    cleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
+  }
   
   if (isDevMode) {
-    // 开发模式：过滤掉所有超过10分钟的机器人消息
+    // 开发模式：根据群组类型过滤过期消息
     return messages.value.filter(msg => {
       if (msg.is_bot) {
         const messageTime = new Date(msg.created_at).getTime()
-        return now - messageTime <= TEN_MINUTES
+        return now - messageTime <= cleanupTime
       }
       return true
     })
   }
   
-  // 生产环境：过滤掉无效UUID的消息和过期广告
+  // 生产环境：过滤掉无效UUID的消息和过期机器人消息
   return messages.value.filter(msg => {
-    // 🔥 检查是否是过期的机器人消息（10分钟后自动删除所有广告）
+    // 🔥 检查是否是过期的机器人消息
     if (msg.is_bot) {
       const messageTime = new Date(msg.created_at).getTime()
-      if (now - messageTime > TEN_MINUTES) {
-        return false // 过滤掉超过10分钟的所有机器人消息
+      if (now - messageTime > cleanupTime) {
+        return false // 过滤掉过期的机器人消息
       }
-      return true // 10分钟内的机器人消息保留
+      return true // 未过期的机器人消息保留
     }
     
     // 用户消息：验证UUID
@@ -442,11 +449,14 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🚀 并行加载：同时加载消息和订阅
-    Promise.all([
-      loadMessages(group.id),
-      Promise.resolve().then(() => subscribeToMessages())
-    ])
+        // 🚀 并行加载：同时加载消息和订阅
+        Promise.all([
+          loadMessages(group.id),
+          Promise.resolve().then(() => subscribeToMessages())
+        ])
+        
+        // 🤖 启动对应群组的机器人
+        startBotForGroup(group)
     
     // 如果需要空投机器人演示，可以启用
     // startBotSimulation()
@@ -890,60 +900,8 @@ const startBotSimulation = () => {
     scrollToBottom()
   }, 1000)
 
-  // 模拟空投推送（每30秒一次，带广告）
-  botInterval = setInterval(() => {
-    const airdrops = [
-      {
-        exchange: '币安',
-        title: 'BNB质押空投',
-        score: 8.5,
-        content: '🔥 币安新空投！\n\n项目：BNB质押奖励\n奖励：预计50 USDT\nAI评分：8.5/10\n\n✅ 参与方式：质押BNB即可\n⏰ 截止时间：本月底'
-      },
-      {
-        exchange: 'OKX',
-        title: 'OKB持仓空投',
-        score: 7.8,
-        content: '⭐ OKX空投来袭！\n\n项目：OKB持仓奖励\n奖励：预计30 USDT\nAI评分：7.8/10\n\n✅ 参与方式：持有OKB即可\n⏰ 截止时间：48小时'
-      },
-      {
-        exchange: '币安',
-        title: 'Launchpool新项目',
-        score: 9.2,
-        content: '💎 高分推荐！\n\n项目：Launchpool - XXX代币\n奖励：预计100 USDT\nAI评分：9.2/10 ⭐⭐⭐\n\n✅ 参与方式：质押BNB/FDUSD\n⏰ 截止时间：7天'
-      }
-    ]
-
-    const randomAirdrop = airdrops[Math.floor(Math.random() * airdrops.length)]
-    
-    // 所有消息都带广告（100%显示）
-    const randomAd = adPool[Math.floor(Math.random() * adPool.length)]
-    
-    const botMsg = {
-      id: `bot-${Date.now()}`,
-      chat_group_id: 'dev-group',
-      user_id: 'bot',
-      username: 'AI空投机器人',
-      content: randomAirdrop.content,
-      type: 'text',
-      is_bot: true,
-      airdrop_data: {
-        exchange: randomAirdrop.exchange,
-        score: randomAirdrop.score
-      },
-      ad_data: randomAd, // 广告数据（可能为null）
-      created_at: new Date().toISOString()
-    } as any
-    
-    messages.value.push(botMsg)
-    
-    // 🔥 保存到缓存
-    const storageKey = `${ENV_PREFIX}chat_messages_dev-group`
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    stored.push(botMsg)
-    localStorage.setItem(storageKey, JSON.stringify(stored))
-    
-    scrollToBottom()
-  }, 30000) // 30秒推送一次（测试用）
+  // 🤖 根据群组类型启动不同的机器人
+  startBotForGroup(currentGroup.value)
 
   // 模拟在线人数变化
   setInterval(() => {
@@ -1081,20 +1039,165 @@ const cleanupOldLocalStorage = () => {
   }, 100) // 延迟100ms执行，让页面先加载
 }
 
-// 🚀 定时刷新：每分钟检查并清理过期广告
+// 🤖 根据群组类型启动对应的机器人
+const startBotForGroup = (group: any) => {
+  // 先清理旧的机器人
+  if (botInterval) {
+    clearInterval(botInterval)
+    botInterval = null
+  }
+  
+  if (!group) return
+  
+  if (group.type === 'ai_push') {
+    // AI科技群：空投机器人（每2小时推送，24小时清理）
+    startAirdropBot()
+  } else if (group.type === 'default') {
+    // 自动赚钱群：赚钱机器人（每30分钟推送，10分钟清理）
+    startMoneyBot()
+  }
+}
+
+// 🤖 空投机器人：每2小时推送，24小时清理
+const startAirdropBot = () => {
+  console.log('🤖 启动空投机器人（AI科技群）')
+  
+  // 立即推送一条空投消息
+  pushAirdropMessage()
+  
+  // 每2小时推送一次
+  botInterval = setInterval(() => {
+    pushAirdropMessage()
+  }, 2 * 60 * 60 * 1000) // 2小时
+}
+
+// 🤖 自动赚钱机器人：每30分钟推送，10分钟清理
+const startMoneyBot = () => {
+  console.log('🤖 启动自动赚钱机器人（自动赚钱群）')
+  
+  // 立即推送一条赚钱消息
+  pushMoneyMessage()
+  
+  // 每30分钟推送一次
+  botInterval = setInterval(() => {
+    pushMoneyMessage()
+  }, 30 * 60 * 1000) // 30分钟
+}
+
+// 📢 推送空投消息
+const pushAirdropMessage = () => {
+  const airdrops = [
+    {
+      exchange: '币安',
+      title: 'BNB质押空投',
+      score: 8.5,
+      content: '🔥 币安新空投！\n\n项目：BNB质押奖励\n奖励：预计50 USDT\nAI评分：8.5/10\n\n✅ 参与方式：质押BNB即可\n⏰ 截止时间：本月底'
+    },
+    {
+      exchange: 'OKX',
+      title: 'OKB持仓空投',
+      score: 7.8,
+      content: '⭐ OKX空投来袭！\n\n项目：OKB持仓奖励\n奖励：预计30 USDT\nAI评分：7.8/10\n\n✅ 参与方式：持有OKB即可\n⏰ 截止时间：48小时'
+    },
+    {
+      exchange: '币安',
+      title: 'Launchpool新项目',
+      score: 9.2,
+      content: '💎 高分推荐！\n\n项目：Launchpool - XXX代币\n奖励：预计100 USDT\nAI评分：9.2/10 ⭐⭐⭐\n\n✅ 参与方式：质押BNB/FDUSD\n⏰ 截止时间：7天'
+      }
+  ]
+
+  const randomAirdrop = airdrops[Math.floor(Math.random() * airdrops.length)]
+  
+  const botMsg = {
+    id: `airdrop-bot-${Date.now()}`,
+    chat_group_id: currentGroup.value?.id || 'ai_push_group',
+    user_id: 'airdrop_bot',
+    username: 'AI空投机器人',
+    content: randomAirdrop.content,
+    type: 'text',
+    is_bot: true,
+    airdrop_data: {
+      exchange: randomAirdrop.exchange,
+      score: randomAirdrop.score
+    },
+    created_at: new Date().toISOString()
+  } as any
+  
+  messages.value.push(botMsg)
+  saveMessageToCache(botMsg)
+  scrollToBottom()
+}
+
+// 💰 推送赚钱消息
+const pushMoneyMessage = () => {
+  const moneyTips = [
+    {
+      title: 'AI学习机收益',
+      content: '💰 AI学习机每日释放10%\n\n📊 今日收益：+2.5U\n📈 累计收益：+45.8U\n\n✅ 继续持有，收益稳定增长！'
+    },
+    {
+      title: '对碰系统奖励',
+      content: '🎯 对碰系统新奖励\n\n💎 对碰奖：8U/组（85%到账）\n🎁 见单奖：5层×1U/组\n\n✅ 发展下线，收益翻倍！'
+    },
+    {
+      title: '团队分红提醒',
+      content: '🏆 团队分红即将发放\n\n📊 直推人数：15人\n💰 预计分红：12.5U\n⏰ 发放时间：今晚24:00\n\n✅ 继续推广，收益更多！'
+    }
+  ]
+
+  const randomTip = moneyTips[Math.floor(Math.random() * moneyTips.length)]
+  
+  const botMsg = {
+    id: `money-bot-${Date.now()}`,
+    chat_group_id: currentGroup.value?.id || 'default_group',
+    user_id: 'money_bot',
+    username: 'AI自动赚钱机器人',
+    content: randomTip.content,
+    type: 'text',
+    is_bot: true,
+    money_data: {
+      title: randomTip.title
+    },
+    created_at: new Date().toISOString()
+  } as any
+  
+  messages.value.push(botMsg)
+  saveMessageToCache(botMsg)
+  scrollToBottom()
+}
+
+// 💾 保存消息到缓存
+const saveMessageToCache = (message: any) => {
+  if (currentGroup.value) {
+    const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    stored.push(message)
+    localStorage.setItem(storageKey, JSON.stringify(stored))
+  }
+}
+
+// 🚀 定时刷新：根据群组类型清理过期消息
 let refreshInterval: any = null
 
 const startPeriodicRefresh = () => {
   // 每60秒刷新一次（触发 validMessages 重新计算并清理缓存）
   refreshInterval = setInterval(() => {
     const now = new Date().getTime()
-    const TEN_MINUTES = 10 * 60 * 1000
+    
+    // 根据群组类型设置不同的清理时间
+    let cleanupTime: number
+    if (currentGroup.value?.type === 'ai_push') {
+      cleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
+    } else {
+      cleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
+    }
     
     // 🔥 过滤掉过期的机器人消息
     const filteredMessages = messages.value.filter(msg => {
       if (msg.is_bot) {
         const messageTime = new Date(msg.created_at).getTime()
-        return now - messageTime <= TEN_MINUTES
+        return now - messageTime <= cleanupTime
       }
       return true
     })
