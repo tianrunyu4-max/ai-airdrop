@@ -535,7 +535,7 @@ const getDefaultGroup = async () => {
   }
 }
 
-// 🔥 生产模式：加入群组
+// 🔥 生产模式：加入群组（智能分群）
 const joinGroup = async (groupId: string) => {
   try {
     if (!authStore.user) return // 未登录不加入群组
@@ -549,17 +549,82 @@ const joinGroup = async (groupId: string) => {
       .maybeSingle()
 
     if (!existing) {
-      // 添加成员
-      await supabase
-        .from('group_members')
-        .insert({
-          group_id: groupId,
-          user_id: authStore.user.id,
-          role: 'member'
-        })
+      // 检查群组是否已满
+      const { data: group } = await supabase
+        .from('chat_groups')
+        .select('member_count, max_members, type, group_number')
+        .eq('id', groupId)
+        .single()
 
-      // 更新成员计数（如果有这个RPC函数）
-      await supabase.rpc('increment_group_members', { group_id: groupId }).catch(() => {})
+      if (group && group.member_count >= group.max_members && group.type === 'default') {
+        // 默认群已满，创建或加入下一个群
+        const nextGroupNumber = (group.group_number || 1) + 1
+        
+        // 查找是否已存在下一个群
+        let { data: nextGroup } = await supabase
+          .from('chat_groups')
+          .select('*')
+          .eq('type', 'default')
+          .eq('group_number', nextGroupNumber)
+          .maybeSingle()
+
+        // 如果不存在，创建新群
+        if (!nextGroup) {
+          const { data: newGroup } = await supabase
+            .from('chat_groups')
+            .insert({
+              type: 'default',
+              icon: '💰',
+              description: `AI自动赚钱系统${nextGroupNumber}`,
+              group_number: nextGroupNumber,
+              member_count: 0,
+              max_members: group.max_members,
+              is_active: true
+            })
+            .select()
+            .single()
+
+          nextGroup = newGroup
+        }
+
+        // 加入新群
+        if (nextGroup) {
+          await supabase
+            .from('group_members')
+            .insert({
+              group_id: nextGroup.id,
+              user_id: authStore.user.id,
+              role: 'member'
+            })
+
+          // 更新新群成员计数
+          await supabase
+            .from('chat_groups')
+            .update({ member_count: supabase.raw('member_count + 1') })
+            .eq('id', nextGroup.id)
+
+          // 切换到新群
+          currentGroup.value = {
+            ...nextGroup,
+            name: nextGroup.description
+          } as any
+        }
+      } else {
+        // 群未满或非默认群，正常加入
+        await supabase
+          .from('group_members')
+          .insert({
+            group_id: groupId,
+            user_id: authStore.user.id,
+            role: 'member'
+          })
+
+        // 更新成员计数
+        await supabase
+          .from('chat_groups')
+          .update({ member_count: supabase.raw('member_count + 1') })
+          .eq('id', groupId)
+      }
     }
   } catch (error) {
     // 静默处理所有错误
