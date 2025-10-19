@@ -705,7 +705,17 @@ const viewImage = (url: string) => {
 // 🔥 生产模式：发送消息到 Supabase 数据库
 const sendMessage = async () => {
   if (!messageInput.value.trim() && !selectedImage.value) return
-  if (!currentGroup.value) return
+  
+  // 验证群组
+  if (!currentGroup.value) {
+    alert('❌ 群组未加载，请刷新页面')
+    return
+  }
+  
+  if (!currentGroup.value.id) {
+    alert('❌ 群组ID错误，请切换群组')
+    return
+  }
 
   // 必须登录才能发送消息
   if (!authStore.user) {
@@ -747,7 +757,18 @@ const sendMessage = async () => {
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error) {
+      // 详细的错误提示
+      let errorMsg = '发送失败: '
+      if (error.code === '42501') {
+        errorMsg += 'RLS权限问题，请联系管理员'
+      } else if (error.code === '23503') {
+        errorMsg += '群组或用户不存在'
+      } else {
+        errorMsg += error.message
+      }
+      throw new Error(errorMsg)
+    }
 
     // 🔥 保存到 localStorage 缓存（性能优化）
     const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
