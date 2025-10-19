@@ -451,23 +451,15 @@ const loadMessages = async (groupId?: string) => {
     const { data: freshMessages, error } = await supabase
       .from('messages')
       .select('*')
-      .eq('聊天群组_ID', targetGroupId)
-      .order('创建于', { ascending: true })
+      .eq('chat_group_id', targetGroupId)
+      .order('created_at', { ascending: true })
       .limit(100) // 只加载最近100条消息
     
     if (!error && freshMessages) {
-      // 格式化消息（适配前端格式，使用英文字段名）
+      // 消息已经是正确格式，只需添加用户名
       const formattedMessages = freshMessages.map((msg: any) => ({
-        id: msg.ID,
-        chat_group_id: msg.聊天群组_ID,
-        user_id: msg.用户身份,
-        content: msg.内容,
-        type: msg.类型,
-        is_bot: msg.是机器人,
-        airdrop_data: msg.空投数据,
-        ad_data: msg.广告数据,
-        created_at: msg.创建于,
-        username: 'User' // 暂时使用默认用户名，需要关联查询
+        ...msg,
+        username: 'User' // 暂时使用默认用户名
       }))
       
       messages.value = formattedMessages
@@ -646,7 +638,7 @@ const subscribeToMessages = () => {
     messageSubscription = null
   }
 
-  // 订阅新群组的消息（使用中文列名）
+  // 订阅新群组的消息（使用英文列名）
   messageSubscription = supabase
     .channel(`messages:${currentGroup.value.id}`)
     .on(
@@ -655,20 +647,12 @@ const subscribeToMessages = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `聊天群组_ID=eq.${currentGroup.value.id}`
+        filter: `chat_group_id=eq.${currentGroup.value.id}`
       },
       async (payload) => {
-        // 格式化消息（适配前端格式）
+        // 新消息已经是正确格式
         const newMessage = {
-          id: payload.new.ID,
-          chat_group_id: payload.new.聊天群组_ID,
-          user_id: payload.new.用户身份,
-          content: payload.new.内容,
-          type: payload.new.类型,
-          is_bot: payload.new.是机器人,
-          airdrop_data: payload.new.空投数据,
-          ad_data: payload.new.广告数据,
-          created_at: payload.new.创建于,
+          ...payload.new,
           username: authStore.user?.username || 'User'
         } as Message
 
@@ -743,15 +727,15 @@ const sendMessage = async () => {
       imageUrl = imagePreview.value
     }
 
-    // 🔥 发送到 Supabase 数据库（使用中文列名）
+    // 🔥 发送到 Supabase 数据库（使用英文列名）
     const { data: newMessage, error } = await supabase
       .from('messages')
       .insert({
-        聊天群组_ID: currentGroup.value.id,
-        用户身份: authStore.user.id,
-        内容: messageContent,
-        类型: messageType,
-        是机器人: false
+        chat_group_id: currentGroup.value.id,
+        user_id: authStore.user.id,
+        content: messageContent,
+        type: messageType,
+        is_bot: false
       })
       .select('*')
       .single()
