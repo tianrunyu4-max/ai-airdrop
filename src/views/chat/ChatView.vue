@@ -416,7 +416,7 @@ const scrollToBottom = () => {
   })
 }
 
-// 🔥 生产模式：切换群组
+// 🔥 生产模式：切换群组（优化版）
 const switchGroup = async (group: ChatGroup) => {
   if (currentGroup.value?.id === group.id) return
 
@@ -427,6 +427,12 @@ const switchGroup = async (group: ChatGroup) => {
   }
 
   try {
+    // 🚀 立即切换群组（不等待加载）
+    currentGroup.value = group
+    
+    // 🚀 立即清空消息（显示加载状态）
+    messages.value = []
+    
     // 🔥 取消旧的订阅
     if (messageSubscription) {
       messageSubscription.unsubscribe()
@@ -437,14 +443,11 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🔥 立即更新群组
-    currentGroup.value = group
-    
-    // 🔥 加载消息
-    await loadMessages(group.id)
-    
-    // 🔥 订阅新群组的实时消息
-    subscribeToMessages()
+    // 🚀 并行加载：同时加载消息和订阅
+    Promise.all([
+      loadMessages(group.id),
+      Promise.resolve().then(() => subscribeToMessages())
+    ])
     
     // 如果需要空投机器人演示，可以启用
     // startBotSimulation()
@@ -769,8 +772,6 @@ const sendMessage = async () => {
   }
 
   try {
-    sending.value = true
-
     const messageContent = messageInput.value.trim() || '发送了一张图片'
     const messageType = selectedImage.value ? 'image' : 'text'
 
@@ -787,7 +788,30 @@ const sendMessage = async () => {
       imageUrl = imagePreview.value
     }
 
-    // 🔥 发送到 Supabase 数据库（使用英文列名）
+    // 🚀 乐观更新：立即显示消息（提升用户体验）
+    const tempMessage: any = {
+      id: `temp-${Date.now()}`,
+      chat_group_id: currentGroup.value.id,
+      user_id: userId,
+      username: authStore.user.username,
+      content: messageContent,
+      type: messageType,
+      image_url: imageUrl,
+      is_bot: false,
+      created_at: new Date().toISOString(),
+      sending: true // 标记为发送中
+    }
+    
+    messages.value.push(tempMessage)
+    
+    // 立即清空输入框和滚动（丝滑体验）
+    messageInput.value = ''
+    cancelImage()
+    nextTick(() => scrollToBottom())
+
+    // 🔥 异步发送到 Supabase（不阻塞UI）
+    sending.value = true
+    
     const messageData: any = {
       chat_group_id: currentGroup.value.id,
       user_id: userId,
@@ -796,7 +820,6 @@ const sendMessage = async () => {
       is_bot: false
     }
     
-    // 如果有图片URL，添加到数据中（需要检查数据库是否有这个字段）
     if (imageUrl && messageType === 'image') {
       messageData.image_url = imageUrl
     }
@@ -808,39 +831,31 @@ const sendMessage = async () => {
       .single()
 
     if (error) {
-      // 详细的错误提示
-      let errorMsg = '发送失败: '
-      if (error.code === '42501') {
-        errorMsg += 'RLS权限问题，请联系管理员'
-      } else if (error.code === '23503') {
-        errorMsg += '群组或用户不存在'
-      } else {
-        errorMsg += error.message
-      }
-      throw new Error(errorMsg)
+      // 发送失败：移除临时消息并提示
+      messages.value = messages.value.filter(m => m.id !== tempMessage.id)
+      throw new Error(`发送失败: ${error.message}`)
     }
 
-    // 🔥 立即添加到界面（自己发送的消息不会触发 Realtime）
-    const displayMessage = {
-      ...newMessage,
-      username: authStore.user.username
+    // 发送成功：替换临时消息为真实消息
+    const index = messages.value.findIndex(m => m.id === tempMessage.id)
+    if (index !== -1) {
+      messages.value[index] = {
+        ...newMessage,
+        username: authStore.user.username
+      }
     }
-    messages.value.push(displayMessage)
     
-    // 🔥 保存到 localStorage 缓存（性能优化）
+    // 🔥 保存到 localStorage 缓存
     const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
     const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    storedMessages.push(displayMessage)
+    storedMessages.push({
+      ...newMessage,
+      username: authStore.user.username
+    })
     localStorage.setItem(storageKey, JSON.stringify(storedMessages))
     
-    // 滚动到底部
-    nextTick(() => scrollToBottom())
-    
-    // 清空输入框
-    messageInput.value = ''
-    cancelImage()
   } catch (error) {
-    alert('发送失败: ' + (error as Error).message)
+    alert((error as Error).message)
   } finally {
     sending.value = false
   }
@@ -1067,6 +1082,17 @@ const cleanupOldLocalStorage = () => {
   }, 100) // 延迟100ms执行，让页面先加载
 }
 
+// 🚀 定时刷新：每分钟检查并清理过期广告
+let refreshInterval: any = null
+
+const startPeriodicRefresh = () => {
+  // 每60秒刷新一次（触发 validMessages 重新计算）
+  refreshInterval = setInterval(() => {
+    // 强制触发 computed 重新计算（通过添加空操作）
+    messages.value = [...messages.value]
+  }, 60000) // 60秒
+}
+
 // 🔥 生产模式：初始化
 onMounted(async () => {
   // 清理旧数据
@@ -1083,11 +1109,11 @@ onMounted(async () => {
     subscribeToMessages()
   }
   
+  // 🚀 启动定时刷新（自动清理过期广告）
+  startPeriodicRefresh()
+  
   // 如果需要机器人演示，可以启用
   // startBotSimulation()
-  
-  // 启动自动清理（可选）
-  // startAutoCleanup()
 })
 
 // 监听路由变化，当返回聊天页面时重新加载消息
@@ -1106,6 +1132,9 @@ onUnmounted(() => {
   }
   if (cleanupInterval) {
     clearInterval(cleanupInterval)
+  }
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
   }
 })
 
