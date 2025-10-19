@@ -477,26 +477,38 @@ const loadMessages = async (groupId?: string) => {
   }
 }
 
-// 🔥 生产模式：获取或创建主群（AI科技）
+// 🔥 生产模式：获取默认群（用户聊天群）
 const getDefaultGroup = async () => {
   try {
-    // 查找 AI科技 主群（description = 'AI科技'）
+    // 查找默认群（type = 'default'）
     let { data, error} = await supabase
       .from('chat_groups')
       .select('*')
-      .eq('description', 'AI科技')
+      .eq('type', 'default')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle()
 
-    // 如果没有，创建"AI科技"主群
+    // 如果没有默认群，查找任意活跃群
+    if (!data) {
+      const result = await supabase
+        .from('chat_groups')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      
+      data = result.data
+    }
+
+    // 如果还是没有，创建默认群
     if (!data) {
       const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
-          type: 'main',
-          icon: '🤖',
-          description: 'AI科技',
+          type: 'default',
+          icon: '💰',
+          description: 'AI 自动赚钱系统',
           member_count: 60,
           max_members: 50000,
           is_active: true
@@ -511,7 +523,7 @@ const getDefaultGroup = async () => {
     // 设置当前群组，并使用 description 作为群名
     currentGroup.value = {
       ...data,
-      name: data.description || 'AI科技' // 使用 description 作为 name
+      name: data.description || 'AI 自动赚钱系统' // 使用 description 作为 name
     } as any
 
     // 如果用户已登录，加入群组
