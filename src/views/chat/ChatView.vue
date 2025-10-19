@@ -477,14 +477,14 @@ const loadMessages = async (groupId?: string) => {
   }
 }
 
-// 🔥 生产模式：获取或创建默认群聊（AI科技主群）
+// 🔥 生产模式：获取或创建主群（AI科技）
 const getDefaultGroup = async () => {
   try {
-    // 查找 default_hall 类型的群（数据库表结构使用 description 存储群名）
-    let { data, error } = await supabase
+    // 查找 AI科技 主群（description = 'AI科技'）
+    let { data, error} = await supabase
       .from('chat_groups')
       .select('*')
-      .eq('type', 'default_hall')
+      .eq('description', 'AI科技')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle()
@@ -494,7 +494,7 @@ const getDefaultGroup = async () => {
       const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
-          type: 'default_hall',
+          type: 'main',
           icon: '🤖',
           description: 'AI科技',
           member_count: 60,
