@@ -442,16 +442,10 @@ const loadMessages = async (groupId?: string) => {
       return
     }
     
-    const storageKey = `${ENV_PREFIX}chat_messages_${targetGroupId}`
+    // 🔥 禁用缓存，只从数据库加载（避免显示旧消息）
+    messages.value = [] // 先清空
     
-    // 🚀 优化1：先从缓存加载（快速显示）
-    const cachedMessages = localStorage.getItem(storageKey)
-    if (cachedMessages) {
-      messages.value = JSON.parse(cachedMessages)
-      nextTick(() => scrollToBottom())
-    }
-    
-    // 🚀 优化2：异步从数据库刷新（保证数据准确）
+    // 从数据库加载最新消息
     const { data: freshMessages, error } = await supabase
       .from('messages')
       .select(`
@@ -462,7 +456,7 @@ const loadMessages = async (groupId?: string) => {
       `)
       .eq('chat_group_id', targetGroupId)
       .order('created_at', { ascending: true })
-      .limit(100) // 只加载最近100条消息
+      .limit(50) // 只加载最近50条消息（减少加载量）
     
     if (!error && freshMessages) {
       // 消息已经包含了用户信息
@@ -472,10 +466,6 @@ const loadMessages = async (groupId?: string) => {
       }))
       
       messages.value = formattedMessages
-      
-      // 更新缓存
-      localStorage.setItem(storageKey, JSON.stringify(formattedMessages))
-      
       nextTick(() => scrollToBottom())
     }
   } catch (error) {
@@ -822,14 +812,7 @@ const sendMessage = async () => {
       }
     }
     
-    // 🔥 保存到 localStorage 缓存
-    const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
-    const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    storedMessages.push({
-      ...newMessage,
-      username: authStore.user.username
-    })
-    localStorage.setItem(storageKey, JSON.stringify(storedMessages))
+    // 🔥 不再保存到localStorage（避免缓存旧消息）
     
   } catch (error) {
     alert((error as Error).message)
@@ -1220,11 +1203,7 @@ const startPeriodicRefresh = () => {
     // 更新内存中的消息
     messages.value = filteredMessages
     
-    // 🔥 同时清理 localStorage 缓存
-    if (currentGroup.value) {
-      const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
-      localStorage.setItem(storageKey, JSON.stringify(filteredMessages))
-    }
+    // 🔥 不再同步到localStorage（避免缓存）
   }, 30000) // 30秒（更频繁的清理）
 }
 
