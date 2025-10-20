@@ -237,7 +237,7 @@
           type="button"
           @click="$refs.fileInput.click()"
           class="btn btn-circle btn-lg btn-primary btn-outline hover:btn-primary hover:scale-110 transition-all shadow-md"
-          :disabled="sending"
+          :disabled="currentGroup?.type === 'ai_push'"
           title="上传图片"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -249,22 +249,20 @@
           v-model="messageInput"
           type="text"
           :placeholder="currentGroup?.type === 'ai_push' ? '📢 此群只接收机器人推送，不可聊天' : t('chat.inputPlaceholder')"
-          :disabled="currentGroup?.type === 'ai_push' || sending"
+          :disabled="currentGroup?.type === 'ai_push'"
           class="input input-bordered flex-1 input-lg text-lg focus:input-primary transition-all h-14"
           maxlength="500"
+          @keyup.enter="sendMessage"
         />
         <button
           type="submit"
           class="btn btn-primary btn-lg px-12 gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold h-14"
-          :disabled="(!messageInput.trim() && !selectedImage) || sending"
+          :disabled="!messageInput.trim() && !selectedImage"
         >
-          <span v-if="sending" class="loading loading-spinner loading-md"></span>
-          <template v-else>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <span class="text-lg">{{ t('chat.send') }}</span>
-          </template>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          <span class="text-lg">{{ t('chat.send') }}</span>
         </button>
       </form>
     </div>
@@ -778,40 +776,39 @@ const sendMessage = async () => {
       imageUrl = imagePreview.value
     }
 
-    // 🚀 乐观更新：立即显示消息（提升用户体验）
+    // 🔥 立即清空输入框（极速体验）
+    const contentToSend = messageContent
+    const imageToSend = imageUrl
+    messageInput.value = ''
+    cancelImage()
+    
+    // 🚀 乐观更新：立即显示消息（无延迟）
     const tempMessage: any = {
       id: `temp-${Date.now()}`,
       chat_group_id: currentGroup.value.id,
       user_id: userId,
       username: authStore.user.username,
-      content: messageContent,
+      content: contentToSend,
       type: messageType,
-      image_url: imageUrl,
+      image_url: imageToSend,
       is_bot: false,
-      created_at: new Date().toISOString(),
-      sending: true // 标记为发送中
+      created_at: new Date().toISOString()
     }
     
     messages.value.push(tempMessage)
-    
-    // 立即清空输入框和滚动（丝滑体验）
-    messageInput.value = ''
-    cancelImage()
     nextTick(() => scrollToBottom())
 
-    // 🔥 异步发送到 Supabase（不阻塞UI）
-    sending.value = true
-    
+    // 🔥 后台异步发送（不阻塞UI，不显示loading）
     const messageData: any = {
       chat_group_id: currentGroup.value.id,
       user_id: userId,
-      content: messageContent,
+      content: contentToSend,
       type: messageType,
       is_bot: false
     }
     
-    if (imageUrl && messageType === 'image') {
-      messageData.image_url = imageUrl
+    if (imageToSend && messageType === 'image') {
+      messageData.image_url = imageToSend
     }
 
     const { data: newMessage, error } = await supabase
@@ -821,9 +818,11 @@ const sendMessage = async () => {
       .single()
 
     if (error) {
-      // 发送失败：移除临时消息并提示
+      // 发送失败：移除临时消息
       messages.value = messages.value.filter(m => m.id !== tempMessage.id)
-      throw new Error(`发送失败: ${error.message}`)
+      console.error('发送失败:', error.message)
+      // 静默失败，不弹窗打扰用户
+      return
     }
 
     // 发送成功：替换临时消息为真实消息
@@ -835,12 +834,9 @@ const sendMessage = async () => {
       }
     }
     
-    // 🔥 不再保存到localStorage（避免缓存旧消息）
-    
   } catch (error) {
-    alert((error as Error).message)
-  } finally {
-    sending.value = false
+    console.error('发送消息异常:', error)
+    // 静默失败，不影响用户体验
   }
 }
 
