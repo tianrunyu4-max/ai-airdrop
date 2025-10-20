@@ -211,12 +211,6 @@
       </div>
     </div>
 
-    <!-- 提示信息 - 简化 -->
-    <div class="px-4 py-1.5 bg-warning/10 text-warning text-xs text-center flex items-center justify-center gap-2">
-      <span>⏰</span>
-      <span>{{ t('chat.deleteAfter') }}</span>
-    </div>
-
     <!-- 输入框 - 全屏版 -->
     <div class="p-6 bg-white border-t border-base-300">
       <!-- 图片预览 -->
