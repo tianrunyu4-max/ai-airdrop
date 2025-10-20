@@ -1257,8 +1257,10 @@ onMounted(async () => {
   // 🚀 启动定时刷新（自动清理过期广告）
   startPeriodicRefresh()
   
-  // 如果需要机器人演示，可以启用
-  // startBotSimulation()
+  // 🤖 启动对应群组的机器人
+  if (currentGroup.value) {
+    startBotForGroup(currentGroup.value)
+  }
 })
 
 // 监听路由变化，当返回聊天页面时重新加载消息
