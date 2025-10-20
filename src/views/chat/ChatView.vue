@@ -671,19 +671,28 @@ const subscribeToMessages = () => {
           username: authStore.user?.username || 'User'
         } as Message
 
+        // 🔥 消息去重：避免重复添加
+        const exists = messages.value.some(m => m.id === newMessage.id)
+        if (exists) {
+          return
+        }
+
         // 添加到界面
         messages.value.push(newMessage)
 
-        // 🔥 保存到缓存
-        const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value?.id}`
-        const storedMessages = JSON.parse(localStorage.getItem(storageKey) || '[]')
-        storedMessages.push(newMessage)
-        localStorage.setItem(storageKey, JSON.stringify(storedMessages))
-
+        // 🔥 不再保存到localStorage（避免缓存）
         scrollToBottom()
       }
     )
-    .subscribe()
+    .subscribe((status) => {
+      // 添加订阅状态监听
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Realtime订阅成功')
+      } else if (status === 'SUBSCRIPTION_ERROR') {
+        console.error('❌ Realtime订阅失败，3秒后重试')
+        setTimeout(() => subscribeToMessages(), 3000)
+      }
+    })
 }
 
 // 处理图片选择
@@ -1157,6 +1166,11 @@ let refreshInterval: any = null
 const startPeriodicRefresh = () => {
   // 每30秒刷新一次（更频繁的清理）
   refreshInterval = setInterval(() => {
+    // 🔥 只有消息超过50条时才清理（性能优化）
+    if (messages.value.length < 50) {
+      return
+    }
+    
     const now = new Date().getTime()
     
     // 🔥 用户消息5分钟自动删除，机器人消息根据群组类型设置
@@ -1170,8 +1184,6 @@ const startPeriodicRefresh = () => {
       botCleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
     }
     
-    console.log(`🧹 清理过期消息：用户消息=${USER_MESSAGE_CLEANUP_TIME/1000/60}分钟, 机器人消息=${botCleanupTime/1000/60}分钟`)
-    
     // 🔥 过滤掉过期的消息
     const beforeCount = messages.value.length
     const filteredMessages = messages.value.filter(msg => {
@@ -1179,32 +1191,26 @@ const startPeriodicRefresh = () => {
       const age = now - messageTime
       
       if (msg.is_bot) {
-        // 机器人消息：根据群组类型清理
-        const shouldKeep = age <= botCleanupTime
-        if (!shouldKeep) {
-          console.log(`🗑️ 删除过期机器人消息：${msg.username} - ${(age/1000/60).toFixed(1)}分钟前`)
-        }
-        return shouldKeep
+        return age <= botCleanupTime
       } else {
-        // 用户消息：5分钟后删除
-        const shouldKeep = age <= USER_MESSAGE_CLEANUP_TIME
-        if (!shouldKeep) {
-          console.log(`🗑️ 删除过期用户消息：${msg.username} - ${(age/1000/60).toFixed(1)}分钟前`)
-        }
-        return shouldKeep
+        return age <= USER_MESSAGE_CLEANUP_TIME
       }
     })
     
-    const afterCount = filteredMessages.length
-    if (beforeCount !== afterCount) {
-      console.log(`✅ 清理完成：${beforeCount} → ${afterCount} 条消息（删除了${beforeCount - afterCount}条）`)
+    // 🔥 限制最大消息数量（防止内存占用过大）
+    let finalMessages = filteredMessages
+    if (finalMessages.length > 200) {
+      finalMessages = finalMessages.slice(-200) // 只保留最新200条
+      console.log(`📦 消息数量限制：保留最新200条`)
+    }
+    
+    if (beforeCount !== finalMessages.length) {
+      console.log(`✅ 清理完成：${beforeCount} → ${finalMessages.length} 条消息`)
     }
     
     // 更新内存中的消息
-    messages.value = filteredMessages
-    
-    // 🔥 不再同步到localStorage（避免缓存）
-  }, 30000) // 30秒（更频繁的清理）
+    messages.value = finalMessages
+  }, 30000) // 30秒
 }
 
 // 🔥 生产模式：初始化
