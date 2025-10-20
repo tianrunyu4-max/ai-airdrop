@@ -1000,7 +1000,7 @@ const initDevMode = () => {
   }
 
   scrollToBottom()
-  startBotSimulation()
+  // 🔥 不再使用 startBotSimulation，改用 startBotForGroup
 }
 
 // 自动清理旧消息（每5分钟检查一次）
