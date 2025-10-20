@@ -306,11 +306,22 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid)
 }
 
-// 🔥 简化：直接显示所有消息，清理工作由定时器负责
+// 🎯 极简方案：数据库视图已过滤，前端保留双重过滤作为保险
 const validMessages = computed(() => {
-  // 不做任何过滤，直接返回所有消息
-  // 定时器会负责清理过期消息（每30秒检查一次）
-  return messages.value
+  const now = Date.now()
+  
+  return messages.value.filter(msg => {
+    const age = now - new Date(msg.created_at).getTime()
+    
+    // 双重保险过滤
+    if (msg.is_bot) {
+      const limit = currentGroup.value?.type === 'ai_push' 
+        ? 24 * 60 * 60 * 1000  // 24小时
+        : 10 * 60 * 1000       // 10分钟
+      return age <= limit
+    }
+    return age <= 5 * 60 * 1000  // 5分钟
+  })
 })
 
 // 订阅实时消息
@@ -436,36 +447,23 @@ const loadMessages = async (groupId?: string) => {
     
     console.log(`📥 加载群组: ${currentGroup.value?.name} (${targetGroupId})`)
     
-    // 🔥 AI科技空投群：只加载机器人消息
-    const query = supabase
-      .from('messages')
-      .select(`
-        *,
-        user:user_id (
-          username
-        )
-      `)
+    // 🔥 使用视图查询，数据库已自动过滤过期消息
+    const { data: freshMessages, error } = await supabase
+      .from('valid_messages')  // 使用视图而非表
+      .select('*, user:user_id(username)')
       .eq('chat_group_id', targetGroupId)
-    
-    // 如果是空投群，只加载机器人消息
-    if (currentGroup.value?.type === 'ai_push') {
-      query.eq('is_bot', true)
-      console.log('📢 空投群：只加载机器人消息')
-    }
-    
-    const { data: freshMessages, error } = await query
       .order('created_at', { ascending: true })
       .limit(50)
     
     if (!error && freshMessages) {
+      // 🎯 视图已经过滤，直接使用
       const formattedMessages = freshMessages.map((msg: any) => ({
         ...msg,
         username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
-      // 🎯 优化：不清空直接替换，避免闪烁
       messages.value = formattedMessages
-      console.log(`✅ 加载了 ${formattedMessages.length} 条消息`)
+      console.log(`✅ 加载了 ${formattedMessages.length} 条有效消息 (数据库已过滤)`)
       
       // 延迟滚动，确保DOM已渲染
       await nextTick()
@@ -1173,57 +1171,16 @@ const saveMessageToCache = (message: any) => {
   }
 }
 
-// 🚀 定时刷新：根据群组类型清理过期消息
+// 🚀 定时刷新：触发computed重新计算
 let refreshInterval: any = null
 
 const startPeriodicRefresh = () => {
-  // 每30秒刷新一次（更频繁的清理）
+  // 🔥 每10秒触发computed重新计算（删除过期消息）
   refreshInterval = setInterval(() => {
-    // 🔥 只有消息超过50条时才清理（性能优化）
-    if (messages.value.length < 50) {
-      return
-    }
-    
-    const now = new Date().getTime()
-    
-    // 🔥 用户消息5分钟自动删除，机器人消息根据群组类型设置
-    const USER_MESSAGE_CLEANUP_TIME = 5 * 60 * 1000 // 5分钟
-    
-    // 根据群组类型设置机器人消息清理时间
-    let botCleanupTime: number
-    if (currentGroup.value?.type === 'ai_push') {
-      botCleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
-    } else {
-      botCleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
-    }
-    
-    // 🔥 过滤掉过期的消息
-    const beforeCount = messages.value.length
-    const filteredMessages = messages.value.filter(msg => {
-      const messageTime = new Date(msg.created_at).getTime()
-      const age = now - messageTime
-      
-      if (msg.is_bot) {
-        return age <= botCleanupTime
-      } else {
-        return age <= USER_MESSAGE_CLEANUP_TIME
-      }
-    })
-    
-    // 🔥 限制最大消息数量（防止内存占用过大）
-    let finalMessages = filteredMessages
-    if (finalMessages.length > 200) {
-      finalMessages = finalMessages.slice(-200) // 只保留最新200条
-      console.log(`📦 消息数量限制：保留最新200条`)
-    }
-    
-    if (beforeCount !== finalMessages.length) {
-      console.log(`✅ 清理完成：${beforeCount} → ${finalMessages.length} 条消息`)
-    }
-    
-    // 更新内存中的消息
-    messages.value = finalMessages
-  }, 30000) // 30秒
+    // 触发响应式更新，让 validMessages computed 重新计算
+    messages.value = [...messages.value]
+    console.log('🔄 触发消息过滤检查')
+  }, 10000) // 10秒
 }
 
 // 🔥 生产模式：初始化
