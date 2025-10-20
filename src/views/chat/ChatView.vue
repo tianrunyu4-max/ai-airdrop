@@ -900,8 +900,10 @@ const startBotSimulation = () => {
     scrollToBottom()
   }, 1000)
 
-  // 🤖 根据群组类型启动不同的机器人
-  startBotForGroup(currentGroup.value)
+  // 🤖 根据群组类型启动不同的机器人（生产模式也启动）
+  if (currentGroup.value) {
+    startBotForGroup(currentGroup.value)
+  }
 
   // 模拟在线人数变化
   setInterval(() => {
@@ -1041,20 +1043,30 @@ const cleanupOldLocalStorage = () => {
 
 // 🤖 根据群组类型启动对应的机器人
 const startBotForGroup = (group: any) => {
+  console.log(`🤖 启动机器人：群组=${group?.description}, 类型=${group?.type}`)
+  
   // 先清理旧的机器人
   if (botInterval) {
     clearInterval(botInterval)
     botInterval = null
+    console.log('🛑 停止旧机器人')
   }
   
-  if (!group) return
+  if (!group) {
+    console.log('❌ 群组为空，无法启动机器人')
+    return
+  }
   
   if (group.type === 'ai_push') {
     // AI科技群：空投机器人（每2小时推送，24小时清理）
+    console.log('🚀 启动空投机器人（AI科技群）')
     startAirdropBot()
   } else if (group.type === 'default') {
     // 自动赚钱群：赚钱机器人（每30分钟推送，10分钟清理）
+    console.log('🚀 启动赚钱机器人（自动赚钱群）')
     startMoneyBot()
+  } else {
+    console.log(`⚠️ 未知群组类型：${group.type}`)
   }
 }
 
@@ -1065,10 +1077,10 @@ const startAirdropBot = () => {
   // 立即推送一条空投消息
   pushAirdropMessage()
   
-  // 每2小时推送一次
+  // 每2小时推送一次（测试用：改为2分钟）
   botInterval = setInterval(() => {
     pushAirdropMessage()
-  }, 2 * 60 * 60 * 1000) // 2小时
+  }, 2 * 60 * 1000) // 2分钟（测试用）
 }
 
 // 🤖 自动赚钱机器人：每30分钟推送，10分钟清理
@@ -1078,10 +1090,10 @@ const startMoneyBot = () => {
   // 立即推送一条赚钱消息
   pushMoneyMessage()
   
-  // 每30分钟推送一次
+  // 每30分钟推送一次（测试用：改为1分钟）
   botInterval = setInterval(() => {
     pushMoneyMessage()
-  }, 30 * 60 * 1000) // 30分钟
+  }, 1 * 60 * 1000) // 1分钟（测试用）
 }
 
 // 📢 推送空投消息
@@ -1181,7 +1193,7 @@ const saveMessageToCache = (message: any) => {
 let refreshInterval: any = null
 
 const startPeriodicRefresh = () => {
-  // 每60秒刷新一次（触发 validMessages 重新计算并清理缓存）
+  // 每30秒刷新一次（更频繁的清理）
   refreshInterval = setInterval(() => {
     const now = new Date().getTime()
     
@@ -1193,14 +1205,27 @@ const startPeriodicRefresh = () => {
       cleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
     }
     
+    console.log(`🧹 清理过期消息：群组类型=${currentGroup.value?.type}, 清理时间=${cleanupTime/1000/60}分钟`)
+    
     // 🔥 过滤掉过期的机器人消息
+    const beforeCount = messages.value.length
     const filteredMessages = messages.value.filter(msg => {
       if (msg.is_bot) {
         const messageTime = new Date(msg.created_at).getTime()
-        return now - messageTime <= cleanupTime
+        const age = now - messageTime
+        const shouldKeep = age <= cleanupTime
+        if (!shouldKeep) {
+          console.log(`🗑️ 删除过期机器人消息：${msg.username} - ${age/1000/60}分钟前`)
+        }
+        return shouldKeep
       }
       return true
     })
+    
+    const afterCount = filteredMessages.length
+    if (beforeCount !== afterCount) {
+      console.log(`✅ 清理完成：${beforeCount} → ${afterCount} 条消息`)
+    }
     
     // 更新内存中的消息
     messages.value = filteredMessages
@@ -1210,7 +1235,7 @@ const startPeriodicRefresh = () => {
       const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
       localStorage.setItem(storageKey, JSON.stringify(filteredMessages))
     }
-  }, 60000) // 60秒
+  }, 30000) // 30秒（更频繁的清理）
 }
 
 // 🔥 生产模式：初始化
