@@ -314,42 +314,50 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid)
 }
 
-// 计算属性：过滤后的消息（根据群组类型设置不同清理时间）
+// 计算属性：过滤后的消息（用户消息5分钟，机器人消息根据群组类型）
 const validMessages = computed(() => {
   const now = new Date().getTime()
   
-  // 根据群组类型设置不同的清理时间
-  let cleanupTime: number
+  // 🔥 用户消息5分钟自动删除
+  const USER_MESSAGE_CLEANUP_TIME = 5 * 60 * 1000 // 5分钟
+  
+  // 根据群组类型设置机器人消息清理时间
+  let botCleanupTime: number
   if (currentGroup.value?.type === 'ai_push') {
-    cleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
+    botCleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
   } else {
-    cleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
+    botCleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
   }
   
   if (isDevMode) {
-    // 开发模式：根据群组类型过滤过期消息
+    // 开发模式：过滤过期消息
     return messages.value.filter(msg => {
+      const messageTime = new Date(msg.created_at).getTime()
+      const age = now - messageTime
+      
       if (msg.is_bot) {
-        const messageTime = new Date(msg.created_at).getTime()
-        return now - messageTime <= cleanupTime
+        return age <= botCleanupTime
+      } else {
+        return age <= USER_MESSAGE_CLEANUP_TIME
       }
-      return true
     })
   }
   
-  // 生产环境：过滤掉无效UUID的消息和过期机器人消息
+  // 生产环境：过滤掉无效UUID的消息和过期消息
   return messages.value.filter(msg => {
-    // 🔥 检查是否是过期的机器人消息
-    if (msg.is_bot) {
-      const messageTime = new Date(msg.created_at).getTime()
-      if (now - messageTime > cleanupTime) {
-        return false // 过滤掉过期的机器人消息
-      }
-      return true // 未过期的机器人消息保留
-    }
+    const messageTime = new Date(msg.created_at).getTime()
+    const age = now - messageTime
     
-    // 用户消息：验证UUID
-    return msg.user_id && isValidUUID(msg.user_id)
+    if (msg.is_bot) {
+      // 机器人消息：根据群组类型清理
+      return age <= botCleanupTime
+    } else {
+      // 用户消息：5分钟后删除 + 验证UUID
+      if (age > USER_MESSAGE_CLEANUP_TIME) {
+        return false // 超过5分钟的用户消息删除
+      }
+      return msg.user_id && isValidUUID(msg.user_id)
+    }
   })
 })
 
@@ -1197,34 +1205,45 @@ const startPeriodicRefresh = () => {
   refreshInterval = setInterval(() => {
     const now = new Date().getTime()
     
-    // 根据群组类型设置不同的清理时间
-    let cleanupTime: number
+    // 🔥 用户消息5分钟自动删除，机器人消息根据群组类型设置
+    const USER_MESSAGE_CLEANUP_TIME = 5 * 60 * 1000 // 5分钟
+    
+    // 根据群组类型设置机器人消息清理时间
+    let botCleanupTime: number
     if (currentGroup.value?.type === 'ai_push') {
-      cleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
+      botCleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
     } else {
-      cleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
+      botCleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
     }
     
-    console.log(`🧹 清理过期消息：群组类型=${currentGroup.value?.type}, 清理时间=${cleanupTime/1000/60}分钟`)
+    console.log(`🧹 清理过期消息：用户消息=${USER_MESSAGE_CLEANUP_TIME/1000/60}分钟, 机器人消息=${botCleanupTime/1000/60}分钟`)
     
-    // 🔥 过滤掉过期的机器人消息
+    // 🔥 过滤掉过期的消息
     const beforeCount = messages.value.length
     const filteredMessages = messages.value.filter(msg => {
+      const messageTime = new Date(msg.created_at).getTime()
+      const age = now - messageTime
+      
       if (msg.is_bot) {
-        const messageTime = new Date(msg.created_at).getTime()
-        const age = now - messageTime
-        const shouldKeep = age <= cleanupTime
+        // 机器人消息：根据群组类型清理
+        const shouldKeep = age <= botCleanupTime
         if (!shouldKeep) {
-          console.log(`🗑️ 删除过期机器人消息：${msg.username} - ${age/1000/60}分钟前`)
+          console.log(`🗑️ 删除过期机器人消息：${msg.username} - ${(age/1000/60).toFixed(1)}分钟前`)
+        }
+        return shouldKeep
+      } else {
+        // 用户消息：5分钟后删除
+        const shouldKeep = age <= USER_MESSAGE_CLEANUP_TIME
+        if (!shouldKeep) {
+          console.log(`🗑️ 删除过期用户消息：${msg.username} - ${(age/1000/60).toFixed(1)}分钟前`)
         }
         return shouldKeep
       }
-      return true
     })
     
     const afterCount = filteredMessages.length
     if (beforeCount !== afterCount) {
-      console.log(`✅ 清理完成：${beforeCount} → ${afterCount} 条消息`)
+      console.log(`✅ 清理完成：${beforeCount} → ${afterCount} 条消息（删除了${beforeCount - afterCount}条）`)
     }
     
     // 更新内存中的消息
