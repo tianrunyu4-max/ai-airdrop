@@ -343,7 +343,7 @@ const validMessages = computed(() => {
     })
   }
   
-  // 生产环境：过滤掉无效UUID的消息和过期消息
+  // 生产环境：过滤掉过期消息
   return messages.value.filter(msg => {
     const messageTime = new Date(msg.created_at).getTime()
     const age = now - messageTime
@@ -352,11 +352,8 @@ const validMessages = computed(() => {
       // 机器人消息：根据群组类型清理
       return age <= botCleanupTime
     } else {
-      // 用户消息：5分钟后删除 + 验证UUID
-      if (age > USER_MESSAGE_CLEANUP_TIME) {
-        return false // 超过5分钟的用户消息删除
-      }
-      return msg.user_id && isValidUUID(msg.user_id)
+      // 用户消息：5分钟后删除（不验证UUID，只验证时间）
+      return age <= USER_MESSAGE_CLEANUP_TIME
     }
   })
 })
