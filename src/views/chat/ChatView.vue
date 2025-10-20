@@ -396,9 +396,6 @@ const switchGroup = async (group: ChatGroup) => {
     // 🚀 立即切换群组（不等待加载）
     currentGroup.value = group
     
-    // 🚀 立即清空消息（显示加载状态）
-    messages.value = []
-    
     // 🔥 取消旧的订阅
     if (messageSubscription) {
       messageSubscription.unsubscribe()
@@ -409,14 +406,14 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-        // 🚀 并行加载：同时加载消息和订阅
-        Promise.all([
-          loadMessages(group.id),
-          Promise.resolve().then(() => subscribeToMessages())
-        ])
-        
-        // 🤖 启动对应群组的机器人
-        startBotForGroup(group)
+    // 🚀 并行加载：同时加载消息和订阅
+    Promise.all([
+      loadMessages(group.id),
+      Promise.resolve().then(() => subscribeToMessages())
+    ])
+    
+    // 🤖 启动对应群组的机器人
+    startBotForGroup(group)
     
     // 如果需要空投机器人演示，可以启用
     // startBotSimulation()
@@ -436,9 +433,6 @@ const loadMessages = async (groupId?: string) => {
       loading.value = false
       return
     }
-    
-    // 🔥 清空当前消息（确保不显示其他群的消息）
-    messages.value = []
     
     console.log(`📥 加载群组: ${currentGroup.value?.name} (${targetGroupId})`)
     
@@ -469,9 +463,13 @@ const loadMessages = async (groupId?: string) => {
         username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
+      // 🎯 优化：不清空直接替换，避免闪烁
       messages.value = formattedMessages
       console.log(`✅ 加载了 ${formattedMessages.length} 条消息`)
-      nextTick(() => scrollToBottom())
+      
+      // 延迟滚动，确保DOM已渲染
+      await nextTick()
+      setTimeout(() => scrollToBottom(), 100)
     }
   } catch (error) {
     console.error('加载消息失败:', error)
@@ -1326,5 +1324,19 @@ const shareAirdrop = (message: any) => {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* 🎯 优化：消息列表平滑过渡 */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+  /* 硬件加速 */
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
+/* 减少重绘抖动 */
+.space-y-4 > * {
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 </style>
