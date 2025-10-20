@@ -388,7 +388,11 @@ const formatNumber = (num: number) => {
 const scrollToBottom = () => {
   nextTick(() => {
     if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+      // 🎯 使用平滑滚动，避免跳动
+      messageContainer.value.scrollTo({
+        top: messageContainer.value.scrollHeight,
+        behavior: 'smooth'
+      })
     }
   })
 }
@@ -465,9 +469,8 @@ const loadMessages = async (groupId?: string) => {
       messages.value = formattedMessages
       console.log(`✅ 加载了 ${formattedMessages.length} 条有效消息 (数据库已过滤)`)
       
-      // 延迟滚动，确保DOM已渲染
-      await nextTick()
-      setTimeout(() => scrollToBottom(), 100)
+      // 平滑滚动到底部
+      scrollToBottom()
     }
   } catch (error) {
     console.error('加载消息失败:', error)
