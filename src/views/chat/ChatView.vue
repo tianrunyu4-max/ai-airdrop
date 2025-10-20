@@ -1023,8 +1023,8 @@ const cleanupOldLocalStorage = () => {
         const key = localStorage.key(i)
         if (!key) continue
         
-        // 清理旧的不带环境前缀的聊天消息
-        if (key.startsWith('chat_messages_') && !key.startsWith(ENV_PREFIX)) {
+        // 🔥 清理所有聊天消息缓存（包括新旧格式）
+        if (key.includes('chat_messages_')) {
           keysToRemove.push(key)
           cleanedCount++
         }
@@ -1034,12 +1034,23 @@ const cleanupOldLocalStorage = () => {
           keysToRemove.push(key)
           cleanedCount++
         }
+        
+        // 清理prod_前缀的旧数据
+        if (key.startsWith('prod_')) {
+          keysToRemove.push(key)
+          cleanedCount++
+        }
       }
       
       // 删除标记的keys
       keysToRemove.forEach(key => {
         localStorage.removeItem(key)
+        console.log('🗑️ 清理旧缓存:', key)
       })
+      
+      if (cleanedCount > 0) {
+        console.log(`✅ 已清理 ${cleanedCount} 个旧缓存`)
+      }
     } catch (error) {
       // 清理失败不影响使用
     }
