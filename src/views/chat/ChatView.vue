@@ -254,9 +254,9 @@
         <input
           v-model="messageInput"
           type="text"
-          :placeholder="t('chat.inputPlaceholder')"
+          :placeholder="currentGroup?.type === 'ai_push' ? '📢 此群只接收机器人推送，不可聊天' : t('chat.inputPlaceholder')"
+          :disabled="currentGroup?.type === 'ai_push' || sending"
           class="input input-bordered flex-1 input-lg text-lg focus:input-primary transition-all h-14"
-          :disabled="sending"
           maxlength="500"
         />
         <button
@@ -442,11 +442,13 @@ const loadMessages = async (groupId?: string) => {
       return
     }
     
-    // 🔥 禁用缓存，只从数据库加载（避免显示旧消息）
-    messages.value = [] // 先清空
+    // 🔥 清空当前消息（确保不显示其他群的消息）
+    messages.value = []
     
-    // 从数据库加载最新消息
-    const { data: freshMessages, error } = await supabase
+    console.log(`📥 加载群组: ${currentGroup.value?.name} (${targetGroupId})`)
+    
+    // 🔥 AI科技空投群：只加载机器人消息
+    const query = supabase
       .from('messages')
       .select(`
         *,
@@ -455,21 +457,29 @@ const loadMessages = async (groupId?: string) => {
         )
       `)
       .eq('chat_group_id', targetGroupId)
+    
+    // 如果是空投群，只加载机器人消息
+    if (currentGroup.value?.type === 'ai_push') {
+      query.eq('is_bot', true)
+      console.log('📢 空投群：只加载机器人消息')
+    }
+    
+    const { data: freshMessages, error } = await query
       .order('created_at', { ascending: true })
-      .limit(50) // 只加载最近50条消息（减少加载量）
+      .limit(50)
     
     if (!error && freshMessages) {
-      // 消息已经包含了用户信息
       const formattedMessages = freshMessages.map((msg: any) => ({
         ...msg,
         username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
       messages.value = formattedMessages
+      console.log(`✅ 加载了 ${formattedMessages.length} 条消息`)
       nextTick(() => scrollToBottom())
     }
   } catch (error) {
-    // 加载失败不影响现有缓存数据
+    console.error('加载消息失败:', error)
   }
 }
 
@@ -671,6 +681,12 @@ const subscribeToMessages = () => {
           username: authStore.user?.username || 'User'
         } as Message
 
+        // 🔥 空投群：只显示机器人消息
+        if (currentGroup.value?.type === 'ai_push' && !newMessage.is_bot) {
+          console.log('📢 空投群：过滤用户消息')
+          return
+        }
+
         // 🔥 消息去重：避免重复添加
         const exists = messages.value.some(m => m.id === newMessage.id)
         if (exists) {
@@ -679,8 +695,6 @@ const subscribeToMessages = () => {
 
         // 添加到界面
         messages.value.push(newMessage)
-
-        // 🔥 不再保存到localStorage（避免缓存）
         scrollToBottom()
       }
     )
@@ -738,6 +752,12 @@ const sendMessage = async () => {
   
   if (!currentGroup.value.id) {
     alert('❌ 群组ID错误，请切换群组')
+    return
+  }
+
+  // 🔥 AI科技空投群禁止用户聊天
+  if (currentGroup.value.type === 'ai_push') {
+    alert('❌ 此群只接收机器人推送，不可聊天')
     return
   }
 
