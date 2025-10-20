@@ -314,48 +314,11 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid)
 }
 
-// 计算属性：过滤后的消息（用户消息5分钟，机器人消息根据群组类型）
+// 🔥 简化：直接显示所有消息，清理工作由定时器负责
 const validMessages = computed(() => {
-  const now = new Date().getTime()
-  
-  // 🔥 用户消息5分钟自动删除
-  const USER_MESSAGE_CLEANUP_TIME = 5 * 60 * 1000 // 5分钟
-  
-  // 根据群组类型设置机器人消息清理时间
-  let botCleanupTime: number
-  if (currentGroup.value?.type === 'ai_push') {
-    botCleanupTime = 24 * 60 * 60 * 1000 // AI科技群：24小时清理
-  } else {
-    botCleanupTime = 10 * 60 * 1000 // 自动赚钱群：10分钟清理
-  }
-  
-  if (isDevMode) {
-    // 开发模式：过滤过期消息
-    return messages.value.filter(msg => {
-      const messageTime = new Date(msg.created_at).getTime()
-      const age = now - messageTime
-      
-      if (msg.is_bot) {
-        return age <= botCleanupTime
-      } else {
-        return age <= USER_MESSAGE_CLEANUP_TIME
-      }
-    })
-  }
-  
-  // 生产环境：过滤掉过期消息
-  return messages.value.filter(msg => {
-    const messageTime = new Date(msg.created_at).getTime()
-    const age = now - messageTime
-    
-    if (msg.is_bot) {
-      // 机器人消息：根据群组类型清理
-      return age <= botCleanupTime
-    } else {
-      // 用户消息：5分钟后删除（不验证UUID，只验证时间）
-      return age <= USER_MESSAGE_CLEANUP_TIME
-    }
-  })
+  // 不做任何过滤，直接返回所有消息
+  // 定时器会负责清理过期消息（每30秒检查一次）
+  return messages.value
 })
 
 // 订阅实时消息
