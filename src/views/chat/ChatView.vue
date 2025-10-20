@@ -428,9 +428,12 @@ const switchGroup = async (group: ChatGroup) => {
 // 🔥 生产模式：从 Supabase 加载消息（带缓存优化）
 const loadMessages = async (groupId?: string) => {
   try {
+    loading.value = true // 开始加载
+    
     const targetGroupId = groupId || currentGroup.value?.id
     if (!targetGroupId) {
       messages.value = []
+      loading.value = false
       return
     }
     
@@ -472,6 +475,8 @@ const loadMessages = async (groupId?: string) => {
     }
   } catch (error) {
     console.error('加载消息失败:', error)
+  } finally {
+    loading.value = false // 加载完成
   }
 }
 
