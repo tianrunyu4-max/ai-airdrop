@@ -102,16 +102,40 @@
       </div>
     </div>
 
+    <!-- 充值/提现按钮 -->
+    <div class="px-4 pb-4">
+      <div class="grid grid-cols-2 gap-3">
+        <button 
+          @click="showRechargeModal = true"
+          class="btn btn-lg btn-success text-white shadow-lg hover:shadow-xl transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          💰 充值
+        </button>
+        <button 
+          @click="showWithdrawModal = true"
+          class="btn btn-lg btn-warning text-white shadow-lg hover:shadow-xl transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          💳 提现
+        </button>
+      </div>
+    </div>
+
     <!-- 提现功能卡片 -->
     <div class="p-4">
       <div class="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-lg border-2 border-blue-200">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <div class="text-gray-600 text-sm">提现功能</div>
-            <div class="text-lg font-bold text-blue-600 mt-1">50U 起提</div>
+            <div class="text-gray-600 text-sm">提现地址管理</div>
+            <div class="text-lg font-bold text-blue-600 mt-1">USDT TRC20/ERC20</div>
           </div>
           <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-            <span class="text-3xl">💳</span>
+            <span class="text-3xl">📍</span>
           </div>
         </div>
         
@@ -500,6 +524,151 @@
       </form>
     </dialog>
 
+    <!-- 充值模态框 -->
+    <div v-if="showRechargeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">💰 USDT充值</h3>
+          <button @click="showRechargeModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 选择链 -->
+          <div>
+            <label class="label"><span class="label-text font-semibold">选择网络</span></label>
+            <div class="flex gap-2">
+              <button 
+                @click="rechargeData.network = 'TRC20'"
+                class="btn flex-1"
+                :class="rechargeData.network === 'TRC20' ? 'btn-error' : 'btn-outline'"
+              >
+                TRC20
+              </button>
+              <button 
+                @click="rechargeData.network = 'ERC20'"
+                class="btn flex-1"
+                :class="rechargeData.network === 'ERC20' ? 'btn-warning' : 'btn-outline'"
+              >
+                ERC20
+              </button>
+            </div>
+          </div>
+
+          <!-- 充值地址 -->
+          <div v-if="rechargeConfig" class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-600 mb-2">转账至此地址</div>
+            <div class="font-mono text-sm bg-white p-3 rounded border break-all">
+              {{ rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_erc20 }}
+            </div>
+            <button 
+              @click="copyAddress(rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_erc20)"
+              class="btn btn-sm btn-primary w-full mt-2"
+            >
+              📋 复制地址
+            </button>
+          </div>
+
+          <!-- 充值金额 -->
+          <div>
+            <label class="label"><span class="label-text font-semibold">充值金额 (USDT)</span></label>
+            <input 
+              v-model.number="rechargeData.amount" 
+              type="number" 
+              class="input input-bordered w-full"
+              :placeholder="`最低充值 ${rechargeConfig?.min_amount || 10} USDT`"
+            />
+          </div>
+
+          <!-- 交易哈希 (可选) -->
+          <div>
+            <label class="label"><span class="label-text font-semibold">交易哈希 (可选)</span></label>
+            <input 
+              v-model="rechargeData.txid" 
+              type="text" 
+              class="input input-bordered w-full"
+              placeholder="粘贴交易哈希以加快确认"
+            />
+          </div>
+
+          <!-- 提示 -->
+          <div v-if="rechargeConfig" class="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="text-sm">
+              {{ rechargeConfig.notice }}
+            </div>
+          </div>
+
+          <!-- 按钮 -->
+          <div class="flex gap-2">
+            <button @click="showRechargeModal = false" class="btn btn-ghost flex-1">取消</button>
+            <button @click="submitRecharge" class="btn btn-success flex-1" :disabled="submitting">
+              <span v-if="!submitting">✅ 提交充值</span>
+              <span v-else class="loading loading-spinner"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提现模态框 -->
+    <div v-if="showWithdrawModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">💳 申请提现</h3>
+          <button @click="showWithdrawModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 选择地址 -->
+          <div>
+            <label class="label"><span class="label-text font-semibold">提现地址</span></label>
+            <select v-model="withdrawData.addressId" class="select select-bordered w-full">
+              <option value="">请选择提现地址</option>
+              <option v-for="addr in withdrawalAddresses" :key="addr.id" :value="addr.id">
+                {{ addr.label }} ({{ addr.chain }})
+              </option>
+            </select>
+            <button @click="showAddAddressModal = true; showWithdrawModal = false" class="btn btn-link btn-sm">
+              + 添加新地址
+            </button>
+          </div>
+
+          <!-- 提现金额 -->
+          <div>
+            <label class="label"><span class="label-text font-semibold">提现金额 (USDT)</span></label>
+            <input 
+              v-model.number="withdrawData.amount" 
+              type="number" 
+              class="input input-bordered w-full"
+              placeholder="最低提现 50 USDT"
+            />
+            <div class="text-xs text-gray-500 mt-1">
+              可用余额: {{ (user?.u_balance || 0).toFixed(2) }} U
+            </div>
+          </div>
+
+          <!-- 提示 -->
+          <div class="alert alert-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="text-sm">
+              <p>• 最低提现: 50 USDT</p>
+              <p>• 手续费: 5%</p>
+              <p>• 预计24小时内到账</p>
+            </div>
+          </div>
+
+          <!-- 按钮 -->
+          <div class="flex gap-2">
+            <button @click="showWithdrawModal = false" class="btn btn-ghost flex-1">取消</button>
+            <button @click="submitWithdraw" class="btn btn-warning flex-1" :disabled="submitting">
+              <span v-if="!submitting">💸 提交提现</span>
+              <span v-else class="loading loading-spinner"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 添加提现地址模态框 -->
     <div v-if="showAddAddressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -630,6 +799,8 @@ import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import { AgentService } from '@/services/AgentService'
+import { RechargeService } from '@/services/RechargeService'
+import { WithdrawalService } from '@/services/WithdrawalService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -642,11 +813,30 @@ const networkCount = ref(0)
 
 // 提现相关数据
 const showAddAddressModal = ref(false)
-const withdrawalAddresses = ref<Array<{chain: string, label: string, address: string}>>([])
+const showRechargeModal = ref(false)
+const showWithdrawModal = ref(false)
+const submitting = ref(false)
+
+const withdrawalAddresses = ref<Array<{id?: string, chain: string, label: string, address: string}>>([])
 const newAddress = ref({
   chain: 'TRC20',
   label: '',
   address: ''
+})
+
+// 充值相关
+const rechargeConfig = ref<any>(null)
+const rechargeData = ref({
+  amount: 0,
+  currency: 'USDT',
+  network: 'TRC20',
+  txid: ''
+})
+
+// 提现相关
+const withdrawData = ref({
+  addressId: '',
+  amount: 0
 })
 
 // 邀请码信息
@@ -883,7 +1073,101 @@ const handleLogout = async () => {
   }
 }
 
+// 复制地址
+const copyAddress = async (address: string) => {
+  try {
+    await navigator.clipboard.writeText(address)
+    alert('✅ 地址已复制')
+  } catch (error) {
+    alert('❌ 复制失败，请手动复制')
+  }
+}
+
+// 提交充值
+const submitRecharge = async () => {
+  if (!rechargeData.value.amount || rechargeData.value.amount < (rechargeConfig.value?.min_amount || 10)) {
+    alert(`请输入正确的充值金额（最低 ${rechargeConfig.value?.min_amount || 10} USDT）`)
+    return
+  }
+
+  try {
+    submitting.value = true
+    const result = await RechargeService.createRecharge(rechargeData.value)
+    
+    if (result.success) {
+      alert('✅ 充值申请已提交！\n\n请等待管理员确认到账')
+      showRechargeModal.value = false
+      // 重置表单
+      rechargeData.value = {
+        amount: 0,
+        currency: 'USDT',
+        network: 'TRC20',
+        txid: ''
+      }
+    } else {
+      alert(`❌ 提交失败: ${result.error}`)
+    }
+  } catch (error: any) {
+    alert(`❌ 提交失败: ${error.message}`)
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 提交提现
+const submitWithdraw = async () => {
+  if (!withdrawData.value.addressId) {
+    alert('请选择提现地址')
+    return
+  }
+  
+  if (!withdrawData.value.amount || withdrawData.value.amount < 50) {
+    alert('请输入正确的提现金额（最低 50 USDT）')
+    return
+  }
+
+  if (withdrawData.value.amount > (user.value?.u_balance || 0)) {
+    alert('余额不足')
+    return
+  }
+
+  try {
+    submitting.value = true
+    const selectedAddress = withdrawalAddresses.value.find(a => a.id === withdrawData.value.addressId)
+    
+    const result = await WithdrawalService.createWithdrawal({
+      amount: withdrawData.value.amount,
+      address: selectedAddress?.address || '',
+      chain: selectedAddress?.chain || 'TRC20'
+    })
+    
+    if (result.success) {
+      alert('✅ 提现申请已提交！\n\n预计24小时内到账')
+      showWithdrawModal.value = false
+      // 重置表单
+      withdrawData.value = {
+        addressId: '',
+        amount: 0
+      }
+      // 刷新用户信息
+      await authStore.refreshUser()
+    } else {
+      alert(`❌ 提交失败: ${result.error}`)
+    }
+  } catch (error: any) {
+    alert(`❌ 提交失败: ${error.message}`)
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 加载充值配置
+const loadRechargeConfig = async () => {
+  rechargeConfig.value = await RechargeService.getRechargeConfig()
+}
+
 onMounted(() => {
+  loadRechargeConfig()
   loadPlatformContacts()
   loadNetworkStats()
 })
