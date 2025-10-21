@@ -11,14 +11,19 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "supabase:types": "supabase gen types typescript --project-id your-project-id > src/types/supabase.ts",
-    "supabase:check": "node scripts/check-supabase.js"
+    "supabase:check": "node scripts/check-supabase.js",
+    "crawler": "node scripts/airdrop-crawler.mjs",
+    "crawler:dev": "nodemon scripts/airdrop-crawler.mjs"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
     "@supabase/supabase-js": "^2.39.0",
     "@vueuse/core": "^10.7.0",
+    "axios": "^1.6.0",
     "bcryptjs": "^3.0.2",
+    "cheerio": "^1.0.0-rc.12",
     "date-fns": "^3.0.0",
+    "node-cron": "^3.0.3",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",
     "vue-i18n": "^9.8.0",

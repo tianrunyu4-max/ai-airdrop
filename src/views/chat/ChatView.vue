@@ -1069,8 +1069,124 @@ const startMoneyBot = () => {
   }, 1 * 60 * 1000) // 1分钟（测试用）
 }
 
-// 📢 推送空投消息
-const pushAirdropMessage = () => {
+// 📢 推送空投消息（从数据库读取爬虫数据）
+const pushAirdropMessage = async () => {
+  // 优先从数据库读取
+  const dbAirdrops = await loadAirdropsFromDatabase()
+  
+  if (dbAirdrops.length > 0) {
+    // 使用数据库中的空投
+    pushAirdropFromDatabase(dbAirdrops)
+    return
+  }
+  
+  // 数据库为空时，使用备用数据（硬编码）
+  pushAirdropFromFallback()
+}
+
+// 🗄️ 从数据库加载空投
+const loadAirdropsFromDatabase = async () => {
+  try {
+    // 90% Web3, 10% CEX
+    const randomNum = Math.random()
+    const type = randomNum < 0.9 ? 'web3' : 'cex'
+    
+    const { data, error } = await supabase
+      .from('airdrops')
+      .select('*')
+      .eq('status', 'active')
+      .eq('type', type)
+      .gte('ai_score', 7.0)
+      .order('ai_score', { ascending: false })
+      .limit(20)
+    
+    if (error) {
+      console.error('❌ 加载空投失败:', error)
+      return []
+    }
+    
+    return data || []
+  } catch (error) {
+    console.error('❌ 加载空投异常:', error)
+    return []
+  }
+}
+
+// 📤 推送数据库中的空投
+const pushAirdropFromDatabase = (airdrops: any[]) => {
+  if (airdrops.length === 0) return
+  
+  // 随机选择一个
+  const airdrop = airdrops[Math.floor(Math.random() * airdrops.length)]
+  
+  // 格式化消息内容
+  const stars = '⭐'.repeat(Math.ceil(airdrop.ai_score / 2))
+  let content = `🚀 ${airdrop.title}\n\n`
+  
+  if (airdrop.reward_min && airdrop.reward_max) {
+    content += `💎 预计奖励：${airdrop.reward_min}-${airdrop.reward_max} USDT\n`
+  }
+  
+  content += `🎯 AI评分：${airdrop.ai_score}/10 ${stars}\n`
+  content += `📱 平台：${airdrop.platform}\n`
+  
+  if (airdrop.difficulty) {
+    const diffMap: any = { easy: '简单 ✅', medium: '中等 ⚡', hard: '困难 🔥' }
+    content += `📊 难度：${diffMap[airdrop.difficulty] || airdrop.difficulty}\n`
+  }
+  
+  if (airdrop.description) {
+    content += `\n📝 ${airdrop.description.substring(0, 200)}\n`
+  }
+  
+  if (airdrop.steps && airdrop.steps.length > 0) {
+    content += `\n✅ 参与步骤：\n`
+    airdrop.steps.slice(0, 5).forEach((step: string, i: number) => {
+      content += `${i + 1}. ${step}\n`
+    })
+  }
+  
+  if (airdrop.url) {
+    content += `\n🔗 ${airdrop.url}`
+  }
+  
+  // 推送消息
+  const botMsg = {
+    id: `airdrop-bot-${Date.now()}`,
+    chat_group_id: currentGroup.value?.id || 'ai_push_group',
+    user_id: 'airdrop_bot',
+    username: 'AI空投机器人',
+    content: content,
+    type: 'text',
+    is_bot: true,
+    created_at: new Date().toISOString()
+  } as any
+  
+  messages.value.push(botMsg)
+  scrollToBottom()
+  
+  // 发送到 Supabase
+  supabase.from('messages').insert({
+    chat_group_id: botMsg.chat_group_id,
+    user_id: botMsg.user_id,
+    content: botMsg.content,
+    type: botMsg.type,
+    is_bot: botMsg.is_bot
+  }).then(({ error }) => {
+    if (error) console.error('❌ 保存消息失败:', error)
+  })
+  
+  // 标记已推送
+  supabase.from('airdrops').update({
+    push_count: airdrop.push_count + 1,
+    last_pushed_at: new Date().toISOString()
+  }).eq('id', airdrop.id).then(({ error }) => {
+    if (error) console.error('❌ 更新推送状态失败:', error)
+  })
+}
+
+// 📤 推送备用空投（数据库为空时使用）
+const pushAirdropFromFallback = () => {
   // 90% Web3空投（高价值）
   const web3Airdrops = [
     {
