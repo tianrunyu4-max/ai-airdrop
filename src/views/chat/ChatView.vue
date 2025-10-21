@@ -826,8 +826,61 @@ const sendMessage = async () => {
       }
     }
     
+    // 🤖 智能客服自动回复（仅在聊天群）
+    if (currentGroup.value.type === 'default') {
+      await triggerCustomerServiceReply(contentToSend)
+    }
+    
   } catch (error) {
     console.error('发送消息异常:', error)
+    // 静默失败，不影响用户体验
+  }
+}
+
+// 🤖 触发智能客服自动回复
+const triggerCustomerServiceReply = async (userMessage: string) => {
+  try {
+    // 调用数据库函数匹配问题
+    const { data, error } = await supabase.rpc('match_customer_question', {
+      user_message: userMessage
+    })
+    
+    if (error) throw error
+    
+    if (data && data.length > 0) {
+      const qa = data[0]
+      
+      // 延迟2秒后回复（模拟真实客服）
+      setTimeout(async () => {
+        const botMsg = {
+          chat_group_id: currentGroup.value?.id,
+          user_id: 'customer_service_bot',
+          content: qa.answer,
+          type: 'text',
+          is_bot: true
+        }
+        
+        // 保存到数据库
+        const { error: insertError } = await supabase
+          .from('messages')
+          .insert(botMsg)
+        
+        if (insertError) {
+          console.error('客服回复失败:', insertError)
+        }
+        
+        // 更新触发次数统计
+        await supabase
+          .from('customer_service_qa')
+          .update({ 
+            trigger_count: qa.trigger_count + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', qa.id)
+      }, 2000)
+    }
+  } catch (error) {
+    console.error('智能客服回复异常:', error)
     // 静默失败，不影响用户体验
   }
 }
@@ -1056,17 +1109,12 @@ const startAirdropBot = () => {
   }, 2 * 60 * 1000) // 2分钟（测试用）
 }
 
-// 🤖 自动赚钱机器人：每30分钟推送，10分钟清理
+// 🤖 智能客服机器人：自动回答用户问题
 const startMoneyBot = () => {
-  console.log('🤖 启动自动赚钱机器人（自动赚钱群）')
+  console.log('🤖 启动智能客服机器人（聊天群）')
   
-  // 立即推送一条赚钱消息
-  pushMoneyMessage()
-  
-  // 每30分钟推送一次（测试用：改为1分钟）
-  botInterval = setInterval(() => {
-    pushMoneyMessage()
-  }, 1 * 60 * 1000) // 1分钟（测试用）
+  // 客服机器人不主动推送，只响应用户消息
+  // 在 sendMessage 中触发自动回复
 }
 
 // 📢 推送空投消息（只从数据库读取真实爬虫数据）
@@ -1184,42 +1232,10 @@ const pushAirdropFromDatabase = (airdrops: any[]) => {
   })
 }
 
-// 💰 推送赚钱消息
-const pushMoneyMessage = () => {
-  const moneyTips = [
-    {
-      title: 'AI学习机收益',
-      content: '💰 AI学习机每日释放10%\n\n📊 今日收益：+2.5U\n📈 累计收益：+45.8U\n\n✅ 继续持有，收益稳定增长！'
-    },
-    {
-      title: '对碰系统奖励',
-      content: '🎯 对碰系统新奖励\n\n💎 对碰奖：8U/组（85%到账）\n🎁 见单奖：5层×1U/组\n\n✅ 发展下线，收益翻倍！'
-    },
-    {
-      title: '团队分红提醒',
-      content: '🏆 团队分红即将发放\n\n📊 直推人数：15人\n💰 预计分红：12.5U\n⏰ 发放时间：今晚24:00\n\n✅ 继续推广，收益更多！'
-    }
-  ]
-
-  const randomTip = moneyTips[Math.floor(Math.random() * moneyTips.length)]
-  
-  const botMsg = {
-    id: `money-bot-${Date.now()}`,
-    chat_group_id: currentGroup.value?.id || 'default_group',
-    user_id: 'money_bot',
-    username: 'AI自动赚钱机器人',
-    content: randomTip.content,
-    type: 'text',
-    is_bot: true,
-    money_data: {
-      title: randomTip.title
-    },
-    created_at: new Date().toISOString()
-  } as any
-  
-  messages.value.push(botMsg)
-  scrollToBottom()
-}
+// 💰 推送赚钱消息（已废弃，改为智能客服）
+// const pushMoneyMessage = () => {
+//   // 智能客服机器人不主动推送，只响应用户问题
+// }
 
 // 🚀 取消定时刷新：不需要前端过滤
 let refreshInterval: any = null
