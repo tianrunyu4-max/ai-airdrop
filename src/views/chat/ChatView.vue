@@ -385,15 +385,17 @@ const formatNumber = (num: number) => {
 }
 
 // 滚动到底部
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (messageContainer.value) {
-      // 🎯 使用平滑滚动，避免跳动
-      messageContainer.value.scrollTo({
-        top: messageContainer.value.scrollHeight,
-        behavior: 'smooth'
-      })
-    }
+const scrollToBottom = (smooth = true) => {
+  // 🎯 使用 requestAnimationFrame 确保 DOM 已完全渲染
+  requestAnimationFrame(() => {
+    nextTick(() => {
+      if (messageContainer.value) {
+        messageContainer.value.scrollTo({
+          top: messageContainer.value.scrollHeight,
+          behavior: smooth ? 'smooth' : 'auto'
+        })
+      }
+    })
   })
 }
 
@@ -800,7 +802,7 @@ const sendMessage = async () => {
     }
     
     messages.value.push(tempMessage)
-    nextTick(() => scrollToBottom())
+    scrollToBottom(true)
 
     // 🔥 后台异步发送（不阻塞UI，不显示loading）
     const messageData: any = {
