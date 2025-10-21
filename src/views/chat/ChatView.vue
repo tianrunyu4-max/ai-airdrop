@@ -1288,15 +1288,7 @@ const shareAirdrop = (message: any) => {
   animation: fade-in 0.3s ease-out;
 }
 
-/* 🎯 优化：消息列表平滑过渡 */
-.overflow-y-auto {
-  scroll-behavior: smooth;
-  /* 硬件加速 */
-  transform: translateZ(0);
-  will-change: scroll-position;
-}
-
-/* 减少重绘抖动 */
+/* 🎯 优化：减少重绘抖动 */
 .space-y-4 > * {
   transform: translateZ(0);
   backface-visibility: hidden;
