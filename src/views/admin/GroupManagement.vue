@@ -7,6 +7,12 @@
         <p class="text-base-content/60 mt-1">管理群聊分类和群组</p>
       </div>
       <div class="flex gap-2">
+        <button @click="clearAllMessages" class="btn btn-error btn-outline gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          清空聊天消息
+        </button>
         <button @click="showCategoryModal = true" class="btn btn-outline gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -289,6 +295,34 @@ const getCategoryName = (categoryId: string | null) => {
   if (!categoryId) return '未分类'
   const cat = categories.value.find(c => c.id === categoryId)
   return cat ? `${cat.icon} ${cat.name}` : '未知'
+}
+
+// 清空所有聊天消息
+const clearAllMessages = async () => {
+  const confirmed = confirm('⚠️ 危险操作！\n\n确认要清空所有群聊消息吗？\n\n这将删除所有群组的所有聊天记录，此操作不可恢复！\n\n请输入"确认删除"继续')
+  
+  if (!confirmed) return
+  
+  const doubleCheck = prompt('请输入"确认删除"以继续：')
+  if (doubleCheck !== '确认删除') {
+    alert('❌ 已取消操作')
+    return
+  }
+  
+  try {
+    // 删除所有消息
+    const { error, count } = await supabase
+      .from('messages')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // 删除所有
+    
+    if (error) throw error
+    
+    alert(`✅ 成功清空所有聊天消息！\n\n已删除 ${count || '所有'} 条消息`)
+  } catch (error: any) {
+    console.error('清空消息失败:', error)
+    alert(`❌ 清空失败: ${error.message || '未知错误'}`)
+  }
 }
 
 // 加载数据
