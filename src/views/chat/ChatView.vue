@@ -1069,19 +1069,18 @@ const startMoneyBot = () => {
   }, 1 * 60 * 1000) // 1分钟（测试用）
 }
 
-// 📢 推送空投消息（从数据库读取爬虫数据）
+// 📢 推送空投消息（只从数据库读取真实爬虫数据）
 const pushAirdropMessage = async () => {
-  // 优先从数据库读取
+  // 从数据库读取真实空投数据
   const dbAirdrops = await loadAirdropsFromDatabase()
   
   if (dbAirdrops.length > 0) {
-    // 使用数据库中的空投
+    // 推送真实空投
     pushAirdropFromDatabase(dbAirdrops)
-    return
+  } else {
+    // 数据库为空，记录日志，不推送
+    console.warn('⚠️ 数据库中没有空投数据，请先运行爬虫或手动添加数据')
   }
-  
-  // 数据库为空时，使用备用数据（硬编码）
-  pushAirdropFromFallback()
 }
 
 // 🗄️ 从数据库加载空投
@@ -1185,111 +1184,6 @@ const pushAirdropFromDatabase = (airdrops: any[]) => {
   })
 }
 
-// 📤 推送备用空投（数据库为空时使用）
-const pushAirdropFromFallback = () => {
-  // 90% Web3空投（高价值）
-  const web3Airdrops = [
-    {
-      type: 'Web3',
-      exchange: 'zkSync Era',
-      title: 'zkSync Era交互空投',
-      score: 9.5,
-      content: '🚀 zkSync Era 空投预期！\n\n💎 预计奖励：500-5000 USDT\n🎯 AI评分：9.5/10 ⭐⭐⭐⭐⭐\n\n✅ 操作步骤：\n1. 跨链ETH到zkSync\n2. 使用SyncSwap交易\n3. 添加流动性\n4. 持续交互3-6个月\n\n⏰ 预计发放：2024 Q2'
-    },
-    {
-      type: 'Web3',
-      exchange: 'LayerZero',
-      title: 'LayerZero全链空投',
-      score: 9.8,
-      content: '💎 LayerZero 超级空投！\n\n💰 预计奖励：1000-10000 USDT\n🎯 AI评分：9.8/10 ⭐⭐⭐⭐⭐\n\n✅ 参与方式：\n1. 使用Stargate跨链\n2. 多链交互（10+条链）\n3. 持续使用6个月\n\n⏰ 预计发放：2024 Q3'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Base链',
-      title: 'Base链生态空投',
-      score: 9.2,
-      content: '🔥 Coinbase Base链机会！\n\n💎 预计奖励：300-3000 USDT\n🎯 AI评分：9.2/10 ⭐⭐⭐⭐\n\n✅ 操作步骤：\n1. 跨链到Base链\n2. 使用BaseSwap/Aerodrome\n3. Mint NFT\n4. 参与DeFi协议\n\n⏰ 预计发放：2024下半年'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Scroll',
-      title: 'Scroll zkEVM空投',
-      score: 9.3,
-      content: '⚡ Scroll 测试网空投！\n\n💰 预计奖励：500-4000 USDT\n🎯 AI评分：9.3/10 ⭐⭐⭐⭐\n\n✅ 任务清单：\n1. 领取测试币\n2. 部署合约\n3. 跨链交互\n4. 使用DApp 20次+\n\n⏰ 快照时间：随时可能'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Linea',
-      title: 'Linea zkEVM空投',
-      score: 9.0,
-      content: '🌟 ConsenSys Linea空投！\n\n💎 预计奖励：400-3500 USDT\n🎯 AI评分：9.0/10 ⭐⭐⭐⭐\n\n✅ 参与方式：\n1. 跨链ETH到Linea\n2. 使用LineaSwap\n3. 借贷/质押\n4. 完成Linea Voyage任务\n\n⏰ 主网已上线，持续交互'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Starknet',
-      title: 'Starknet空投第2轮',
-      score: 8.8,
-      content: '🔮 Starknet 第2轮空投！\n\n💰 预计奖励：300-2500 USDT\n🎯 AI评分：8.8/10 ⭐⭐⭐⭐\n\n✅ 操作步骤：\n1. 使用Argent X钱包\n2. 使用JediSwap/mySwap\n3. 参与DeFi协议\n4. 持续交互\n\n⏰ 第1轮已发放，继续冲！'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Blast',
-      title: 'Blast L2空投',
-      score: 9.1,
-      content: '💥 Blast 超高收益空投！\n\n💎 预计奖励：500-5000 USDT\n🎯 AI评分：9.1/10 ⭐⭐⭐⭐⭐\n\n✅ 参与方式：\n1. 邀请码注册\n2. 存入ETH/USDB\n3. 自动赚取收益\n4. 邀请朋友\n\n⏰ 主网即将上线'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Zora Network',
-      title: 'Zora NFT空投',
-      score: 8.5,
-      content: '🎨 Zora Network 空投机会！\n\n💰 预计奖励：200-2000 USDT\n🎯 AI评分：8.5/10 ⭐⭐⭐\n\n✅ 操作步骤：\n1. Mint免费NFT\n2. 创建NFT作品\n3. 交易NFT\n4. 跨链交互\n\n⏰ 持续活跃即可'
-    },
-    {
-      type: 'Web3',
-      exchange: 'Manta Pacific',
-      title: 'Manta Pacific空投',
-      score: 8.7,
-      content: '🐠 Manta Pacific 模块化空投！\n\n💎 预计奖励：300-2500 USDT\n🎯 AI评分：8.7/10 ⭐⭐⭐⭐\n\n✅ 参与方式：\n1. 跨链到Manta\n2. 使用ApertureSwap\n3. 质押MANTA\n4. 完成任务\n\n⏰ 主网已上线'
-    }
-  ]
-
-  // 10% 交易所空投（简单）
-  const cexAirdrops = [
-    {
-      type: '交易所',
-      exchange: '币安',
-      title: 'Launchpool新项目',
-      score: 8.2,
-      content: '🏦 币安 Launchpool 空投！\n\n💰 预计奖励：50-200 USDT\n🎯 AI评分：8.2/10 ⭐⭐⭐\n\n✅ 参与方式：\n1. 质押BNB/FDUSD\n2. 自动获得代币\n3. 上线即可交易\n\n⏰ 7天挖矿期'
-    }
-  ]
-
-  // 90% 概率推送 Web3，10% 概率推送交易所
-  const randomNum = Math.random()
-  const selectedAirdrops = randomNum < 0.9 ? web3Airdrops : cexAirdrops
-  const randomAirdrop = selectedAirdrops[Math.floor(Math.random() * selectedAirdrops.length)]
-  
-  const botMsg = {
-    id: `airdrop-bot-${Date.now()}`,
-    chat_group_id: currentGroup.value?.id || 'ai_push_group',
-    user_id: 'airdrop_bot',
-    username: 'AI空投机器人',
-    content: randomAirdrop.content,
-    type: 'text',
-    is_bot: true,
-    airdrop_data: {
-      exchange: randomAirdrop.exchange,
-      score: randomAirdrop.score
-    },
-    created_at: new Date().toISOString()
-  } as any
-  
-  messages.value.push(botMsg)
-  saveMessageToCache(botMsg)
-  scrollToBottom()
-}
-
 // 💰 推送赚钱消息
 const pushMoneyMessage = () => {
   const moneyTips = [
@@ -1324,18 +1218,7 @@ const pushMoneyMessage = () => {
   } as any
   
   messages.value.push(botMsg)
-  saveMessageToCache(botMsg)
   scrollToBottom()
-}
-
-// 💾 保存消息到缓存
-const saveMessageToCache = (message: any) => {
-  if (currentGroup.value) {
-    const storageKey = `${ENV_PREFIX}chat_messages_${currentGroup.value.id}`
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    stored.push(message)
-    localStorage.setItem(storageKey, JSON.stringify(stored))
-  }
 }
 
 // 🚀 取消定时刷新：不需要前端过滤
