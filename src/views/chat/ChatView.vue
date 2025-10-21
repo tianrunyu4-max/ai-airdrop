@@ -470,74 +470,56 @@ const loadMessages = async (groupId?: string) => {
 // 🔥 生产模式：获取默认群（用户聊天群）
 const getDefaultGroup = async () => {
   try {
-    // 查找默认群（type = 'default'，并且 group_number = 1 或 null）
+    // 🎯 只查找 type='default' 的群，确保登录后直接进聊天群
     let { data, error} = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
       .eq('is_active', true)
-      .or('group_number.is.null,group_number.eq.1')
+      .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle()
 
-    // 如果没有找到，查找第一个默认群
+    // 如果没有默认群，直接创建（不要去找其他类型的群）
     if (!data) {
-      const result = await supabase
-        .from('chat_groups')
-        .select('*')
-        .eq('type', 'default')
-        .eq('is_active', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-      
-      data = result.data
-    }
-
-    // 如果没有默认群，查找任意活跃群
-    if (!data) {
-      const result = await supabase
-        .from('chat_groups')
-        .select('*')
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle()
-      
-      data = result.data
-    }
-
-    // 如果还是没有，创建默认群
-    if (!data) {
+      console.log('📝 默认群不存在，正在创建...')
       const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
           type: 'default',
           icon: '💰',
           description: 'AI 自动赚钱系统',
-          group_number: 1,
           member_count: 60,
           max_members: 50000,
-          is_active: true
+          is_active: true,
+          sort_order: 1,
+          bot_enabled: true
         })
         .select()
         .single()
 
-      if (createError) throw createError
-      data = newGroup
+      if (!createError && newGroup) {
+        data = newGroup
+        console.log('✅ 默认群创建成功')
+      }
     }
 
-    // 设置当前群组，并使用 description 作为群名
-    currentGroup.value = {
-      ...data,
-      name: data.description || 'AI 自动赚钱系统' // 使用 description 作为 name
-    } as any
+    if (data) {
+      // 设置当前群组，并使用 description 作为群名
+      currentGroup.value = {
+        ...data,
+        name: data.description || 'AI 自动赚钱系统'
+      } as any
 
-    // 如果用户已登录，加入群组
-    if (authStore.user) {
-      await joinGroup(currentGroup.value!.id)
+      console.log(`✅ 加载默认群：${currentGroup.value.name}`)
+
+      // 如果用户已登录，加入群组
+      if (authStore.user) {
+        await joinGroup(currentGroup.value!.id)
+      }
     }
   } catch (error) {
-    // 失败不影响使用
+    console.error('❌ 获取默认群失败:', error)
   }
 }
 
