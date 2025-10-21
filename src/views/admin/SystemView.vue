@@ -1,5 +1,52 @@
 <template>
   <div class="space-y-6">
+    <!-- 消息清理 -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="card-title">💬 聊天消息管理</h3>
+        
+        <div class="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div>
+            <p><strong>清理规则：</strong></p>
+            <p>• 用户消息：超过5分钟自动清理</p>
+            <p>• 机器人消息（自动赚钱群）：超过10分钟清理</p>
+            <p>• 机器人消息（AI科技群）：超过24小时清理</p>
+          </div>
+        </div>
+
+        <div v-if="messageStats" class="stats shadow w-full">
+          <div class="stat">
+            <div class="stat-title">总消息数</div>
+            <div class="stat-value">{{ messageStats.total }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">用户消息</div>
+            <div class="stat-value text-primary">{{ messageStats.userMessages }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">机器人消息</div>
+            <div class="stat-value text-secondary">{{ messageStats.botMessages }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">待清理</div>
+            <div class="stat-value text-warning">{{ messageStats.willDelete }}</div>
+          </div>
+        </div>
+
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-info" @click="loadStats" :disabled="loading">
+            <span v-if="!loading">🔄 刷新统计</span>
+            <span v-else class="loading loading-spinner"></span>
+          </button>
+          <button class="btn btn-error" @click="cleanup" :disabled="loading">
+            <span v-if="!loading">🗑️ 立即清理</span>
+            <span v-else class="loading loading-spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 系统配置 -->
     <div class="card bg-base-100 shadow">
       <div class="card-body">
@@ -545,6 +592,7 @@ import { ref, onMounted, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { DividendService } from '@/services/DividendService'
 import { MiningService } from '@/services/MiningService'
+import { AdminCleanupService } from '@/services/AdminCleanupService'
 import { 
   ExclamationTriangleIcon,
   ArrowPathIcon
@@ -727,6 +775,44 @@ const confirmRelease = async () => {
   }
 }
 
+// 消息清理相关
+const messageStats = ref<any>(null)
+
+const loadStats = async () => {
+  try {
+    loading.value = true
+    messageStats.value = await AdminCleanupService.getMessageStats()
+  } catch (error) {
+    console.error('加载统计失败:', error)
+    alert('❌ 加载统计失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const cleanup = async () => {
+  if (!confirm('⚠️ 确认清理过期消息？\n\n这将删除：\n• 超过5分钟的用户消息\n• 超过10分钟的机器人消息\n• 超过24小时的空投消息')) {
+    return
+  }
+  
+  try {
+    loading.value = true
+    const result = await AdminCleanupService.cleanupExpiredMessages()
+    
+    if (result.success) {
+      alert('✅ 清理完成！')
+      await loadStats() // 刷新统计
+    } else {
+      alert(`❌ 清理失败: ${result.error}`)
+    }
+  } catch (error: any) {
+    console.error('清理失败:', error)
+    alert(`❌ 清理失败: ${error.message}`)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 加载分红统计
 const loadDividendStats = async () => {
   try {
@@ -808,6 +894,7 @@ onMounted(() => {
   loadConfig()
   loadReleaseStats()
   loadDividendStats()
+  loadStats() // 加载消息统计
 })
 </script>
 

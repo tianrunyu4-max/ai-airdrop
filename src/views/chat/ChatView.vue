@@ -306,38 +306,9 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid)
 }
 
-// 🎯 极简方案：数据库视图已过滤，前端保留双重过滤作为保险
-const validMessages = computed(() => {
-  const now = Date.now()
-  
-  return messages.value.filter(msg => {
-    const messageTime = new Date(msg.created_at).getTime()
-    const age = now - messageTime
-    const ageInSeconds = Math.floor(age / 1000)
-    
-    // 双重保险过滤
-    if (msg.is_bot) {
-      const limit = currentGroup.value?.type === 'ai_push' 
-        ? 24 * 60 * 60 * 1000  // 24小时
-        : 10 * 60 * 1000       // 10分钟
-      const keep = age <= limit
-      if (!keep) console.log(`🗑️ 过滤机器人消息 (${ageInSeconds}秒)`)
-      return keep
-    }
-    
-    // 用户消息：5分钟 = 300秒
-    const USER_LIMIT = 5 * 60 * 1000
-    const keep = age <= USER_LIMIT
-    
-    if (!keep) {
-      console.log(`🗑️ 过滤用户消息 (${ageInSeconds}秒 > 300秒): ${msg.content?.substring(0, 20)}`)
-    } else {
-      console.log(`✅ 保留消息 (${ageInSeconds}秒): ${msg.content?.substring(0, 20)}`)
-    }
-    
-    return keep
-  })
-})
+// 🎯 极简方案：不做过滤，直接显示所有消息
+// 由管理员手动清理数据库中的旧消息
+const validMessages = computed(() => messages.value)
 
 // 订阅实时消息
 let messageSubscription: any = null
@@ -468,23 +439,23 @@ const loadMessages = async (groupId?: string) => {
     
     console.log(`📥 加载群组: ${currentGroup.value?.name} (${targetGroupId})`)
     
-    // 🔥 使用视图查询，数据库已自动过滤过期消息
+    // 🔥 直接查询消息表，不过滤
     const { data: freshMessages, error } = await supabase
-      .from('valid_messages')  // 使用视图而非表
+      .from('messages')
       .select('*, user:user_id(username)')
       .eq('chat_group_id', targetGroupId)
       .order('created_at', { ascending: true })
       .limit(50)
     
     if (!error && freshMessages) {
-      // 🎯 视图已经过滤，直接使用
+      // 🎯 直接使用，不过滤
       const formattedMessages = freshMessages.map((msg: any) => ({
         ...msg,
         username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
       messages.value = formattedMessages
-      console.log(`✅ 加载了 ${formattedMessages.length} 条有效消息 (数据库已过滤)`)
+      console.log(`✅ 加载了 ${formattedMessages.length} 条消息`)
       
       // 平滑滚动到底部
       scrollToBottom()
@@ -1191,16 +1162,11 @@ const saveMessageToCache = (message: any) => {
   }
 }
 
-// 🚀 定时刷新：触发computed重新计算
+// 🚀 取消定时刷新：不需要前端过滤
 let refreshInterval: any = null
 
 const startPeriodicRefresh = () => {
-  // 🔥 每10秒触发computed重新计算（删除过期消息）
-  refreshInterval = setInterval(() => {
-    // 触发响应式更新，让 validMessages computed 重新计算
-    messages.value = [...messages.value]
-    console.log('🔄 触发消息过滤检查')
-  }, 10000) // 10秒
+  // 不需要定时刷新，管理员手动清理数据库
 }
 
 // 🔥 生产模式：初始化
