@@ -147,6 +147,12 @@ const menuItems = [
     desc: '提现申请审核'
   },
   { 
+    path: '/admin/recharges', 
+    label: '充值审核', 
+    icon: BanknotesIcon,
+    desc: '充值申请审核'
+  },
+  { 
     path: '/admin/airdrops', 
     label: '空投管理', 
     icon: RocketLaunchIcon,
