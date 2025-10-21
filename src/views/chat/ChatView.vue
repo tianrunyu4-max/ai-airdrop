@@ -311,16 +311,31 @@ const validMessages = computed(() => {
   const now = Date.now()
   
   return messages.value.filter(msg => {
-    const age = now - new Date(msg.created_at).getTime()
+    const messageTime = new Date(msg.created_at).getTime()
+    const age = now - messageTime
+    const ageInSeconds = Math.floor(age / 1000)
     
     // 双重保险过滤
     if (msg.is_bot) {
       const limit = currentGroup.value?.type === 'ai_push' 
         ? 24 * 60 * 60 * 1000  // 24小时
         : 10 * 60 * 1000       // 10分钟
-      return age <= limit
+      const keep = age <= limit
+      if (!keep) console.log(`🗑️ 过滤机器人消息 (${ageInSeconds}秒)`)
+      return keep
     }
-    return age <= 5 * 60 * 1000  // 5分钟
+    
+    // 用户消息：5分钟 = 300秒
+    const USER_LIMIT = 5 * 60 * 1000
+    const keep = age <= USER_LIMIT
+    
+    if (!keep) {
+      console.log(`🗑️ 过滤用户消息 (${ageInSeconds}秒 > 300秒): ${msg.content?.substring(0, 20)}`)
+    } else {
+      console.log(`✅ 保留消息 (${ageInSeconds}秒): ${msg.content?.substring(0, 20)}`)
+    }
+    
+    return keep
   })
 })
 
