@@ -36,7 +36,7 @@
           <div class="text-white text-xs opacity-80">每日凌晨12点结算</div>
         </div>
         <div class="text-white text-3xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }} U</div>
-        <div class="text-white/80 text-xs">{{ pendingPairs }}组 × 8U × 85% = {{ estimatedPairingBonus.toFixed(2) }}U</div>
+        <div class="text-white/80 text-xs">{{ pendingPairs }}组 × 6U = {{ estimatedPairingBonus.toFixed(2) }}U</div>
       </div>
 
       <!-- A/B区业绩对比 -->
@@ -165,15 +165,15 @@
 
       <!-- 温馨提示 -->
       <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 text-xs text-gray-700 border-2 border-yellow-300">
-        <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示（V5.0简化版）</div>
+        <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示（V5.1最新版）</div>
         <ul class="space-y-1">
-          <li>• 直推≥2人解锁无限次对碰，否则最多10次</li>
+          <li>• <span class="font-bold text-red-600">直推≥2人解锁见单奖</span>，否则无见单奖</li>
           <li>• 团队内部排线：新用户滑到推荐人直推的弱边</li>
-          <li>• 对碰奖每组8U：85%到账（6.8U）+15%预留（1.2U）</li>
-          <li>• 见单奖：下线对碰成功，上级5层直推链各得1U</li>
+          <li>• <span class="font-bold text-green-700">对碰奖每组6U（100%到账）</span></li>
+          <li>• <span class="font-bold text-purple-700">见单奖：下线对碰，上级5代各得1U（重复拿！）</span></li>
           <li>• 每天凌晨12点统一对碰结算，2:1/1:2灵活配对</li>
           <li class="text-orange-700 font-bold">• 每结算240U（8倍）需复投30U，复购单自动补弱区</li>
-          <li class="text-purple-700 font-bold">• V5.0升级：对碰奖8U + 见单奖1U/层/组（5层）</li>
+          <li class="text-blue-700 font-bold">• V5.1升级：对碰奖6U + 见单奖1U/代（5代重复拿）</li>
         </ul>
       </div>
     </div>
@@ -228,8 +228,8 @@ const pendingPairs = computed(() => Math.min(aSidePending.value, bSidePending.va
 const settledPairs = computed(() => Math.min(aSideSettled.value, bSideSettled.value))
 
 const estimatedPairingBonus = computed(() => {
-  // 每组8U × 85% = 6.8U
-  return pendingPairs.value * 8 * 0.85
+  // V5.1：每组6U × 100% = 6U
+  return pendingPairs.value * 6
 })
 
 const totalEarnings = computed(() => 

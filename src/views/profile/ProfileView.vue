@@ -137,9 +137,9 @@
             <h3 class="text-xl font-bold text-gray-800 mb-2">加入Binary对碰系统</h3>
             <div class="text-sm text-gray-600 space-y-1 mb-4">
               <div>✅ A+B双区公排自动化排线</div>
-              <div>✅ 对碰奖励（8U/对，2:1 / 1:2，会员得6.8U）</div>
-              <div>✅ 见单奖（5层直推链，各得1U/组）</div>
-              <div>✅ 全系统分红（15%）</div>
+              <div>✅ 对碰奖励（6U/对，2:1 / 1:2，100%到账）</div>
+              <div>✅ 见单奖（5层直推链，各得1U/组，重复拿）</div>
+              <div>✅ 直推≥2人解锁见单奖</div>
               <div>✅ 解锁积分互转+AI学习机</div>
               <div class="text-purple-600 font-medium mt-2">仅需支付 30U 永久有效！</div>
             </div>
@@ -370,9 +370,9 @@
             <p class="font-bold">支付费用：30U</p>
             <div class="text-sm mt-2 space-y-1">
               <p>✅ A+B双区公排自动化排线</p>
-              <p>✅ 对碰奖励（8U/对，2:1 / 1:2，会员得6.8U）</p>
-              <p>✅ 见单奖（5层直推链，各得1U/组）</p>
-              <p>✅ 全系统分红（15%）</p>
+              <p>✅ 对碰奖励（6U/对，2:1 / 1:2，100%到账）</p>
+              <p>✅ 见单奖（5层直推链，各得1U/组，重复拿）</p>
+              <p>✅ 直推≥2人解锁见单奖</p>
               <p>✅ 解锁积分互转+AI学习机</p>
             </div>
           </div>

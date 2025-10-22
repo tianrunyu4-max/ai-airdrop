@@ -248,7 +248,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-yellow-500">💰</span>
-            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组8U（会员收益6.8U，85%）</span>
+            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组6U（100%到账）</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-green-500">🎁</span>

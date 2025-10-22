@@ -35,12 +35,12 @@
             <div class="text-xs text-gray-600">每天凌晨12点</div>
           </div>
           <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
-            <div class="text-yellow-600 font-bold mb-1">💰 85%到账</div>
-            <div class="text-xs text-gray-600">每单8.5U</div>
+            <div class="text-yellow-600 font-bold mb-1">💰 100%到账</div>
+            <div class="text-xs text-gray-600">每单6U</div>
           </div>
-          <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-4 border border-yellow-200">
-            <div class="text-yellow-600 font-bold mb-1">💎 15%预留</div>
-            <div class="text-xs text-gray-600">每单1.5U预留</div>
+          <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border border-purple-200">
+            <div class="text-purple-600 font-bold mb-1">🎁 见单奖</div>
+            <div class="text-xs text-gray-600">1U/代（5代重复拿）</div>
           </div>
         </div>
 
@@ -201,8 +201,13 @@
           </div>
 
           <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div class="font-bold text-blue-700 mb-1">⚡ 2:1/1:2对碰奖</div>
-            <div>灵活配对：2:1或1:2，每单8U，85%到账（6.8U）+15%预留（1.2U），每天凌晨12点统一结算</div>
+            <div class="font-bold text-blue-700 mb-1">⚡ 2:1/1:2对碰奖（V5.1）</div>
+            <div>灵活配对：2:1或1:2，每单6U（100%到账），每天凌晨12点统一结算</div>
+          </div>
+
+          <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
+            <div class="font-bold text-purple-700 mb-1">🎁 见单奖（重复拿！）</div>
+            <div>下线对碰，上级5代各得1U（直推≥2人解锁），每次对碰都拿，重复计算</div>
           </div>
 
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
