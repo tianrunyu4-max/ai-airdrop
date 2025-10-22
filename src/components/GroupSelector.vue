@@ -208,7 +208,7 @@ const loadData = async () => {
       .from('chat_groups')
       .select('*')
       .eq('is_active', true)
-      .order('type', { ascending: true })
+      .order('sort_order', { ascending: true })
       .order('group_number', { ascending: true })
 
     if (!error && groupsData) {
