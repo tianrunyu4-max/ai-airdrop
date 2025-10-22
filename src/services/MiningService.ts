@@ -99,14 +99,13 @@ export class MiningService extends BaseService {
       }
 
       // 8. 批量创建学习卡
-      const machines: MiningMachine[] = []
-      const timestamp = new Date().toISOString()
+      const machines: any[] = []
 
       for (let i = 0; i < quantity; i++) {
         const machine = {
           user_id: userId,
           type: machineType,
-          status: 'inactive' as const,
+          status: 'inactive',
           is_active: false,
           total_points: AILearningConfig.MACHINE.TOTAL_POINTS,
           released_points: 0,
@@ -114,13 +113,10 @@ export class MiningService extends BaseService {
           base_rate: AILearningConfig.MACHINE.BASE_RELEASE_RATE,
           boost_rate: 0,
           compound_count: 0,
-          last_release_date: null,
-          last_checkin_date: null,
-          created_at: timestamp,
-          expires_at: null
-        } as any
+          compound_level: 0
+        }
 
-        machines.push(machine as MiningMachine)
+        machines.push(machine)
       }
 
       // 9. 保存学习卡到Supabase
@@ -147,8 +143,7 @@ export class MiningService extends BaseService {
           amount: -totalCost,
           balance_after: newBalance,
           currency: 'U',
-          description: `兑换${quantity}张AI学习卡（${totalCost}U）`,
-          created_at: timestamp
+          description: `兑换${quantity}张AI学习卡（${totalCost}U）`
         })
 
       return {
