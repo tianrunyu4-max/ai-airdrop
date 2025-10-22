@@ -40,17 +40,21 @@ export class MiningService extends BaseService {
         return { success: false, error: '每次兑换数量必须在1-10张之间' }
       }
 
-      // 2. 从localStorage获取用户信息
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      const userKey = Object.keys(registeredUsers).find(key => 
-        registeredUsers[key].userData.id === userId
-      )
-
-      if (!userKey) {
-        return { success: false, error: '用户不存在' }
+      // 2. 从localStorage获取当前用户信息
+      const userSession = localStorage.getItem('user_session')
+      if (!userSession) {
+        return { success: false, error: '请先登录' }
       }
 
-      const user = registeredUsers[userKey].userData
+      let user
+      try {
+        user = JSON.parse(userSession)
+        if (user.id !== userId) {
+          return { success: false, error: '用户ID不匹配' }
+        }
+      } catch (e) {
+        return { success: false, error: '用户数据异常' }
+      }
 
       // 3. 必须是代理身份
       if (!user.is_agent) {
@@ -100,8 +104,7 @@ export class MiningService extends BaseService {
       
       // 更新 localStorage 余额（保持同步）
       user.u_balance = newBalance
-      registeredUsers[userKey].userData = user
-      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+      localStorage.setItem('user_session', JSON.stringify(user))
 
       // 8. 批量创建学习卡
       const timestamp = new Date().toISOString()
@@ -354,63 +357,73 @@ export class MiningService extends BaseService {
       const toBurn = totalReleased * 0.15
 
       // 更新用户余额（同时更新 Supabase 和 localStorage）
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      const userKey = Object.keys(registeredUsers).find(key => 
-        registeredUsers[key].userData.id === userId
-      )
-      
-      if (userKey) {
-        const user = registeredUsers[userKey].userData
-        
-        // 防御性检查：确保所有余额字段都是有效数字
-        const currentUBalance = Number(user.u_balance) || 0
-        
-        // 计算新余额
-        const newUBalance = Number((currentUBalance + uAmount).toFixed(2))
-        
-        // 更新 Supabase 余额
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ u_balance: newUBalance })
-          .eq('id', userId)
-        
-        if (updateError) {
-          console.error('更新Supabase余额失败:', updateError)
+      const userSession = localStorage.getItem('user_session')
+      if (!userSession) {
+        console.error('未找到用户会话')
+        return {
+          success: false,
+          error: '用户会话已失效，请重新登录'
         }
-        
-        // 更新 localStorage 余额（保持同步）
-        user.u_balance = newUBalance
-        registeredUsers[userKey].userData = user
-        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
-        
-        // 7. 记录签到释放流水
-        const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
-        const timestamp = new Date().toISOString()
-        
-        transactions.push({
-          id: `tx-${Date.now()}-checkin`,
-          user_id: userId,
-          type: 'checkin_release',
-          amount: uAmount,
-          balance_after: newUBalance,
-          currency: 'U',
-          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
-          metadata: {
-            cards_count: checkedInCount,
-            total_released: totalReleased,
-            to_u: uAmount,
-            to_burn: toBurn,
-            release_rate: releaseRate
-          },
-          created_at: timestamp
-        })
-        
-        localStorage.setItem('user_transactions', JSON.stringify(transactions))
-        
-        console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
-        console.log(`   余额变化：U ${currentUBalance} → ${newUBalance} (+${uAmount.toFixed(2)})`)
-        console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
       }
+      
+      let user
+      try {
+        user = JSON.parse(userSession)
+      } catch (e) {
+        console.error('用户数据解析失败')
+        return {
+          success: false,
+          error: '用户数据异常'
+        }
+      }
+      
+      // 防御性检查：确保所有余额字段都是有效数字
+      const currentUBalance = Number(user.u_balance) || 0
+      
+      // 计算新余额
+      const newUBalance = Number((currentUBalance + uAmount).toFixed(2))
+      
+      // 更新 Supabase 余额
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ u_balance: newUBalance })
+        .eq('id', userId)
+      
+      if (updateError) {
+        console.error('更新Supabase余额失败:', updateError)
+      }
+      
+      // 更新 localStorage 余额（保持同步）
+      user.u_balance = newUBalance
+      localStorage.setItem('user_session', JSON.stringify(user))
+      
+      // 7. 记录签到释放流水
+      const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+      const timestamp = new Date().toISOString()
+      
+      transactions.push({
+        id: `tx-${Date.now()}-checkin`,
+        user_id: userId,
+        type: 'checkin_release',
+        amount: uAmount,
+        balance_after: newUBalance,
+        currency: 'U',
+        description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
+        metadata: {
+          cards_count: checkedInCount,
+          total_released: totalReleased,
+          to_u: uAmount,
+          to_burn: toBurn,
+          release_rate: releaseRate
+        },
+        created_at: timestamp
+      })
+      
+      localStorage.setItem('user_transactions', JSON.stringify(transactions))
+      
+      console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
+      console.log(`   余额变化：U ${currentUBalance} → ${newUBalance} (+${uAmount.toFixed(2)})`)
+      console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
 
       return {
         success: true,
