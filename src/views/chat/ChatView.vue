@@ -769,8 +769,8 @@ const sendMessage = async () => {
       created_at: new Date().toISOString()
     }
     
-    messages.value.push(tempMessage)
-    scrollToBottom(true)
+  messages.value.push(tempMessage)
+  scrollToBottom(false)
 
     // 🔥 后台异步发送（不阻塞UI，不显示loading）
     const messageData: any = {
@@ -800,13 +800,10 @@ const sendMessage = async () => {
     }
 
     // 发送成功：替换临时消息为真实消息
-    const index = messages.value.findIndex(m => m.id === tempMessage.id)
-    if (index !== -1) {
-      messages.value[index] = {
-        ...newMessage,
-        username: authStore.user.username
-      }
-    }
+    Object.assign(tempMessage, {
+      ...newMessage,
+      username: authStore.user.username
+    })
     
     // 🤖 智能客服自动回复（仅在聊天群）
     if (currentGroup.value.type === 'default') {
@@ -820,6 +817,9 @@ const sendMessage = async () => {
 }
 
 // 🤖 触发智能客服自动回复
+const CUSTOMER_SERVICE_BOT_ID = 'customer_service_bot'
+const CUSTOMER_SERVICE_BOT_NAME = 'AI智能客服'
+
 const triggerCustomerServiceReply = async (userMessage: string) => {
   try {
     // 调用数据库函数匹配问题
@@ -836,7 +836,8 @@ const triggerCustomerServiceReply = async (userMessage: string) => {
       setTimeout(async () => {
         const botMsg = {
           chat_group_id: currentGroup.value?.id,
-          user_id: 'customer_service_bot',
+          user_id: CUSTOMER_SERVICE_BOT_ID,
+          username: CUSTOMER_SERVICE_BOT_NAME,
           content: qa.answer,
           type: 'text',
           is_bot: true
