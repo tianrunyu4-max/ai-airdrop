@@ -84,8 +84,21 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 7. 扣除U余额
+      // 7. 扣除U余额（同时更新 Supabase 和 localStorage）
       const newBalance = Number((currentBalance - totalCost).toFixed(2))
+      
+      // 更新 Supabase 余额
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ u_balance: newBalance })
+        .eq('id', userId)
+      
+      if (updateError) {
+        console.error('更新Supabase余额失败:', updateError)
+        return { success: false, error: '余额扣除失败' }
+      }
+      
+      // 更新 localStorage 余额（保持同步）
       user.u_balance = newBalance
       registeredUsers[userKey].userData = user
       localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
@@ -340,7 +353,7 @@ export class MiningService extends BaseService {
       // 15% 销毁（防泡沫机制，自动清0）
       const toBurn = totalReleased * 0.15
 
-      // 更新用户余额
+      // 更新用户余额（同时更新 Supabase 和 localStorage）
       const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
       const userKey = Object.keys(registeredUsers).find(key => 
         registeredUsers[key].userData.id === userId
@@ -352,9 +365,21 @@ export class MiningService extends BaseService {
         // 防御性检查：确保所有余额字段都是有效数字
         const currentUBalance = Number(user.u_balance) || 0
         
-        // 更新余额（确保使用安全的数值运算）
-        user.u_balance = Number((currentUBalance + uAmount).toFixed(2))
+        // 计算新余额
+        const newUBalance = Number((currentUBalance + uAmount).toFixed(2))
         
+        // 更新 Supabase 余额
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ u_balance: newUBalance })
+          .eq('id', userId)
+        
+        if (updateError) {
+          console.error('更新Supabase余额失败:', updateError)
+        }
+        
+        // 更新 localStorage 余额（保持同步）
+        user.u_balance = newUBalance
         registeredUsers[userKey].userData = user
         localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
         
@@ -367,7 +392,7 @@ export class MiningService extends BaseService {
           user_id: userId,
           type: 'checkin_release',
           amount: uAmount,
-          balance_after: user.u_balance,
+          balance_after: newUBalance,
           currency: 'U',
           description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
           metadata: {
@@ -383,7 +408,7 @@ export class MiningService extends BaseService {
         localStorage.setItem('user_transactions', JSON.stringify(transactions))
         
         console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
-        console.log(`   余额变化：U ${currentUBalance} → ${user.u_balance} (+${uAmount.toFixed(2)})`)
+        console.log(`   余额变化：U ${currentUBalance} → ${newUBalance} (+${uAmount.toFixed(2)})`)
         console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
       }
 
