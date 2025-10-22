@@ -1,14 +1,13 @@
 -- ==========================================
--- 🤖 创建智能客服机器人账号
+-- 🤖 创建智能客服机器人账号（修复版）
 -- ==========================================
--- 执行步骤：
--- 1. 复制这段 SQL
--- 2. 打开 Supabase SQL Editor
--- 3. 粘贴并点击 Run
--- 4. 复制输出的 UUID，更新前端代码
+-- 直接复制粘贴到 Supabase SQL Editor 执行
 -- ==========================================
 
--- 🔐 创建客服机器人用户（在 auth.users 表）
+-- 方案：先删除旧的（如果存在），再创建新的
+DELETE FROM auth.users WHERE email = 'customer-service-bot@system.local';
+
+-- 🔐 创建客服机器人用户
 INSERT INTO auth.users (
   instance_id,
   id,
@@ -28,11 +27,11 @@ INSERT INTO auth.users (
   recovery_token
 ) VALUES (
   '00000000-0000-0000-0000-000000000000',
-  gen_random_uuid(), -- 🎯 自动生成 UUID
+  gen_random_uuid(),
   'authenticated',
   'authenticated',
   'customer-service-bot@system.local',
-  crypt('bot-password-no-login', gen_salt('bf')),
+  crypt('bot-no-login', gen_salt('bf')),
   now(),
   now(),
   now(),
@@ -43,14 +42,7 @@ INSERT INTO auth.users (
   '',
   '',
   ''
-) ON CONFLICT (email) DO UPDATE
-  SET raw_user_meta_data = '{"username":"AI智能客服","is_bot":true}'
+)
 RETURNING id, email, raw_user_meta_data->>'username' as username;
 
--- 📝 输出说明：
--- 复制上面返回的 UUID（id 列），
--- 然后在前端 src/views/chat/ChatView.vue 里找到：
--- const CUSTOMER_SERVICE_BOT_ID = 'customer_service_bot'
--- 改成：
--- const CUSTOMER_SERVICE_BOT_ID = '这里粘贴你复制的UUID'
-
+-- 📝 执行成功后，复制返回的 UUID（id 列）告诉我

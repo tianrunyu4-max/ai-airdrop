@@ -817,7 +817,7 @@ const sendMessage = async () => {
 }
 
 // 🤖 触发智能客服自动回复
-const CUSTOMER_SERVICE_BOT_ID = 'customer_service_bot'
+const CUSTOMER_SERVICE_BOT_ID = 'f3c2dae0-3456-4993-beda-6e50c62f5fbf'
 const CUSTOMER_SERVICE_BOT_NAME = 'AI智能客服'
 
 const triggerCustomerServiceReply = async (userMessage: string) => {
