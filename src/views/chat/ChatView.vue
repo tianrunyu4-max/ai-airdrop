@@ -191,18 +191,38 @@
         </div>
       </div>
 
-      <!-- 空状态 - 醒目设计 -->
+      <!-- 空状态 - 根据群组类型显示不同内容 -->
       <div v-if="validMessages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
-        <div class="text-8xl mb-6 animate-bounce">🤖</div>
-        <h3 class="text-3xl font-bold text-primary mb-3">欢迎来到 AI科技</h3>
-        <p class="text-xl text-base-content/70 mb-6">等待AI智能推送欧易 币安交易所空投资讯</p>
-        <div class="flex gap-2">
-          <span class="loading loading-dots loading-lg text-primary"></span>
-        </div>
-        <div class="mt-8 text-center">
-          <p class="text-sm text-base-content/50">💡 提示：机器人会自动推送优质空投项目</p>
-          <p v-if="authStore.user?.is_agent" class="text-sm text-warning mt-2">⭐ 您是代理，可以切换到其他专属群聊</p>
-        </div>
+        <!-- AI 自动赚钱系统 -->
+        <template v-if="currentGroup?.type === 'default'">
+          <div class="text-8xl mb-6 animate-bounce">💰</div>
+          <h3 class="text-3xl font-bold text-primary mb-3">AI 自动赚钱系统</h3>
+          <p class="text-xl text-base-content/70 mb-6">智能客服为您服务，有问题随时咨询</p>
+          <div class="mt-8 text-center">
+            <p class="text-sm text-base-content/50">💡 提示：输入问题，客服机器人会自动回复</p>
+            <p class="text-sm text-base-content/50 mt-2">🔹 如何充值 🔹 如何提现 🔹 代理政策</p>
+          </div>
+        </template>
+        
+        <!-- AI Web3 空投群 -->
+        <template v-else-if="currentGroup?.type === 'ai_push'">
+          <div class="text-8xl mb-6 animate-bounce">🚀</div>
+          <h3 class="text-3xl font-bold text-primary mb-3">AI Web3 空投</h3>
+          <p class="text-xl text-base-content/70 mb-6">等待AI智能推送优质空投项目</p>
+          <div class="flex gap-2">
+            <span class="loading loading-dots loading-lg text-primary"></span>
+          </div>
+          <div class="mt-8 text-center">
+            <p class="text-sm text-base-content/50">💡 提示：机器人会自动推送优质空投项目</p>
+          </div>
+        </template>
+        
+        <!-- 其他群 -->
+        <template v-else>
+          <div class="text-8xl mb-6 animate-bounce">💬</div>
+          <h3 class="text-3xl font-bold text-primary mb-3">{{ currentGroup?.description || '聊天群' }}</h3>
+          <p class="text-xl text-base-content/70 mb-6">开始聊天吧</p>
+        </template>
       </div>
 
       <!-- 加载中 -->
