@@ -17,10 +17,10 @@ export const BinaryConfig = {
   
   // ========== 对碰奖励（配对奖励）V5.0 ==========
   PAIRING: {
-    BONUS_PER_PAIR: 8,             // 每单对碰奖励8U
-    MEMBER_RATIO: 0.85,            // 85%自动到账会员（6.8U）
-    MEMBER_AMOUNT: 6.8,            // 会员实际获得：8U × 85% = 6.8U
-    RESERVED_RATIO: 0.15,          // 15%预留（1.2U，暂不分配）
+    BONUS_PER_PAIR: 6,             // 每单对碰奖励6U
+    MEMBER_RATIO: 1.0,             // 100%到账会员（6U）
+    MEMBER_AMOUNT: 6,              // 会员实际获得：6U × 100% = 6U
+    RESERVED_RATIO: 0,             // 0%预留
     RATIO: '2:1_OR_1:2',           // 对碰比例2:1或1:2（灵活配对）
     REQUIRED_UNITS: {
       TWO_ONE: { A: 2, B: 1 },     // 2:1 配对所需单量
@@ -30,6 +30,16 @@ export const BinaryConfig = {
     NO_RESET: true,                // 不归零
     SCHEDULED_SETTLEMENT: true,    // ✨ V5.0：定时结算（每天凌晨12点）
     SETTLEMENT_TIME: '00:00'       // 结算时间：凌晨12点
+  },
+  
+  // ========== 见单奖（直推链5代重复拿）V5.1 ==========
+  SPOT_BONUS: {
+    ENABLED: true,                 // 启用见单奖
+    AMOUNT: 1,                     // 每对1U
+    DEPTH: 5,                      // 5代直推链
+    UNLOCK_CONDITION: 2,           // 直推≥2人才能拿见单奖
+    TRIGGER_ON_PAIRING: true,      // 下线对碰时触发
+    RECURSIVE: true                // 重复拿（5代都拿）
   },
   
   
@@ -96,6 +106,7 @@ export const BinaryConfig = {
 export const { 
   JOIN_FEE,
   PAIRING,
+  SPOT_BONUS,
   AUTO_PLACEMENT,
   REINVEST,
   DIVIDEND,
