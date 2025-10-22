@@ -553,33 +553,25 @@ const refreshPage = () => {
   toast.success('已刷新')
 }
 
-// 加载我的学习机（localStorage版本）
+// 加载我的学习机（Supabase版本）
 const loadMyMachines = async () => {
   if (!user.value) return
 
   try {
-    // 从localStorage读取学习卡
-    const storageKey = 'user_learning_cards'
-    const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    // 从Supabase读取学习卡
+    const { data: userCards, error } = await supabase
+      .from('mining_machines')
+      .select('*')
+      .eq('user_id', user.value.id)
+      .order('created_at', { ascending: false })
     
-    // 过滤出当前用户的学习卡
-    const userCards = allCards
-      .filter((card: any) => card.user_id === user.value.id)
-      .sort((a: any, b: any) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
-    
-    myMachines.value = userCards
-    console.log(`✅ 从localStorage加载${userCards.length}张学习卡`)
-    if (userCards.length > 0) {
-      console.log('学习卡详情:', userCards.map((c: any) => ({
-        id: c.id.slice(-4),
-        status: c.status,
-        released: c.released_points,
-        total: c.total_points,
-        progress: `${((c.released_points / c.total_points) * 100).toFixed(1)}%`
-      })))
+    if (error) {
+      console.error('加载学习卡失败:', error)
+      myMachines.value = []
+      return
     }
+    
+    myMachines.value = userCards || []
   } catch (err) {
     console.error('加载学习机异常:', err)
     myMachines.value = []
@@ -591,20 +583,22 @@ const calculateReleaseRate = async () => {
   if (!user.value?.id) return
   
   try {
-    // 从localStorage查询直推AI代理数量
-    const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+    // 从Supabase查询直推AI代理数量
+    const { data: referrals, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('inviter_id', user.value.id)
+      .eq('is_agent', true)
     
-    // 统计直推AI代理数量
-    let referralCount = 0
-    for (const key in registeredUsers) {
-      const userData = registeredUsers[key].userData
-      if (userData.inviter_id === user.value.id && userData.is_agent) {
-        referralCount++
-      }
+    if (error) {
+      console.error('查询直推失败:', error)
+      releaseRate.value = 0.01
+      return
     }
     
+    const referralCount = referrals?.length || 0
+    
     // V4.3：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶
-    // 公式：rate = 0.01 + 0.01 * (3 * count - 1) when count > 0
     let rate: number
     if (referralCount === 0) {
       rate = 0.01 // 1%
@@ -614,8 +608,6 @@ const calculateReleaseRate = async () => {
       rate = Math.min(0.01 + boost, 0.15) // 上限15%
     }
     releaseRate.value = rate
-    
-    console.log(`✅ V4.3释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(0)}%`)
   } catch (error) {
     console.error('计算释放率失败:', error)
     releaseRate.value = 0.01
