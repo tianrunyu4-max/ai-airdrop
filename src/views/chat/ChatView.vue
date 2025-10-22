@@ -415,11 +415,10 @@ const switchGroup = async (group: ChatGroup) => {
       Promise.resolve().then(() => subscribeToMessages())
     ])
     
-    // 🤖 启动对应群组的机器人
-    startBotForGroup(group)
-    
-    // 如果需要空投机器人演示，可以启用
-    // startBotSimulation()
+    // 🤖 只在切换到空投群时启动机器人
+    if (group.type === 'ai_push') {
+      startBotForGroup(group)
+    }
   } catch (error) {
     // 切换失败不影响使用
   }
@@ -515,7 +514,7 @@ const getDefaultGroup = async () => {
       // ✅ 一次性完成所有初始化
       await loadMessages(data.id)
       subscribeToMessages()
-      startBotForGroup(currentGroup.value)
+      // 自动赚钱群不需要启动机器人，只有客服自动回复
     }
   } catch (error) {
     console.error('初始化失败:', error)
