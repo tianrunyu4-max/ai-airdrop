@@ -437,9 +437,7 @@ const loadMessages = async (groupId?: string) => {
       return
     }
     
-    console.log(`📥 加载群组: ${currentGroup.value?.name} (${targetGroupId})`)
-    
-    // 🔥 直接查询消息表，不过滤
+    // 直接查询消息表
     const { data: freshMessages, error } = await supabase
       .from('messages')
       .select('*, user:user_id(username)')
@@ -448,16 +446,12 @@ const loadMessages = async (groupId?: string) => {
       .limit(50)
     
     if (!error && freshMessages) {
-      // 🎯 直接使用，不过滤
       const formattedMessages = freshMessages.map((msg: any) => ({
         ...msg,
         username: msg.user?.username || authStore.user?.username || 'User'
       }))
       
       messages.value = formattedMessages
-      console.log(`✅ 加载了 ${formattedMessages.length} 条消息`)
-      
-      // 平滑滚动到底部
       scrollToBottom()
     }
   } catch (error) {
@@ -467,11 +461,11 @@ const loadMessages = async (groupId?: string) => {
   }
 }
 
-// 🔥 生产模式：获取默认群（用户聊天群）
+// 🔥 简化版：获取默认群并完成所有初始化（一步到位）
 const getDefaultGroup = async () => {
   try {
-    // 🎯 只查找 type='default' 的群，确保登录后直接进聊天群
-    let { data, error} = await supabase
+    // 🎯 只查找 type='default' 的群
+    let { data } = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
@@ -480,16 +474,15 @@ const getDefaultGroup = async () => {
       .limit(1)
       .maybeSingle()
 
-    // 如果没有默认群，直接创建（不要去找其他类型的群）
+    // 如果没有默认群，直接创建
     if (!data) {
-      console.log('📝 默认群不存在，正在创建...')
-      const { data: newGroup, error: createError } = await supabase
+      const { data: newGroup } = await supabase
         .from('chat_groups')
         .insert({
           type: 'default',
           icon: '💰',
           description: 'AI 自动赚钱系统',
-          member_count: 60,
+          member_count: 10,
           max_members: 50000,
           is_active: true,
           sort_order: 1,
@@ -498,28 +491,34 @@ const getDefaultGroup = async () => {
         .select()
         .single()
 
-      if (!createError && newGroup) {
-        data = newGroup
-        console.log('✅ 默认群创建成功')
-      }
+      if (newGroup) data = newGroup
     }
 
     if (data) {
-      // 设置当前群组，并使用 description 作为群名
+      // ✅ 设置当前群组
       currentGroup.value = {
         ...data,
         name: data.description || 'AI 自动赚钱系统'
       } as any
 
-      console.log(`✅ 加载默认群：${currentGroup.value.name}`)
-
-      // 如果用户已登录，加入群组
+      // ✅ 静默加入群组（不切换）
       if (authStore.user) {
-        await joinGroup(currentGroup.value!.id)
+        await supabase
+          .from('group_members')
+          .upsert({
+            group_id: data.id,
+            user_id: authStore.user.id,
+            role: 'member'
+          }, { onConflict: 'group_id,user_id', ignoreDuplicates: true })
       }
+
+      // ✅ 一次性完成所有初始化
+      await loadMessages(data.id)
+      subscribeToMessages()
+      startBotForGroup(currentGroup.value)
     }
   } catch (error) {
-    console.error('❌ 获取默认群失败:', error)
+    console.error('初始化失败:', error)
   }
 }
 
@@ -647,9 +646,8 @@ const subscribeToMessages = () => {
           username: authStore.user?.username || 'User'
         } as Message
 
-        // 🔥 空投群：只显示机器人消息
+        // 空投群：只显示机器人消息
         if (currentGroup.value?.type === 'ai_push' && !newMessage.is_bot) {
-          console.log('📢 空投群：过滤用户消息')
           return
         }
 
@@ -665,11 +663,8 @@ const subscribeToMessages = () => {
       }
     )
     .subscribe((status) => {
-      // 添加订阅状态监听
-      if (status === 'SUBSCRIBED') {
-        console.log('✅ Realtime订阅成功')
-      } else if (status === 'SUBSCRIPTION_ERROR') {
-        console.error('❌ Realtime订阅失败，3秒后重试')
+      if (status === 'SUBSCRIPTION_ERROR') {
+        console.error('订阅失败，3秒后重试')
         setTimeout(() => subscribeToMessages(), 3000)
       }
     })
@@ -1050,54 +1045,29 @@ const cleanupOldLocalStorage = () => {
   }, 100) // 延迟100ms执行，让页面先加载
 }
 
-// 🤖 根据群组类型启动对应的机器人
+// 🤖 根据群组类型启动对应的机器人（简化版）
 const startBotForGroup = (group: any) => {
-  console.log(`🤖 启动机器人：群组=${group?.description}, 类型=${group?.type}`)
-  
   // 先清理旧的机器人
   if (botInterval) {
     clearInterval(botInterval)
     botInterval = null
-    console.log('🛑 停止旧机器人')
   }
   
-  if (!group) {
-    console.log('❌ 群组为空，无法启动机器人')
-    return
-  }
+  if (!group) return
   
+  // 只有空投群需要启动定时机器人
   if (group.type === 'ai_push') {
-    // AI科技群：空投机器人（每2小时推送，24小时清理）
-    console.log('🚀 启动空投机器人（AI科技群）')
     startAirdropBot()
-  } else if (group.type === 'default') {
-    // 自动赚钱群：赚钱机器人（每30分钟推送，10分钟清理）
-    console.log('🚀 启动赚钱机器人（自动赚钱群）')
-    startMoneyBot()
-  } else {
-    console.log(`⚠️ 未知群组类型：${group.type}`)
   }
+  // 自动赚钱群的客服机器人不需要初始化，用户发消息时自动回复
 }
 
-// 🤖 空投机器人：每2小时推送，24小时清理
+// 🤖 空投机器人：每2小时推送
 const startAirdropBot = () => {
-  console.log('🤖 启动空投机器人（AI科技群）')
-  
-  // 立即推送一条空投消息
-  pushAirdropMessage()
-  
-  // 每2小时推送一次（测试用：改为2分钟）
+  pushAirdropMessage()  // 立即推送一条
   botInterval = setInterval(() => {
     pushAirdropMessage()
   }, 2 * 60 * 1000) // 2分钟（测试用）
-}
-
-// 🤖 智能客服机器人：自动回答用户问题
-const startMoneyBot = () => {
-  console.log('🤖 启动智能客服机器人（聊天群）')
-  
-  // 客服机器人不主动推送，只响应用户消息
-  // 在 sendMessage 中触发自动回复
 }
 
 // 📢 推送空投消息（只从数据库读取真实爬虫数据）
@@ -1227,29 +1197,11 @@ const startPeriodicRefresh = () => {
   // 不需要定时刷新，管理员手动清理数据库
 }
 
-// 🔥 生产模式：初始化
+// 🔥 简化版：一步到位初始化
 onMounted(async () => {
-  // 清理旧数据
-  cleanupOldLocalStorage()
-  
-  // 🔥 获取默认群组
-  await getDefaultGroup()
-  
-  // 🔥 加载消息
-  if (currentGroup.value) {
-    await loadMessages(currentGroup.value.id)
-    
-    // 🔥 订阅实时消息
-    subscribeToMessages()
-  }
-  
-  // 🚀 启动定时刷新（自动清理过期广告）
-  startPeriodicRefresh()
-  
-  // 🤖 启动对应群组的机器人
-  if (currentGroup.value) {
-    startBotForGroup(currentGroup.value)
-  }
+  cleanupOldLocalStorage()  // 清理旧数据
+  await getDefaultGroup()   // 一次性完成所有初始化
+  startPeriodicRefresh()    // 启动定时刷新
 })
 
 // 监听路由变化，当返回聊天页面时重新加载消息
