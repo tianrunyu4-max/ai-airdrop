@@ -24,7 +24,7 @@ import type { MiningMachine } from '@/types'
 
 export class MiningService extends BaseService {
   /**
-   * 兑换学习卡（V4.0新逻辑：8U余额 = 100积分 = 1张学习卡）- localStorage版本
+   * 兑换学习卡（V4.0新逻辑：8U余额 = 100积分 = 1张学习卡）- Supabase版本
    * 注意：需要代理身份（已加入Binary系统）
    */
   static async purchaseMachine(
@@ -40,17 +40,16 @@ export class MiningService extends BaseService {
         return { success: false, error: '每次兑换数量必须在1-10张之间' }
       }
 
-      // 2. 从localStorage获取用户信息
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      const userKey = Object.keys(registeredUsers).find(key => 
-        registeredUsers[key].userData.id === userId
-      )
+      // 2. 从Supabase获取用户信息
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-      if (!userKey) {
+      if (userError || !user) {
         return { success: false, error: '用户不存在' }
       }
-
-      const user = registeredUsers[userKey].userData
 
       // 3. 必须是代理身份
       if (!user.is_agent) {
@@ -61,12 +60,13 @@ export class MiningService extends BaseService {
       }
 
       // 4. 检查学习卡数量限制
-      const storageKey = 'user_learning_cards'
-      const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
-      const userCards = allCards.filter((card: any) => card.user_id === userId)
-      const activeMachines = userCards.filter((m: any) => 
-        m.status === 'active' || m.status === 'inactive'
-      ).length
+      const { data: userCards } = await supabase
+        .from('mining_machines')
+        .select('*')
+        .eq('user_id', userId)
+        .in('status', ['active', 'inactive'])
+
+      const activeMachines = userCards?.length || 0
 
       if (activeMachines + quantity > AILearningConfig.MACHINE.MAX_STACK) {
         return {
@@ -78,7 +78,7 @@ export class MiningService extends BaseService {
       // 5. 计算费用（8U × 数量）
       const totalCost = AILearningConfig.MACHINE.COST_IN_U * quantity
 
-      // 6. 检查余额（防御性检查：确保余额是有效数字）
+      // 6. 检查余额
       const currentBalance = Number(user.u_balance) || 0
       if (currentBalance < totalCost) {
         return { 
@@ -87,13 +87,16 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 7. 扣除U余额（确保使用安全的数值运算）
+      // 7. 扣除U余额
       const newBalance = Number((currentBalance - totalCost).toFixed(2))
-      user.u_balance = newBalance
-      registeredUsers[userKey].userData = user
-      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
-      
-      console.log(`💰 扣除余额：${currentBalance}U → ${newBalance}U (-${totalCost}U)`)
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ u_balance: newBalance })
+        .eq('id', userId)
+
+      if (updateError) {
+        return { success: false, error: '余额扣除失败' }
+      }
 
       // 8. 批量创建学习卡
       const machines: MiningMachine[] = []
@@ -101,10 +104,9 @@ export class MiningService extends BaseService {
 
       for (let i = 0; i < quantity; i++) {
         const machine = {
-          id: `card-${Date.now()}-${i}`,
           user_id: userId,
           type: machineType,
-          status: 'inactive' as const,  // V4.0：未签到前是inactive
+          status: 'inactive' as const,
           is_active: false,
           total_points: AILearningConfig.MACHINE.TOTAL_POINTS,
           released_points: 0,
@@ -113,37 +115,45 @@ export class MiningService extends BaseService {
           boost_rate: 0,
           compound_count: 0,
           last_release_date: null,
-          last_checkin_date: null,  // V4.0：签到日期
+          last_checkin_date: null,
           created_at: timestamp,
           expires_at: null
-        } as MiningMachine
+        } as any
 
-        allCards.push(machine)
-        machines.push(machine)
+        machines.push(machine as MiningMachine)
       }
 
-      // 9. 保存学习卡到localStorage
-      localStorage.setItem(storageKey, JSON.stringify(allCards))
+      // 9. 保存学习卡到Supabase
+      const { data: createdMachines, error: createError } = await supabase
+        .from('mining_machines')
+        .insert(machines)
+        .select()
+
+      if (createError) {
+        // 回滚余额
+        await supabase
+          .from('users')
+          .update({ u_balance: currentBalance })
+          .eq('id', userId)
+        return { success: false, error: '学习卡创建失败' }
+      }
 
       // 10. 记录交易流水
-      const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
-      transactions.push({
-        id: `tx-${Date.now()}-learning-card`,
-        user_id: userId,
-        type: 'exchange_learning_card',
-        amount: -totalCost,
-        balance_after: user.u_balance,
-        currency: 'U',
-        description: `兑换${quantity}张AI学习卡（${totalCost}U）`,
-        created_at: timestamp
-      })
-      localStorage.setItem('user_transactions', JSON.stringify(transactions))
-
-      console.log(`✅ 成功兑换${quantity}张学习卡`)
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: userId,
+          type: 'exchange_learning_card',
+          amount: -totalCost,
+          balance_after: newBalance,
+          currency: 'U',
+          description: `兑换${quantity}张AI学习卡（${totalCost}U）`,
+          created_at: timestamp
+        })
 
       return {
         success: true,
-        data: machines[0], // 返回第一张卡
+        data: createdMachines![0],
         message: `🎉 成功兑换${quantity}张AI学习卡！请每日签到启动释放积分`
       }
     } catch (error) {
