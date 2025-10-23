@@ -181,7 +181,7 @@ export const useAuthStore = defineStore('auth', () => {
           invite_code: userInviteCode,
           inviter_id: null,
           referral_position: 1,
-          u_balance: 50, // 新用户初始余额
+          u_balance: 0, // ✅ 新用户余额为0，通过充值或奖励获得
           points_balance: 150,
           mining_points: 150,
           transfer_points: 0,
