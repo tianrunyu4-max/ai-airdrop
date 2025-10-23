@@ -457,21 +457,17 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
       return
     }
     
-    // 直接查询消息表
+    // ⚡ 优化：只查询必要字段，避免JOIN，加快查询速度
     const { data: freshMessages, error } = await supabase
       .from('messages')
-      .select('*, user:user_id(username)')
+      .select('id, chat_group_id, user_id, username, content, type, image_url, is_bot, airdrop_data, created_at')
       .eq('chat_group_id', targetGroupId)
       .order('created_at', { ascending: true })
       .limit(50)
     
     if (!error && freshMessages) {
-      const formattedMessages = freshMessages.map((msg: any) => ({
-        ...msg,
-        username: msg.user?.username || authStore.user?.username || 'User'
-      }))
-      
-      messages.value = formattedMessages
+      // ⚡ 直接使用查询结果，无需额外处理
+      messages.value = freshMessages
       
       // ✅ 只在非静默模式下滚动（避免初始化时的视觉跳动）
       if (!silent) {
@@ -523,12 +519,12 @@ const getDefaultGroup = async () => {
 
     if (!data) return
 
-    // 🎯 第2步：并行加载消息和加入群组
+    // 🎯 第2步：并行加载消息和加入群组（优化：去除关联查询）
     const [messagesResult, _] = await Promise.all([
-      // 加载消息（静默）
+      // ⚡ 优化：只查询必要字段，避免JOIN
       supabase
         .from('messages')
-        .select('*, user:user_id(username)')
+        .select('id, chat_group_id, user_id, username, content, type, image_url, is_bot, airdrop_data, created_at')
         .eq('chat_group_id', data.id)
         .order('created_at', { ascending: true })
         .limit(50),
@@ -550,14 +546,14 @@ const getDefaultGroup = async () => {
     } as any
 
     if (!messagesResult.error && messagesResult.data) {
-      const formattedMessages = messagesResult.data.map((msg: any) => ({
-        ...msg,
-        username: msg.user?.username || authStore.user?.username || 'User'
-      }))
-      messages.value = formattedMessages
+      // ⚡ 优化：直接使用消息中的username，无需额外处理
+      messages.value = messagesResult.data
     } else {
       messages.value = []
     }
+    
+    // ⚡ 更新在线人数（基于真实成员数）
+    onlineCount.value = Math.floor((data.member_count || 10) * 0.6) // 60%在线率
 
     // 🎯 第4步：订阅实时消息（数据已全部加载完成）
     subscribeToMessages()
@@ -713,6 +709,14 @@ const subscribeToMessages = () => {
         // 添加到界面
         messages.value.push(newMessage)
         scrollToBottom()
+        
+        // ⚡ 更新在线人数（有新消息说明有人活跃）
+        if (currentGroup.value?.member_count) {
+          onlineCount.value = Math.min(
+            Math.floor(currentGroup.value.member_count * 0.65), // 提升到65%在线率
+            onlineCount.value + 1 // 至少+1
+          )
+        }
       }
     )
     .subscribe((status) => {
@@ -895,9 +899,13 @@ const startBotSimulation = () => {
     startBotForGroup(currentGroup.value)
   }
 
-  // 模拟在线人数变化
+  // ⚡ 动态更新在线人数（基于成员数）
   setInterval(() => {
-    onlineCount.value = Math.floor(Math.random() * 100) + 50
+    if (currentGroup.value?.member_count) {
+      // 在线率在50%-70%之间波动
+      const onlineRate = 0.5 + Math.random() * 0.2
+      onlineCount.value = Math.floor(currentGroup.value.member_count * onlineRate)
+    }
   }, 5000)
 }
 
