@@ -13,7 +13,7 @@
           <!-- 标题信息 -->
           <div>
             <h1 class="text-xl font-black tracking-wide">
-              {{ currentGroup?.description || 'AI 自动赚钱系统' }}
+              {{ currentGroup?.description || 'AI 空投计划' }}
             </h1>
             <div class="flex items-center gap-3 mt-1">
               <p class="text-sm font-semibold text-base-content/70 flex items-center gap-1">
@@ -193,10 +193,10 @@
 
       <!-- 空状态 - 根据群组类型显示不同内容 -->
       <div v-if="validMessages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
-        <!-- AI 自动赚钱系统 -->
+        <!-- AI 空投计划 -->
         <template v-if="currentGroup?.type === 'default'">
           <div class="text-8xl mb-6 animate-bounce">💰</div>
-          <h3 class="text-3xl font-bold text-primary mb-3">AI 自动赚钱系统</h3>
+          <h3 class="text-3xl font-bold text-primary mb-3">AI 空投计划</h3>
           <p class="text-xl text-base-content/70 mb-6">智能客服为您服务，有问题随时咨询</p>
           <div class="mt-8 text-center">
             <p class="text-sm text-base-content/50">💡 提示：输入问题，客服机器人会自动回复</p>
@@ -500,7 +500,7 @@ const getDefaultGroup = async () => {
         .insert({
           type: 'default',
           icon: '💰',
-          description: 'AI 自动赚钱系统',
+          description: 'AI 空投计划',
           member_count: 10,
           max_members: 50000,
           is_active: true,
@@ -517,7 +517,7 @@ const getDefaultGroup = async () => {
       // ✅ 设置当前群组
       currentGroup.value = {
         ...data,
-        name: data.description || 'AI 自动赚钱系统'
+        name: data.description || 'AI 空投计划'
       } as any
 
       // ✅ 静默加入群组（不切换）
@@ -534,7 +534,7 @@ const getDefaultGroup = async () => {
       // ✅ 一次性完成所有初始化
       await loadMessages(data.id)
       subscribeToMessages()
-      // 自动赚钱群不需要启动机器人，只有客服自动回复
+      // AI空投计划群不需要启动机器人，只有客服自动回复
     }
   } catch (error) {
     console.error('初始化失败:', error)
@@ -581,7 +581,7 @@ const joinGroup = async (groupId: string) => {
             .insert({
               type: 'default',
               icon: '💰',
-              description: `AI自动赚钱系统${nextGroupNumber}`,
+              description: `AI空投计划${nextGroupNumber}`,
               group_number: nextGroupNumber,
               member_count: 0,
               max_members: group.max_members,
@@ -1078,7 +1078,7 @@ const startBotForGroup = (group: any) => {
   if (group.type === 'ai_push') {
     startAirdropBot()
   }
-  // 自动赚钱群的客服机器人不需要初始化，用户发消息时自动回复
+  // AI空投计划群的客服机器人不需要初始化，用户发消息时自动回复
 }
 
 // 🤖 空投机器人：每2小时推送

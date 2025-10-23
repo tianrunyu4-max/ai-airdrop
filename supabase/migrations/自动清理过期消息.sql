@@ -4,8 +4,8 @@
 -- 
 -- 功能：
 -- 1. 用户消息：5分钟后自动删除
--- 2. 机器人消息（自动赚钱群）：10分钟后自动删除
--- 3. 机器人消息（AI科技群）：24小时后自动删除
+-- 2. 机器人消息（AI空投计划群）：10分钟后自动删除
+-- 3. 机器人消息（AI Web3 空投群）：24小时后自动删除
 --
 
 -- 步骤1：创建清理函数
@@ -17,7 +17,7 @@ BEGIN
   WHERE is_bot = false
     AND created_at < NOW() - INTERVAL '5 minutes';
   
-  -- 🔥 删除超过10分钟的机器人消息（自动赚钱群）
+  -- 🔥 删除超过10分钟的机器人消息（AI空投计划群）
   DELETE FROM messages
   WHERE is_bot = true
     AND chat_group_id IN (
@@ -66,10 +66,10 @@ WHERE
   -- 用户消息：5分钟内
   (m.is_bot = false AND m.created_at > NOW() - INTERVAL '5 minutes')
   OR
-  -- 自动赚钱群机器人消息：10分钟内
+  -- AI空投计划群机器人消息：10分钟内
   (m.is_bot = true AND cg.type = 'default' AND m.created_at > NOW() - INTERVAL '10 minutes')
   OR
-  -- AI科技群机器人消息：24小时内
+  -- AI Web3 空投群机器人消息：24小时内
   (m.is_bot = true AND cg.type = 'ai_push' AND m.created_at > NOW() - INTERVAL '24 hours');
 
 -- 使用视图查询（前端改为查询视图）
@@ -84,13 +84,13 @@ DELETE FROM messages
 WHERE is_bot = false
   AND created_at < NOW() - INTERVAL '5 minutes';
 
--- 删除所有超过10分钟的自动赚钱群机器人消息
+-- 删除所有超过10分钟的AI空投计划群机器人消息
 DELETE FROM messages
 WHERE is_bot = true
   AND chat_group_id IN (SELECT id FROM chat_groups WHERE type = 'default')
   AND created_at < NOW() - INTERVAL '10 minutes';
 
--- 删除所有超过24小时的AI科技群机器人消息
+-- 删除所有超过24小时的AI Web3 空投群机器人消息
 DELETE FROM messages
 WHERE is_bot = true
   AND chat_group_id IN (SELECT id FROM chat_groups WHERE type = 'ai_push')
