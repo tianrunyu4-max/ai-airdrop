@@ -735,7 +735,7 @@ const sendMessage = async () => {
     return
   }
 
-  // 🔥 AI科技空投群禁止用户聊天
+  // 🔥 AI空投计划群禁止用户聊天
   if (currentGroup.value.type === 'ai_push') {
     alert('❌ 此群只接收机器人推送，不可聊天')
     return
@@ -931,7 +931,7 @@ const initDevMode = () => {
   loading.value = false
   currentGroup.value = {
     id: 'dev-group',
-    name: 'AI科技',
+    name: 'AI 空投计划',
     type: 'default_hall',
     member_count: 128,
     max_members: 100000,

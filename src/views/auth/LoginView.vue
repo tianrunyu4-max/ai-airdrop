@@ -22,7 +22,7 @@
             <RocketLaunchIcon class="w-16 h-16 text-white" />
           </div>
           <h1 class="text-4xl font-bold text-white mb-2">
-            AI科技 创新发展
+            AI 空投计划
           </h1>
           <p class="text-white/80 text-lg">持续学习 持续创薪</p>
         </div>

@@ -790,7 +790,7 @@ const platformContacts = ref({
   youtube: 'https://youtube.com/@你的频道',
   telegram: 'https://t.me/你的群组',
   wechat: 'AI_TECH_2025',
-  shipin: '搜索"AI科技创新"',
+  shipin: '搜索"AI空投计划"',
   tiktok: '@aitech_official'
 })
 
@@ -882,7 +882,7 @@ const showContactInfo = (type: string) => {
       icon: '💬',
       name: '微信号',
       account: platformContacts.value.wechat,
-      note: '添加微信，备注"AI科技"'
+      note: '添加微信，备注"AI空投计划"'
     },
     shipin: {
       title: '🎬 微信视频号',
