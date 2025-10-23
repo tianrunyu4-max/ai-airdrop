@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
             .from('users')
             .select('*')
             .eq('username', currentUser)
-            .single()
+            .maybeSingle()  // ✅ 修复：使用maybeSingle
           
           if (!error && freshUser) {
             user.value = freshUser
@@ -62,10 +62,15 @@ export const useAuthStore = defineStore('auth', () => {
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()  // ✅ 修复：使用maybeSingle
 
-      if (error) throw error
-      user.value = data
+      if (error) {
+        console.error('数据库查询错误:', error)
+        throw error
+      }
+      if (data) {
+        user.value = data
+      }
     } catch (error) {
       console.error('Fetch user profile error:', error)
     }
@@ -80,9 +85,14 @@ export const useAuthStore = defineStore('auth', () => {
         .from('users')
         .select('*')
         .eq('username', username)
-        .single()
+        .maybeSingle()  // ✅ 修复：使用maybeSingle，查询不到时不返回error
       
-      if (error || !users) {
+      if (error) {
+        console.error('数据库查询错误:', error)
+        throw new Error('登录失败，请稍后重试')
+      }
+      
+      if (!users) {
         throw new Error('用户名不存在，请先注册')
       }
       
@@ -114,11 +124,16 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
 
       // 🔥 生产模式：检查用户名是否已存在
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('username')
         .eq('username', username)
-        .single()
+        .maybeSingle()  // ✅ 修复：使用maybeSingle
+      
+      if (checkError) {
+        console.error('检查用户名错误:', checkError)
+        throw new Error('注册失败，请稍后重试')
+      }
       
       if (existingUser) {
         throw new Error('用户名已被注册')
@@ -137,7 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
           .from('users')
           .select('invite_code')
           .eq('invite_code', code)
-          .single()
+          .maybeSingle()  // ✅ 修复：使用maybeSingle
         
         if (existing) {
           return generateInviteCode() // 重复则重新生成
@@ -228,7 +243,7 @@ export const useAuthStore = defineStore('auth', () => {
           .from('users')
           .select('*')
           .eq('username', currentUsername)
-          .single()
+          .maybeSingle()  // ✅ 修复：使用maybeSingle
         
         if (!error && freshUser) {
           user.value = freshUser
