@@ -429,11 +429,9 @@ const switchGroup = async (group: ChatGroup) => {
       botInterval = null
     }
     
-    // 🚀 并行加载：同时加载消息和订阅
-    Promise.all([
-      loadMessages(group.id),
-      Promise.resolve().then(() => subscribeToMessages())
-    ])
+    // 🚀 静默加载消息，订阅实时更新
+    loadMessages(group.id, true)  // 静默加载，不显示loading
+    subscribeToMessages()
     
     // 🤖 只在切换到空投群时启动机器人
     if (group.type === 'ai_push') {
@@ -444,15 +442,18 @@ const switchGroup = async (group: ChatGroup) => {
   }
 }
 
-// 🔥 生产模式：从 Supabase 加载消息（带缓存优化）
-const loadMessages = async (groupId?: string) => {
+// 🔥 生产模式：从 Supabase 加载消息（静默加载，避免闪烁）
+const loadMessages = async (groupId?: string, silent: boolean = false) => {
   try {
-    loading.value = true // 开始加载
+    // 只在非静默模式下显示loading
+    if (!silent) {
+      loading.value = true
+    }
     
     const targetGroupId = groupId || currentGroup.value?.id
     if (!targetGroupId) {
       messages.value = []
-      loading.value = false
+      if (!silent) loading.value = false
       return
     }
     
@@ -471,20 +472,24 @@ const loadMessages = async (groupId?: string) => {
       }))
       
       messages.value = formattedMessages
+      // 延迟滚动，确保DOM已更新
+      await nextTick()
       scrollToBottom()
     }
   } catch (error) {
     console.error('加载消息失败:', error)
   } finally {
-    loading.value = false // 加载完成
+    if (!silent) {
+      loading.value = false
+    }
   }
 }
 
-// 🔥 简化版：获取默认群并完成所有初始化（一步到位）
+// 🔥 简化版：获取默认群并完成所有初始化（一步到位，静默加载）
 const getDefaultGroup = async () => {
   try {
-    // 🎯 只查找 type='default' 的群
-    let { data } = await supabase
+    // 🎯 一次性查询群组和消息（并行）
+    const groupPromise = supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
@@ -492,6 +497,8 @@ const getDefaultGroup = async () => {
       .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle()
+
+    let { data } = await groupPromise
 
     // 如果没有默认群，直接创建
     if (!data) {
@@ -514,30 +521,44 @@ const getDefaultGroup = async () => {
     }
 
     if (data) {
-      // ✅ 设置当前群组
+      // ✅ 并行执行：设置群组 + 加入群组 + 加载消息
+      const tasks = []
+      
+      // 1. 设置当前群组（立即执行，不等待）
       currentGroup.value = {
         ...data,
         name: data.description || 'AI 空投计划'
       } as any
 
-      // ✅ 静默加入群组（不切换）
+      // 2. 加入群组（后台执行）
       if (authStore.user) {
-        await supabase
-          .from('group_members')
-          .upsert({
-            group_id: data.id,
-            user_id: authStore.user.id,
-            role: 'member'
-          }, { onConflict: 'group_id,user_id', ignoreDuplicates: true })
+        tasks.push(
+          supabase
+            .from('group_members')
+            .upsert({
+              group_id: data.id,
+              user_id: authStore.user.id,
+              role: 'member'
+            }, { onConflict: 'group_id,user_id', ignoreDuplicates: true })
+        )
       }
 
-      // ✅ 一次性完成所有初始化
-      await loadMessages(data.id)
+      // 3. 静默加载消息（后台执行）
+      tasks.push(loadMessages(data.id, true))
+
+      // 4. 订阅消息（立即执行）
       subscribeToMessages()
+
+      // 等待所有后台任务完成
+      await Promise.all(tasks)
+      
       // AI空投计划群为纯聊天群，无需启动机器人
     }
   } catch (error) {
     console.error('初始化失败:', error)
+  } finally {
+    // 确保loading状态关闭
+    loading.value = false
   }
 }
 
@@ -1160,19 +1181,22 @@ const startPeriodicRefresh = () => {
   // 不需要定时刷新，管理员手动清理数据库
 }
 
-// 🔥 简化版：一步到位初始化
+// 🔥 简化版：一步到位初始化（静默加载，无闪烁）
 onMounted(async () => {
+  // 预设loading为false，避免显示loading动画
+  loading.value = false
+  
   cleanupOldLocalStorage()  // 清理旧数据
-  await getDefaultGroup()   // 一次性完成所有初始化
+  await getDefaultGroup()   // 一次性完成所有初始化（静默）
   startPeriodicRefresh()    // 启动定时刷新
 })
 
-// 监听路由变化，当返回聊天页面时重新加载消息
-watch(() => route.path, (newPath, oldPath) => {
-  if (newPath === '/chat' && oldPath !== '/chat') {
-    loadMessages()
-  }
-})
+// 监听路由变化已禁用（避免重复加载）
+// watch(() => route.path, (newPath, oldPath) => {
+//   if (newPath === '/chat' && oldPath !== '/chat') {
+//     loadMessages()
+//   }
+// })
 
 onUnmounted(() => {
   if (messageSubscription) {
