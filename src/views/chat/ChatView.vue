@@ -197,10 +197,10 @@
         <template v-if="currentGroup?.type === 'default'">
           <div class="text-8xl mb-6 animate-bounce">💰</div>
           <h3 class="text-3xl font-bold text-primary mb-3">AI 空投计划</h3>
-          <p class="text-xl text-base-content/70 mb-6">智能客服为您服务，有问题随时咨询</p>
+          <p class="text-xl text-base-content/70 mb-6">欢迎来到聊天大厅，开始交流吧！</p>
           <div class="mt-8 text-center">
-            <p class="text-sm text-base-content/50">💡 提示：输入问题，客服机器人会自动回复</p>
-            <p class="text-sm text-base-content/50 mt-2">🔹 如何充值 🔹 如何提现 🔹 代理政策</p>
+            <p class="text-sm text-base-content/50">💡 发送消息与其他用户交流</p>
+            <p class="text-sm text-base-content/50 mt-2">🔹 分享经验 🔹 讨论项目 🔹 互相学习</p>
           </div>
         </template>
         
@@ -534,7 +534,7 @@ const getDefaultGroup = async () => {
       // ✅ 一次性完成所有初始化
       await loadMessages(data.id)
       subscribeToMessages()
-      // AI空投计划群不需要启动机器人，只有客服自动回复
+      // AI空投计划群为纯聊天群，无需启动机器人
     }
   } catch (error) {
     console.error('初始化失败:', error)
@@ -819,68 +819,12 @@ const sendMessage = async () => {
       username: authStore.user.username
     })
     
-    // 🤖 智能客服自动回复（仅在聊天群）
-    if (currentGroup.value.type === 'default') {
-      await triggerCustomerServiceReply(contentToSend)
-    }
-    
   } catch (error) {
     console.error('发送消息异常:', error)
     // 静默失败，不影响用户体验
   }
 }
 
-// 🤖 触发智能客服自动回复
-const CUSTOMER_SERVICE_BOT_ID = 'f3c2dae0-3456-4993-beda-6e50c62f5fbf'
-const CUSTOMER_SERVICE_BOT_NAME = 'AI智能客服'
-
-const triggerCustomerServiceReply = async (userMessage: string) => {
-  try {
-    // 调用数据库函数匹配问题
-    const { data, error } = await supabase.rpc('match_customer_question', {
-      user_message: userMessage
-    })
-    
-    if (error) throw error
-    
-    if (data && data.length > 0) {
-      const qa = data[0]
-      
-      // 延迟2秒后回复（模拟真实客服）
-      setTimeout(async () => {
-        const botMsg = {
-          chat_group_id: currentGroup.value?.id,
-          user_id: CUSTOMER_SERVICE_BOT_ID,
-          username: CUSTOMER_SERVICE_BOT_NAME,
-          content: qa.answer,
-          type: 'text',
-          is_bot: true
-        }
-        
-        // 保存到数据库
-        const { error: insertError } = await supabase
-          .from('messages')
-          .insert(botMsg)
-        
-        if (insertError) {
-          console.error('客服回复失败:', insertError)
-        }
-        
-        // 更新触发次数统计
-        await supabase
-          .from('customer_service_qa')
-          .update({ 
-            trigger_count: qa.trigger_count + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', qa.id)
-      }, 2000)
-    }
-  } catch (error) {
-    console.error('智能客服回复异常:', error)
-    // 静默失败，不影响用户体验
-  }
-}
 
 // 模拟AI机器人推送（开发模式）
 const startBotSimulation = () => {
@@ -1078,7 +1022,7 @@ const startBotForGroup = (group: any) => {
   if (group.type === 'ai_push') {
     startAirdropBot()
   }
-  // AI空投计划群的客服机器人不需要初始化，用户发消息时自动回复
+  // AI空投计划群为纯聊天群，无需启动机器人
 }
 
 // 🤖 空投机器人：每2小时推送
@@ -1204,9 +1148,9 @@ const pushAirdropFromDatabase = (airdrops: any[]) => {
   })
 }
 
-// 💰 推送赚钱消息（已废弃，改为智能客服）
+// 💰 推送赚钱消息（已废弃，聊天群改为纯聊天功能）
 // const pushMoneyMessage = () => {
-//   // 智能客服机器人不主动推送，只响应用户问题
+//   // 聊天群不需要机器人，只用于用户之间的交流
 // }
 
 // 🚀 取消定时刷新：不需要前端过滤
