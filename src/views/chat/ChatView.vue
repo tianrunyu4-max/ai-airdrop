@@ -457,10 +457,10 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
       return
     }
     
-    // ⚡ 优化：只查询必要字段，避免JOIN，加快查询速度
+    // ⚡ 优化：查询所有字段（避免JOIN，加快查询速度）
     const { data: freshMessages, error } = await supabase
       .from('messages')
-      .select('id, chat_group_id, user_id, username, content, type, image_url, is_bot, airdrop_data, created_at')
+      .select('*')
       .eq('chat_group_id', targetGroupId)
       .order('created_at', { ascending: true })
       .limit(50)
@@ -521,10 +521,10 @@ const getDefaultGroup = async () => {
 
     // 🎯 第2步：并行加载消息和加入群组（优化：去除关联查询）
     const [messagesResult, _] = await Promise.all([
-      // ⚡ 优化：只查询必要字段，避免JOIN
+      // ⚡ 优化：查询所有字段（避免JOIN，加快查询速度）
       supabase
         .from('messages')
-        .select('id, chat_group_id, user_id, username, content, type, image_url, is_bot, airdrop_data, created_at')
+        .select('*')
         .eq('chat_group_id', data.id)
         .order('created_at', { ascending: true })
         .limit(50),
