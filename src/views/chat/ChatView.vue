@@ -472,9 +472,12 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
       }))
       
       messages.value = formattedMessages
-      // 延迟滚动，确保DOM已更新
-      await nextTick()
-      scrollToBottom()
+      
+      // ✅ 只在非静默模式下滚动（避免初始化时的视觉跳动）
+      if (!silent) {
+        await nextTick()
+        scrollToBottom()
+      }
     }
   } catch (error) {
     console.error('加载消息失败:', error)
@@ -485,11 +488,11 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
   }
 }
 
-// 🔥 简化版：获取默认群并完成所有初始化（一步到位，静默加载）
+// 🔥 终极优化：一步到位初始化（批量操作，0次跳转）
 const getDefaultGroup = async () => {
   try {
-    // 🎯 一次性查询群组和消息（并行）
-    const groupPromise = supabase
+    // 🎯 第1步：查询群组
+    let { data } = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
@@ -497,8 +500,6 @@ const getDefaultGroup = async () => {
       .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle()
-
-    let { data } = await groupPromise
 
     // 如果没有默认群，直接创建
     if (!data) {
@@ -520,46 +521,58 @@ const getDefaultGroup = async () => {
       if (newGroup) data = newGroup
     }
 
-    if (data) {
-      // ✅ 并行执行：设置群组 + 加入群组 + 加载消息
-      const tasks = []
+    if (!data) return
+
+    // 🎯 第2步：并行加载消息和加入群组
+    const [messagesResult, _] = await Promise.all([
+      // 加载消息（静默）
+      supabase
+        .from('messages')
+        .select('*, user:user_id(username)')
+        .eq('chat_group_id', data.id)
+        .order('created_at', { ascending: true })
+        .limit(50),
       
-      // 1. 设置当前群组（立即执行，不等待）
-      currentGroup.value = {
-        ...data,
-        name: data.description || 'AI 空投计划'
-      } as any
+      // 加入群组（后台）
+      authStore.user ? supabase
+        .from('group_members')
+        .upsert({
+          group_id: data.id,
+          user_id: authStore.user.id,
+          role: 'member'
+        }, { onConflict: 'group_id,user_id', ignoreDuplicates: true }) : Promise.resolve()
+    ])
 
-      // 2. 加入群组（后台执行）
-      if (authStore.user) {
-        tasks.push(
-          supabase
-            .from('group_members')
-            .upsert({
-              group_id: data.id,
-              user_id: authStore.user.id,
-              role: 'member'
-            }, { onConflict: 'group_id,user_id', ignoreDuplicates: true })
-        )
-      }
+    // 🎯 第3步：一次性设置所有数据（只触发1次渲染）
+    currentGroup.value = {
+      ...data,
+      name: data.description || 'AI 空投计划'
+    } as any
 
-      // 3. 静默加载消息（后台执行）
-      tasks.push(loadMessages(data.id, true))
-
-      // 4. 订阅消息（立即执行）
-      subscribeToMessages()
-
-      // 等待所有后台任务完成
-      await Promise.all(tasks)
-      
-      // AI空投计划群为纯聊天群，无需启动机器人
+    if (!messagesResult.error && messagesResult.data) {
+      const formattedMessages = messagesResult.data.map((msg: any) => ({
+        ...msg,
+        username: msg.user?.username || authStore.user?.username || 'User'
+      }))
+      messages.value = formattedMessages
+    } else {
+      messages.value = []
     }
+
+    // 🎯 第4步：订阅实时消息（数据已全部加载完成）
+    subscribeToMessages()
+    
+    // 🎯 第5步：如果有消息，立即滚动到底部（无动画，避免视觉跳动）
+    if (messages.value.length > 0) {
+      await nextTick()
+      scrollToBottom(false)  // false = 无动画，立即跳转
+    }
+    
+    // AI空投计划群为纯聊天群，无需启动机器人
   } catch (error) {
     console.error('初始化失败:', error)
-  } finally {
-    // 确保loading状态关闭
-    loading.value = false
   }
+  // ✅ 不在这里设置loading=false，由onMounted统一控制
 }
 
 // 🔥 生产模式：加入群组（智能分群）
@@ -1181,14 +1194,17 @@ const startPeriodicRefresh = () => {
   // 不需要定时刷新，管理员手动清理数据库
 }
 
-// 🔥 简化版：一步到位初始化（静默加载，无闪烁）
+// 🔥 简化版：一步到位初始化（批量加载，0次跳转）
 onMounted(async () => {
-  // 预设loading为false，避免显示loading动画
-  loading.value = false
+  // ✅ 保持loading=true，直到所有数据加载完成
+  loading.value = true
   
   cleanupOldLocalStorage()  // 清理旧数据
-  await getDefaultGroup()   // 一次性完成所有初始化（静默）
+  await getDefaultGroup()   // 一次性完成所有初始化
   startPeriodicRefresh()    // 启动定时刷新
+  
+  // ✅ 数据加载完成，关闭loading
+  loading.value = false
 })
 
 // 监听路由变化已禁用（避免重复加载）
