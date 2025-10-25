@@ -47,6 +47,51 @@
       </div>
     </div>
 
+    <!-- 🛠️ 工具发布管理 -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h3 class="card-title">🛠️ 工具发布管理</h3>
+        
+        <div class="alert alert-warning">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <div>
+            <p><strong>工具发布规则：</strong></p>
+            <p>• 系统最多保留 20 条发布</p>
+            <p>• 每人每周限制 1 次发布</p>
+            <p>• 随机 50% 概率顶置</p>
+          </div>
+        </div>
+
+        <div v-if="postsStats" class="stats shadow w-full">
+          <div class="stat">
+            <div class="stat-title">当前发布数</div>
+            <div class="stat-value" :class="postsStats.total >= 20 ? 'text-error' : 'text-primary'">
+              {{ postsStats.total }}/20
+            </div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">顶置发布</div>
+            <div class="stat-value text-warning">{{ postsStats.pinned }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">普通发布</div>
+            <div class="stat-value text-secondary">{{ postsStats.normal }}</div>
+          </div>
+        </div>
+
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-info" @click="loadPostsStats" :disabled="loading">
+            <span v-if="!loading">🔄 刷新统计</span>
+            <span v-else class="loading loading-spinner"></span>
+          </button>
+          <button class="btn btn-error" @click="clearAllPosts" :disabled="loading">
+            <span v-if="!loading">🗑️ 清空所有发布</span>
+            <span v-else class="loading loading-spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 系统配置 -->
     <div class="card bg-base-100 shadow">
       <div class="card-body">
@@ -813,6 +858,54 @@ const cleanup = async () => {
   }
 }
 
+// 🛠️ 工具发布管理
+const postsStats = ref<any>(null)
+
+const loadPostsStats = async () => {
+  try {
+    loading.value = true
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, is_pinned')
+    
+    if (error) throw error
+    
+    postsStats.value = {
+      total: data?.length || 0,
+      pinned: data?.filter(p => p.is_pinned).length || 0,
+      normal: data?.filter(p => !p.is_pinned).length || 0
+    }
+  } catch (error) {
+    console.error('加载发布统计失败:', error)
+    alert('❌ 加载统计失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const clearAllPosts = async () => {
+  if (!confirm('⚠️ 确定要清空所有工具发布吗？\n\n此操作不可恢复！')) return
+  if (!confirm('⚠️ 再次确认：是否清空所有发布？')) return
+  
+  try {
+    loading.value = true
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // 删除所有
+    
+    if (error) throw error
+    
+    alert('✅ 已清空所有发布')
+    await loadPostsStats() // 刷新统计
+  } catch (error: any) {
+    console.error('清空失败:', error)
+    alert(`❌ 清空失败: ${error.message}`)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 加载分红统计
 const loadDividendStats = async () => {
   try {
@@ -895,6 +988,7 @@ onMounted(() => {
   loadReleaseStats()
   loadDividendStats()
   loadStats() // 加载消息统计
+  loadPostsStats() // 加载工具发布统计
 })
 </script>
 
