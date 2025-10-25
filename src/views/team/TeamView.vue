@@ -251,6 +251,27 @@ const loadNetworkStats = async () => {
     const userId = authStore.user?.id
     if (!userId) return
 
+    // ✅ 优化：从缓存加载（如果存在且新鲜）
+    const cacheKey = `team_stats_${userId}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      const { data: cachedData, timestamp } = JSON.parse(cached)
+      // 缓存30秒有效
+      if (Date.now() - timestamp < 30000) {
+        aSideSales.value = cachedData.aSideSales || 0
+        bSideSales.value = cachedData.bSideSales || 0
+        aSideSettled.value = cachedData.aSideSettled || 0
+        bSideSettled.value = cachedData.bSideSettled || 0
+        totalPairingBonus.value = cachedData.totalPairingBonus || 0
+        totalLevelBonus.value = cachedData.totalLevelBonus || 0
+        totalDividend.value = cachedData.totalDividend || 0
+        isUnlocked.value = cachedData.isUnlocked || false
+        directReferrals.value = cachedData.directReferrals || 0
+        console.log('✅ 从缓存加载团队统计')
+        return
+      }
+    }
+
     // 获取用户二元系统信息
     const result = await BinaryService.getBinaryInfo(userId)
     
@@ -267,6 +288,22 @@ const loadNetworkStats = async () => {
       totalDividend.value = data.total_dividend || 0
       isUnlocked.value = data.level_bonus_unlocked || false
       directReferrals.value = data.direct_referrals || 0
+      
+      // ✅ 保存到缓存
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: {
+          aSideSales: aSideSales.value,
+          bSideSales: bSideSales.value,
+          aSideSettled: aSideSettled.value,
+          bSideSettled: bSideSettled.value,
+          totalPairingBonus: totalPairingBonus.value,
+          totalLevelBonus: totalLevelBonus.value,
+          totalDividend: totalDividend.value,
+          isUnlocked: isUnlocked.value,
+          directReferrals: directReferrals.value
+        },
+        timestamp: Date.now()
+      }))
     } else {
       // 未加入二元系统，使用默认值
       aSideSales.value = 0
@@ -277,20 +314,7 @@ const loadNetworkStats = async () => {
       totalLevelBonus.value = 0
       totalDividend.value = 0
       isUnlocked.value = false
-    }
-
-    // 获取用户信息（直推数）
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('direct_referral_count, total_dividend')
-      .eq('id', userId)
-      .single()
-
-    if (!error && user) {
-      directReferrals.value = user.direct_referral_count || 0
-      if (!result.data) {
-        totalDividend.value = user.total_dividend || 0
-      }
+      directReferrals.value = 0
     }
   } catch (error: any) {
     console.error('加载网络统计失败:', error)
@@ -303,6 +327,19 @@ const loadReferralList = async () => {
   try {
     const userId = authStore.user?.id
     if (!userId) return
+
+    // ✅ 优化：从缓存加载（如果存在且新鲜）
+    const cacheKey = `team_referrals_${userId}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      const { data: cachedData, timestamp } = JSON.parse(cached)
+      // 缓存30秒有效
+      if (Date.now() - timestamp < 30000) {
+        referralList.value = cachedData || []
+        console.log('✅ 从缓存加载直推列表')
+        return
+      }
+    }
 
     // 🔥 生产模式：从数据库查询直推用户
     const { data, error } = await supabase
@@ -319,6 +356,12 @@ const loadReferralList = async () => {
     }
 
     referralList.value = data || []
+    
+    // ✅ 保存到缓存
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: referralList.value,
+      timestamp: Date.now()
+    }))
   } catch (error) {
     // 加载失败，使用空数组
     referralList.value = []

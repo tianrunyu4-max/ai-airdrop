@@ -24,11 +24,21 @@ import { supabase } from '@/lib/supabase'
 import { DividendService } from './DividendService'
 
 export class BinaryService extends BaseService {
+  // ✅ 配置缓存（减少数据库查询）
+  private static configCache: any = null
+  private static configCacheTime = 0
+  private static CONFIG_CACHE_TTL = 60 * 1000 // 1分钟缓存
+
   /**
-   * 获取动态配置参数（支持热更新）
+   * 获取动态配置参数（支持热更新 + 缓存）
    * 优先从数据库读取，数据库不可用时降级到硬编码配置
    */
   private static async getDynamicConfig() {
+    // ✅ 使用缓存，避免频繁查询
+    const now = Date.now()
+    if (this.configCache && (now - this.configCacheTime) < this.CONFIG_CACHE_TTL) {
+      return this.configCache
+    }
     try {
       const [
         pairingBonus,
@@ -50,7 +60,7 @@ export class BinaryService extends BaseService {
         SystemParamsService.getParam('platform_ratio')
       ])
 
-      return {
+      const config = {
         pairingBonus: pairingBonus || BinaryConfig.PAIRING.BONUS_PER_PAIR,
         levelBonusDepth: levelBonusDepth || BinaryConfig.LEVEL_BONUS.DEPTH,
         levelBonusAmount: levelBonusAmount || BinaryConfig.LEVEL_BONUS.AMOUNT,
@@ -63,10 +73,16 @@ export class BinaryService extends BaseService {
         joinFee: BinaryConfig.JOIN_FEE,
         reinvestAmount: BinaryConfig.REINVEST.AMOUNT
       }
+      
+      // ✅ 保存到缓存
+      this.configCache = config
+      this.configCacheTime = Date.now()
+      
+      return config
     } catch (error) {
       console.warn('⚠️ 读取动态参数失败，降级使用硬编码配置', error)
       // 降级到硬编码配置
-      return {
+      const fallbackConfig = {
         pairingBonus: BinaryConfig.PAIRING.BONUS_PER_PAIR,
         levelBonusDepth: BinaryConfig.LEVEL_BONUS.DEPTH,
         levelBonusAmount: BinaryConfig.LEVEL_BONUS.AMOUNT,
@@ -78,6 +94,12 @@ export class BinaryService extends BaseService {
         joinFee: BinaryConfig.JOIN_FEE,
         reinvestAmount: BinaryConfig.REINVEST.AMOUNT
       }
+      
+      // ✅ 缓存降级配置
+      this.configCache = fallbackConfig
+      this.configCacheTime = Date.now()
+      
+      return fallbackConfig
     }
   }
 
