@@ -121,11 +121,11 @@
           <p class="text-gray-600 text-sm">每日签到 · 持续释放 · 智能分配</p>
         </div>
 
-        <!-- V4.0 核心参数 -->
-        <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-red-300">
-          <div class="text-center text-red-600 font-bold text-sm mb-2">🔥 V4.4 签到制升级</div>
+        <!-- 重启机制说明 -->
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border-2 border-blue-300">
+          <div class="text-center text-blue-600 font-bold text-sm mb-2">🎓 AI智能学习系统</div>
           <div class="text-xs text-gray-700 text-center">
-            每日签到 · 1-15%释放 · 3倍出局 · 85%到账15%自动清0
+            积分当学分 · 学习AI工具使用 · 消耗积分使用各种AI智能体
           </div>
         </div>
 
