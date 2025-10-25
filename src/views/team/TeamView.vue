@@ -104,7 +104,7 @@
           </div>
           <div class="text-center">
             <div class="text-green-600 text-2xl font-bold">{{ totalLevelBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">对碰奖</div>
+            <div class="text-xs text-gray-600 mt-1">见单奖</div>
           </div>
           <div class="text-center">
             <div class="text-blue-600 text-2xl font-bold">{{ totalDividend.toFixed(2) }}</div>
@@ -161,20 +161,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 温馨提示 -->
-      <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 text-xs text-gray-700 border-2 border-yellow-300">
-        <div class="font-bold text-yellow-700 mb-2">💡 团队发展提示（V5.1最新版）</div>
-        <ul class="space-y-1">
-          <li>• <span class="font-bold text-red-600">直推≥2人解锁见单奖</span>，否则无见单奖</li>
-          <li>• 团队内部排线：新用户滑到推荐人直推的弱边</li>
-          <li>• <span class="font-bold text-green-700">对碰奖每组6U（100%到账）</span></li>
-          <li>• <span class="font-bold text-purple-700">见单奖：下线对碰，上级5代各得1U（重复拿！）</span></li>
-          <li>• 每天凌晨12点统一对碰结算，2:1/1:2灵活配对</li>
-          <li class="text-orange-700 font-bold">• 每结算240U（8倍）需复投30U，复购单自动补弱区</li>
-          <li class="text-blue-700 font-bold">• V5.1升级：对碰奖6U + 见单奖1U/代（5代重复拿）</li>
-        </ul>
       </div>
     </div>
 
