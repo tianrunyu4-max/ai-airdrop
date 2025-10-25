@@ -119,7 +119,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(username: string, password: string, inviteCode?: string) {
+  /**
+   * 用户注册
+   * ✅ 注册时不设置邀请关系，升级AI代理时才填写邀请码
+   */
+  async function register(username: string, password: string) {
     try {
       loading.value = true
 
@@ -137,24 +141,6 @@ export const useAuthStore = defineStore('auth', () => {
       
       if (existingUser) {
         throw new Error('用户名已被注册')
-      }
-      
-      // 🆕 验证邀请码（如果提供）
-      let inviterId: string | null = null
-      if (inviteCode && inviteCode.trim() !== '') {
-        const { data: inviter, error: inviterError } = await supabase
-          .from('users')
-          .select('id, username, is_agent')
-          .eq('invite_code', inviteCode.trim().toUpperCase())
-          .maybeSingle()
-        
-        if (inviterError || !inviter) {
-          throw new Error('邀请码无效，请检查后重试')
-        }
-        
-        // 设置邀请人ID
-        inviterId = inviter.id
-        console.log(`✅ 找到邀请人：${inviter.username} (${inviter.id})`)
       }
       
       // 生成唯一邀请码
@@ -197,7 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
           username,
           password_hash: hashedPassword, // ✅ 存储加密后的密码
           invite_code: userInviteCode,
-          inviter_id: inviterId, // 🆕 设置邀请人（如果有邀请码）
+          inviter_id: null, // ✅ 注册时不设置邀请人，升级代理时才设置
           referral_position: 1,
           u_balance: 0, // ✅ 新用户余额为0，通过充值或奖励获得
           points_balance: 150,
@@ -215,7 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('注册失败，请稍后重试')
       }
       
-      console.log(`✅ 注册成功：${username}, 邀请人ID: ${inviterId || '无'}`)
+      console.log(`✅ 注册成功：${username}（游客身份，升级代理时填写邀请码）`)
       
       // 保存用户数据
       user.value = newUser

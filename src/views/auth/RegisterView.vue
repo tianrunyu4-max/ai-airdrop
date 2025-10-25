@@ -89,32 +89,6 @@
                 </label>
               </div>
 
-              <!-- 🆕 邀请码（可选） -->
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text font-semibold">邀请码（选填）</span>
-                </label>
-                <div class="relative">
-                  <TicketIcon class="absolute left-3 top-3.5 w-5 h-5 text-base-content/40" />
-                  <input
-                    v-model="form.inviteCode"
-                    type="text"
-                    placeholder="输入邀请码（没有可留空）"
-                    class="input input-bordered w-full pl-10 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    :class="{ 'input-error': errors.inviteCode }"
-                    autocomplete="off"
-                    @input="form.inviteCode = form.inviteCode.toUpperCase()"
-                    @focus="errors.inviteCode = ''"
-                  />
-                </div>
-                <label v-if="errors.inviteCode" class="label">
-                  <span class="label-text-alt text-error">{{ errors.inviteCode }}</span>
-                </label>
-                <label v-else class="label">
-                  <span class="label-text-alt text-base-content/60">💡 有邀请码可加入团队，没有也能注册</span>
-                </label>
-              </div>
-
               <!-- 错误提示 -->
               <div v-if="errors.general" class="alert alert-error">
                 <ExclamationCircleIcon class="w-5 h-5" />
@@ -177,27 +151,17 @@ const authStore = useAuthStore()
 
 const form = reactive({
   username: '',
-  password: '',
-  inviteCode: '' // 🆕 邀请码字段
+  password: ''
 })
 
 const errors = reactive({
   username: '',
   password: '',
-  inviteCode: '', // 🆕 邀请码错误
   general: ''
 })
 
 const loading = ref(false)
 const showPassword = ref(false)
-
-// 从URL参数获取邀请码
-onMounted(() => {
-  const inviteFromUrl = route.query.invite as string
-  if (inviteFromUrl) {
-    form.inviteCode = inviteFromUrl
-  }
-})
 
 const validateForm = (): boolean => {
   errors.username = ''
@@ -247,23 +211,16 @@ const handleRegister = async () => {
 
   loading.value = true
   errors.general = ''
-  errors.inviteCode = ''
 
   try {
-    // 🆕 传递邀请码（如果有）
-    const inviteCode = form.inviteCode.trim() || undefined
-    const result = await authStore.register(form.username, form.password, inviteCode)
+    // ✅ 注册时不传递邀请码，升级AI代理时才填写
+    const result = await authStore.register(form.username, form.password)
 
     if (result.success) {
       // 注册成功，直接跳转到群聊
       router.replace('/chat')
     } else {
-      // 如果是邀请码错误，显示在邀请码字段下
-      if (result.error?.includes('邀请码')) {
-        errors.inviteCode = result.error
-      } else {
-        errors.general = result.error || t('auth.errors.registerFailed')
-      }
+      errors.general = result.error || t('auth.errors.registerFailed')
     }
   } catch (error: any) {
     console.error('Register error:', error)
