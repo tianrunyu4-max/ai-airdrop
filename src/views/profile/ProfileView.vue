@@ -128,7 +128,7 @@
 
     <!-- 代理状态/成为代理卡片 -->
     <div v-if="!user?.is_agent" class="px-4 mb-4">
-      <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg border-2 border-purple-200">
+      <div class="upgrade-agent-card bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg border-2 border-purple-200">
         <div class="flex items-start gap-4">
           <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
             <span class="text-3xl">👑</span>
