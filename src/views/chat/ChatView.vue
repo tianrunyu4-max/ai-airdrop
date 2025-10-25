@@ -232,11 +232,11 @@
     </div>
 
     <!-- 🎯 新设计：隐藏式输入框 -->
-    <!-- 默认状态：浮动+按钮 -->
+    <!-- 默认状态：浮动+按钮（左下角） -->
     <button
       v-if="!isInputExpanded"
       @click="isInputExpanded = true"
-      class="fixed bottom-20 right-6 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-50"
+      class="fixed bottom-20 left-6 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-50"
       :class="{ 'hidden': currentGroup?.type === 'ai_push' }"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -612,13 +612,13 @@ const getDefaultGroup = async () => {
       return
     }
 
-    // 第2步：查消息（⚡ 只查最新3条）
+    // 第2步：查消息（⚡ 只查最新1条）
     const { data: msgs } = await supabase
       .from('messages')
       .select('*')
       .eq('chat_group_id', groupData.id)
       .order('created_at', { ascending: false })
-      .limit(3)
+      .limit(1)
 
     console.log('💬 消息数据:', msgs)
 
@@ -774,9 +774,9 @@ const subscribeToMessages = () => {
           return
         }
 
-        // ⚡ 阅后即焚：添加新消息时，保持最多3条
+        // ⚡ 阅后即焚：添加新消息时，保持最多1条
         messages.value.push(newMessage)
-        if (messages.value.length > 3) {
+        if (messages.value.length > 1) {
           messages.value.shift() // 删除最旧的消息
         }
         
