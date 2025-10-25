@@ -104,7 +104,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'airdrops',
         name: 'admin-airdrops',
-        component: () => import('@/views/admin/AirdropsView.vue')
+        component: () => import('@/views/admin/AirdropManageView.vue')
       },
       {
         path: 'order-bonus',
