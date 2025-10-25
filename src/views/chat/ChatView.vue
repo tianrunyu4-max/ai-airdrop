@@ -588,13 +588,14 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
   }
 }
 
-// ⚡ 极简加载：直接查询，不阻塞
+// ⚡ 极简加载：3步完成
 const getDefaultGroup = async () => {
-  try {
-    loading.value = true
+  console.log('🚀 开始加载群组...')
+  loading.value = true
 
-    // 🎯 第1步：查询群组
-    const { data, error: queryError } = await supabase
+  try {
+    // 第1步：查群组
+    const { data: groupData } = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
@@ -603,102 +604,35 @@ const getDefaultGroup = async () => {
       .limit(1)
       .maybeSingle()
 
-    if (queryError) {
-      console.error('查询群组失败:', queryError)
-      // 清除可能损坏的缓存
-      clearCache()
+    console.log('📦 群组数据:', groupData)
+
+    if (!groupData) {
+      console.error('❌ 没有找到群组')
       loading.value = false
-      alert('❌ 加载群组失败，请刷新页面重试')
       return
     }
 
-    let groupData = data
+    // 第2步：查消息
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('chat_group_id', groupData.id)
+      .order('created_at', { ascending: false })
+      .limit(5)
 
-    // 如果没有默认群，直接创建
-    if (!groupData) {
-      const { data: newGroup, error: createError } = await supabase
-        .from('chat_groups')
-        .insert({
-          type: 'default',
-          icon: '💰',
-          description: 'AI 空投计划',
-          member_count: 10,
-          max_members: 50000,
-          is_active: true,
-          sort_order: 1,
-          bot_enabled: true
-        })
-        .select()
-        .single()
+    console.log('💬 消息数据:', msgs)
 
-      if (createError) {
-        console.error('创建群组失败:', createError)
-        loading.value = false
-        alert('❌ 创建群组失败，请刷新页面重试')
-        return
-      }
+    // 第3步：设置状态
+    currentGroup.value = { ...groupData, name: groupData.description }
+    messages.value = msgs ? msgs.reverse() : []
+    onlineCount.value = 6
 
-      if (newGroup) groupData = newGroup
-    }
-
-    if (!groupData) {
-      loading.value = false
-      alert('❌ 无法加载群组，请刷新页面重试')
-      return
-    }
-
-    // 🎯 第2步：并行加载消息和加入群组
-    const [messagesResult, _] = await Promise.all([
-      // ⚡ 阅后即焚：只查最新5条消息（倒序）
-      supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_group_id', groupData.id)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      
-      // 加入群组（后台）
-      authStore.user ? supabase
-        .from('group_members')
-        .upsert({
-          group_id: groupData.id,
-          user_id: authStore.user.id,
-          role: 'member'
-        }, { onConflict: 'group_id,user_id', ignoreDuplicates: true }) : Promise.resolve()
-    ])
-
-    // 🎯 第3步：一次性设置所有数据（只触发1次渲染）
-    currentGroup.value = {
-      ...groupData,
-      name: groupData.description || 'AI 空投计划'
-    } as any
-
-    if (!messagesResult.error && messagesResult.data) {
-      // ⚡ 反转数组（倒序查询 → 正序显示）
-      messages.value = messagesResult.data.reverse()
-    } else {
-      console.warn('加载消息失败或无消息:', messagesResult.error)
-      messages.value = []
-    }
-    
-    // ⚡ 更新在线人数（基于真实成员数）
-    onlineCount.value = Math.floor((groupData.member_count || 10) * 0.6) // 60%在线率
-
-    // 🚀 保存到缓存
-    saveToCache()
-
-    // 🎯 第4步：订阅实时消息
-    subscribeToMessages()
-    
-    // 🎯 第5步：滚动到底部
-    await nextTick()
-    scrollToBottom(false)
-    
-    // ✅ 关闭loading
-    loading.value = false
+    console.log('✅ 加载完成')
   } catch (error) {
-    console.error('加载失败:', error)
+    console.error('❌ 加载错误:', error)
+  } finally {
     loading.value = false
+    console.log('🎯 Loading已关闭')
   }
 }
 
