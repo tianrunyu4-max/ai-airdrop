@@ -48,7 +48,7 @@
     <!-- 消息列表 - 全屏聊天区域 -->
     <div
       ref="messageContainer"
-      class="flex-1 overflow-y-auto p-6 space-y-4 bg-white min-h-0 pt-20"
+      class="flex-1 overflow-y-auto p-6 space-y-4 bg-white min-h-0 pt-20 pb-24"
     >
       <!-- 机器人消息（空投推送） -->
       <div 
@@ -231,60 +231,92 @@
       </div>
     </div>
 
-    <!-- 输入框 - 全屏版 -->
-    <div class="p-6 bg-white border-t border-base-300">
-      <!-- 图片预览 -->
-      <div v-if="imagePreview" class="mb-3 relative inline-block">
-        <img :src="imagePreview" class="max-w-xs max-h-32 rounded-lg" />
-        <button 
-          @click="cancelImage" 
-          class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2"
-        >
-          ✕
-        </button>
+    <!-- 🎯 新设计：隐藏式输入框 -->
+    <!-- 默认状态：浮动+按钮 -->
+    <button
+      v-if="!isInputExpanded"
+      @click="isInputExpanded = true"
+      class="fixed bottom-20 right-6 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-50"
+      :class="{ 'hidden': currentGroup?.type === 'ai_push' }"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+    </button>
+
+    <!-- 展开状态：完整输入区域 -->
+    <div 
+      v-if="isInputExpanded"
+      class="fixed bottom-16 left-0 right-0 bg-white border-t border-base-300 shadow-2xl z-50 animate-slide-up"
+    >
+      <div class="p-4">
+        <!-- 图片预览 -->
+        <div v-if="imagePreview" class="mb-3 relative inline-block">
+          <img :src="imagePreview" class="max-w-xs max-h-32 rounded-lg" />
+          <button 
+            @click="cancelImage" 
+            class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form @submit.prevent="sendMessage" class="flex gap-2">
+          <!-- 隐藏的文件输入 -->
+          <input 
+            ref="fileInput"
+            type="file" 
+            accept="image/*" 
+            class="hidden"
+            @change="handleImageSelect"
+          />
+          
+          <!-- 图片按钮 -->
+          <button
+            type="button"
+            @click="$refs.fileInput.click()"
+            class="btn btn-circle btn-primary btn-outline"
+            title="上传图片"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </button>
+
+          <!-- 输入框 -->
+          <input
+            v-model="messageInput"
+            type="text"
+            :placeholder="t('chat.inputPlaceholder')"
+            class="input input-bordered flex-1 focus:input-primary"
+            maxlength="500"
+            @keyup.enter="sendMessage"
+            autofocus
+          />
+          
+          <!-- 发送按钮 -->
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="!messageInput.trim() && !selectedImage"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+          
+          <!-- 收起按钮 -->
+          <button
+            type="button"
+            @click="isInputExpanded = false"
+            class="btn btn-ghost btn-circle"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </form>
       </div>
-
-      <form @submit.prevent="sendMessage" class="flex gap-3">
-        <!-- 图片上传按钮 -->
-        <input 
-          ref="fileInput"
-          type="file" 
-          accept="image/*" 
-          class="hidden"
-          @change="handleImageSelect"
-        />
-        <button
-          type="button"
-          @click="$refs.fileInput.click()"
-          class="btn btn-circle btn-lg btn-primary btn-outline hover:btn-primary hover:scale-110 transition-all shadow-md"
-          :disabled="currentGroup?.type === 'ai_push'"
-          title="上传图片"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </button>
-
-        <input
-          v-model="messageInput"
-          type="text"
-          :placeholder="currentGroup?.type === 'ai_push' ? '📢 此群只接收机器人推送，不可聊天' : t('chat.inputPlaceholder')"
-          :disabled="currentGroup?.type === 'ai_push'"
-          class="input input-bordered flex-1 input-lg text-lg focus:input-primary transition-all h-14"
-          maxlength="500"
-          @keyup.enter="sendMessage"
-        />
-        <button
-          type="submit"
-          class="btn btn-primary btn-lg px-12 gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold h-14"
-          :disabled="!messageInput.trim() && !selectedImage"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-          <span class="text-lg">{{ t('chat.send') }}</span>
-        </button>
-      </form>
     </div>
 
   </div>
@@ -316,6 +348,7 @@ const onlineCount = ref(1)
 const selectedImage = ref<File | null>(null)
 const imagePreview = ref<string>('')
 const fileInput = ref<HTMLInputElement>()
+const isInputExpanded = ref(false) // 控制输入框展开/收起
 
 // 环境标识：区分开发和生产环境的localStorage
 const ENV_PREFIX = isDevMode ? 'dev_' : 'prod_'
@@ -978,6 +1011,9 @@ const sendMessage = async () => {
     // 🚀 更新缓存
     saveToCache()
     
+    // ✅ 发送成功后自动收起输入框
+    isInputExpanded.value = false
+    
   } catch (error) {
     console.error('发送消息异常:', error)
     // 静默失败，不影响用户体验
@@ -1474,6 +1510,22 @@ const shareAirdrop = (message: any) => {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* 🎯 新增：滑入动画 */
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 🎯 优化：减少重绘抖动 */
