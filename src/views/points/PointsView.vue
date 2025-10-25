@@ -122,10 +122,10 @@
         </div>
 
         <!-- 重启机制说明 -->
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border-2 border-blue-300">
-          <div class="text-center text-blue-600 font-bold text-sm mb-2">🎓 AI智能学习系统</div>
-          <div class="text-xs text-gray-700 text-center">
-            积分当学分 · 学习AI工具使用 · 消耗积分使用各种AI智能体
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5 mb-4 border-2 border-blue-400">
+          <div class="text-center text-blue-700 font-bold text-lg mb-3">🎓 AI智能学习系统</div>
+          <div class="text-sm text-gray-800 text-center font-semibold leading-relaxed">
+            <span class="text-red-600">重启机制</span> · <span class="text-blue-600">消耗积分</span> · 用来学习各种<span class="text-purple-600">AI工具</span>
           </div>
         </div>
 
