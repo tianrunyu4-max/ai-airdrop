@@ -157,11 +157,11 @@
           <div class="text-center text-sm font-bold text-gray-700 mb-3">📊 每日收益自动分配</div>
           <div class="space-y-2">
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">85% 自动转U</span>
+              <span class="text-gray-600">80% 自动转U</span>
               <span class="text-yellow-600 font-bold">直接到账</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">15% 充学分</span>
+              <span class="text-gray-600">20% 充学分</span>
               <span class="text-blue-600 font-bold">学习AI</span>
             </div>
           </div>
@@ -197,7 +197,7 @@
             </div>
           </div>
           <div class="text-center text-xs text-gray-500 mt-2">
-            💡 基于300积分总产出（3倍出局），85%到账，5个直推封顶
+            💡 基于300积分总产出（3倍出局），80%到账，5个直推封顶
           </div>
         </div>
 

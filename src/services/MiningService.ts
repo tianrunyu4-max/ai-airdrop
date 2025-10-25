@@ -8,7 +8,7 @@
  * 3. 每日签到释放（不签到不释放）
  * 4. 基础释放率1%/天 + 直推加速1%/人，最高10%
  * 5. 3倍出局（30-300天）
- * 6. 85%到账U余额，15%自动清0
+ * 6. 80%到账U余额，20%充学分
  * 7. 自动重启机制（总释放>新积分时触发）
  * 8. 叠加机制（最多10张）
  * 
@@ -349,12 +349,12 @@ export class MiningService extends BaseService {
       })))
 
       // 6. 分配释放的积分到用户账户
-      // 85% 转 U (兑换价：100积分=8U，即1积分=0.08U)
-      const toU = totalReleased * 0.85
+      // 80% 转 U (兑换价：100积分=8U，即1积分=0.08U)
+      const toU = totalReleased * 0.80
       const uAmount = toU * 0.08 // 1积分 = 0.08U (100积分=8U)
       
-      // 15% 销毁（防泡沫机制，自动清0）
-      const toBurn = totalReleased * 0.15
+      // 20% 充学分（学习AI）
+      const toBurn = totalReleased * 0.20
 
       // 更新用户余额（同时更新 Supabase 和 localStorage）
       const userSession = localStorage.getItem('user_session')
