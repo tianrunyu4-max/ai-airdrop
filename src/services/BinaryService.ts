@@ -644,8 +644,9 @@ export class BinaryService extends BaseService {
   }
 
   /**
-   * 🎁 触发见单奖（直推链5代，每次对碰各1U）
-   * 下线每次对碰成功，直推链上的5代上级各获得1U（不管对碰几组）
+   * 🎁 触发见单奖（直推链5代，每组1U）
+   * 下线每次对碰成功，直推链上的5代上级各按组数获得奖励
+   * 公式：见单奖 = 对碰组数 × 1U
    * 条件：上级直推≥2人才能获得见单奖
    */
   private static async triggerOrderBonus(
@@ -654,7 +655,7 @@ export class BinaryService extends BaseService {
   ): Promise<void> {
     try {
       const ORDER_BONUS_DEPTH = 5  // 直推链5代
-      const ORDER_BONUS_AMOUNT = 1  // 每次对碰固定1U（不管几组）
+      const ORDER_BONUS_PER_PAIR = 1  // 每组1U
 
       // 获取触发者的用户信息
       const { data: triggerUser } = await supabase
@@ -671,7 +672,7 @@ export class BinaryService extends BaseService {
       let currentUserId = triggerUser.inviter_id
       let generation = 1
 
-      console.log(`🎁 见单奖触发：${triggerUser.username}对碰（不管${pairsCount}组），向上追溯${ORDER_BONUS_DEPTH}代直推链`)
+      console.log(`🎁 见单奖触发：${triggerUser.username}对碰${pairsCount}组，向上追溯${ORDER_BONUS_DEPTH}代直推链`)
 
       while (currentUserId && generation <= ORDER_BONUS_DEPTH) {
         // 获取当前上级
@@ -692,14 +693,14 @@ export class BinaryService extends BaseService {
         const referralCount = directReferrals || 0
 
         if (referralCount >= 2) {
-          // ✅ 满足条件：发放见单奖（固定1U）
-          const orderBonus = ORDER_BONUS_AMOUNT
+          // ✅ 满足条件：发放见单奖（按组数计算）
+          const orderBonus = ORDER_BONUS_PER_PAIR * pairsCount
 
           await WalletManager.add(
             upline.id,
             orderBonus,
             'order_bonus',
-            `见单奖（第${generation}代）：下线${triggerUser.username}对碰 → 1U`
+            `见单奖（第${generation}代）：下线${triggerUser.username}对碰${pairsCount}组 × 1U = ${orderBonus.toFixed(2)}U`
           )
 
           // 记录见单奖到详细记录表
@@ -723,7 +724,7 @@ export class BinaryService extends BaseService {
             })
             .eq('user_id', upline.id)
 
-          console.log(`  ✅ 第${generation}代 ${upline.username}（直推${referralCount}人）获得见单奖：1U`)
+          console.log(`  ✅ 第${generation}代 ${upline.username}（直推${referralCount}人）获得见单奖：${pairsCount}组 × 1U = ${orderBonus}U`)
         } else {
           console.log(`  ⚠️ 第${generation}代 ${upline.username}（直推${referralCount}人<2）不满足条件，跳过`)
         }
