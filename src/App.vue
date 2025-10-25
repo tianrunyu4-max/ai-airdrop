@@ -48,9 +48,16 @@
       
       <!-- 主内容区域 -->
       <main class="flex-1 overflow-y-auto pb-16" :class="{ 'pt-16': authStore.user && !authStore.user.is_agent && !isUpgradeBannerClosed && showBottomNav }">
-        <router-view v-slot="{ Component }">
+        <router-view v-slot="{ Component, route }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <!-- ✅ 使用 keep-alive 缓存底部导航的5个主要页面，加速切换 -->
+            <keep-alive :max="5">
+              <component 
+                :is="Component" 
+                :key="shouldCache(route) ? route.name : route.path" 
+                v-if="Component"
+              />
+            </keep-alive>
           </transition>
         </router-view>
       </main>
@@ -105,6 +112,12 @@ const showBottomNav = computed(() => {
   return !hiddenRoutes.includes(route.name as string)
 })
 
+// ✅ 判断路由是否需要缓存（底部导航的5个主要页面）
+const shouldCache = (route: any) => {
+  const cachedRoutes = ['chat', 'points', 'tools', 'team', 'profile']
+  return cachedRoutes.includes(route.name as string)
+}
+
 // 🆕 关闭升级横幅
 const closeBanner = () => {
   isUpgradeBannerClosed.value = true
@@ -125,11 +138,39 @@ const goToUpgrade = () => {
   }, 300)
 }
 
+// ✅ 预加载底部导航页面（加速首次切换）
+const preloadBottomNavPages = () => {
+  // 在空闲时预加载其他页面
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      Promise.all([
+        import('@/views/points/PointsView.vue'),
+        import('@/views/tools/ToolsView.vue'),
+        import('@/views/team/TeamView.vue'),
+        import('@/views/profile/ProfileView.vue')
+      ])
+    })
+  } else {
+    // 降级方案：延迟2秒后加载
+    setTimeout(() => {
+      Promise.all([
+        import('@/views/points/PointsView.vue'),
+        import('@/views/tools/ToolsView.vue'),
+        import('@/views/team/TeamView.vue'),
+        import('@/views/profile/ProfileView.vue')
+      ])
+    }, 2000)
+  }
+}
+
 // 初始化认证状态
 onMounted(async () => {
   try {
     // 初始化认证状态
     await authStore.initialize()
+    
+    // ✅ 预加载底部导航页面
+    preloadBottomNavPages()
     
     // 🆕 检查横幅关闭状态
     const closedTime = localStorage.getItem('upgrade_banner_closed')
@@ -162,10 +203,10 @@ onMounted(async () => {
 </script>
 
 <style>
-/* 页面切换动画 */
+/* ⚡ 页面切换动画 - 极速切换（0.1s） */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.1s ease;
 }
 
 .fade-enter-from,
