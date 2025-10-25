@@ -1027,7 +1027,7 @@ const submitRecharge = async () => {
     const result = await RechargeService.createRecharge(rechargeData.value)
     
     if (result.success) {
-      alert('✅ 充值申请已提交！\n\n请等待管理员确认到账')
+      alert('✅ 充值申请已提交！\n\nAI自动审核中，稍等片刻...')
       showRechargeModal.value = false
       // 重置表单
       rechargeData.value = {
