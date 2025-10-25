@@ -590,11 +590,10 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
 
 // ⚡ 极简加载：3步完成
 const getDefaultGroup = async () => {
-  console.log('🚀 开始加载群组...')
   loading.value = true
 
   try {
-    // 第1步：查群组
+    // ⚡ 只查群组，不查消息（消息靠实时推送）
     const { data: groupData } = await supabase
       .from('chat_groups')
       .select('*')
@@ -604,38 +603,19 @@ const getDefaultGroup = async () => {
       .limit(1)
       .maybeSingle()
 
-    console.log('📦 群组数据:', groupData)
-
     if (!groupData) {
-      console.error('❌ 没有找到群组')
       loading.value = false
       return
     }
 
-    // 第2步：查消息（⚡ 只查最新1条）
-    const { data: msgs } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('chat_group_id', groupData.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    console.log('💬 消息数据:', msgs)
-
-    // 第3步：设置状态
+    // 设置状态（空消息列表，靠实时推送）
     currentGroup.value = { ...groupData, name: groupData.description }
-    messages.value = msgs ? msgs.reverse() : []
+    messages.value = []
     onlineCount.value = 6
-
-    console.log('✅ 加载完成')
-    console.log('📊 messages.value:', messages.value)
-    console.log('📊 messages.value.length:', messages.value.length)
-    console.log('📊 validMessages:', validMessages.value)
   } catch (error) {
-    console.error('❌ 加载错误:', error)
+    console.error('加载错误:', error)
   } finally {
     loading.value = false
-    console.log('🎯 Loading已关闭, loading.value:', loading.value)
   }
 }
 
