@@ -19,11 +19,11 @@
         <router-link to="/profile" class="btn btn-sm btn-primary">前往订阅</router-link>
       </div>
 
-      <!-- 🎯 隐藏式+号按钮（右上角） -->
+      <!-- 🎯 隐藏式+号按钮（右上角顶部） -->
       <button
         v-if="authStore.user?.is_agent && !isFormExpanded"
         @click="isFormExpanded = true"
-        class="fixed top-20 right-6 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-50"
+        class="fixed top-4 right-4 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-[60]"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
