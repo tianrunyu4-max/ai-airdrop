@@ -63,46 +63,18 @@
         📅 每日签到
       </h3>
       
-      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-300">
+      <div class="bg-white rounded-xl shadow-lg p-4 border-2 border-green-300">
         <!-- 签到状态 -->
-        <div class="text-center mb-4">
-          <div v-if="isCheckedInToday" class="text-green-600 text-lg font-bold mb-2">
+        <div class="text-center mb-3">
+          <div v-if="isCheckedInToday" class="text-green-600 font-bold mb-1">
             ✅ 今日已签到
           </div>
-          <div v-else class="text-gray-600 text-lg font-bold mb-2">
+          <div v-else class="text-gray-600 font-bold mb-1">
             ⏰ 今日未签到
           </div>
           
-          <div class="text-sm text-gray-500">
-            {{ activeCardCount }} 张学习卡等待签到
-          </div>
-        </div>
-        
-        <!-- 当前释放率 -->
-        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4 border border-green-200">
-          <div class="text-center">
-            <div class="text-gray-600 text-sm mb-1">当前释放率</div>
-            <div class="text-green-600 font-bold text-3xl">
-              {{ (releaseRate * 100).toFixed(0) }}%/天
-            </div>
-            <div class="text-xs text-gray-500 mt-2">
-              直推加速：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%
-            </div>
-            <div class="mt-3 pt-3 border-t border-green-200">
-              <div class="text-xs text-gray-600 mb-1">每张卡每日释放</div>
-              <div class="flex items-center justify-center gap-4">
-                <div class="text-blue-600 font-bold text-lg">
-                  {{ (300 * releaseRate).toFixed(1) }} 积分
-                </div>
-                <div class="text-gray-400">→</div>
-                <div class="text-yellow-600 font-bold text-lg">
-                  {{ (300 * releaseRate * 0.85 * 0.08).toFixed(3) }} U
-                </div>
-              </div>
-              <div class="text-xs text-gray-400 mt-1">
-                （15%自动清0 {{ (300 * releaseRate * 0.15).toFixed(1) }} 积分）
-              </div>
-            </div>
+          <div class="text-xs text-gray-500">
+            {{ activeCardCount }} 张学习卡
           </div>
         </div>
         
