@@ -36,7 +36,7 @@ export class RechargeService {
         .from('system_config')
         .select('value')
         .eq('key', 'recharge_config')
-        .single()
+        .maybeSingle()
       
       if (error) throw error
       return data?.value as RechargeConfig

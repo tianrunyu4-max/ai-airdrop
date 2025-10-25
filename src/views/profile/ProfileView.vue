@@ -926,7 +926,7 @@ const loadPlatformContacts = async () => {
     const { data } = await supabase
       .from('system_config')
       .select('platform_contacts')
-      .single()
+      .maybeSingle()
     
     if (data?.platform_contacts) {
       platformContacts.value = {
