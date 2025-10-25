@@ -1161,9 +1161,9 @@ const pushAirdropMessage = async () => {
 // 🗄️ 从数据库加载空投
 const loadAirdropsFromDatabase = async () => {
   try {
-    // 90% Web3, 10% CEX
+    // 50% Web3, 50% CEX（去中心化交易所 vs 中心化交易所）
     const randomNum = Math.random()
-    const type = randomNum < 0.9 ? 'web3' : 'cex'
+    const type = randomNum < 0.5 ? 'web3' : 'cex'
     
     const { data, error } = await supabase
       .from('airdrops')
