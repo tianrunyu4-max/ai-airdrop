@@ -424,8 +424,8 @@ const saveToCache = () => {
       localStorage.setItem(CACHE_KEYS.GROUP, JSON.stringify(currentGroup.value))
     }
     if (messages.value.length > 0) {
-      // 只缓存最近50条消息
-      const recentMessages = messages.value.slice(-50)
+      // ⚡ 阅后即焚：只缓存最新5条消息
+      const recentMessages = messages.value.slice(-5)
       localStorage.setItem(CACHE_KEYS.MESSAGES, JSON.stringify(recentMessages))
     }
     localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString())
@@ -650,15 +650,15 @@ const getDefaultGroup = async (silent = false) => {
       return
     }
 
-    // 🎯 第2步：并行加载消息和加入群组（优化：去除关联查询）
+    // 🎯 第2步：并行加载消息和加入群组
     const [messagesResult, _] = await Promise.all([
-      // ⚡ 优化：查询所有字段（避免JOIN，加快查询速度）
+      // ⚡ 阅后即焚：只查最新5条消息（倒序）
       supabase
         .from('messages')
         .select('*')
         .eq('chat_group_id', groupData.id)
-        .order('created_at', { ascending: true })
-        .limit(50),
+        .order('created_at', { ascending: false })
+        .limit(5),
       
       // 加入群组（后台）
       authStore.user ? supabase
@@ -677,8 +677,8 @@ const getDefaultGroup = async (silent = false) => {
     } as any
 
     if (!messagesResult.error && messagesResult.data) {
-      // ⚡ 优化：直接使用消息中的username，无需额外处理
-      messages.value = messagesResult.data
+      // ⚡ 反转数组（倒序查询 → 正序显示）
+      messages.value = messagesResult.data.reverse()
     } else {
       console.warn('加载消息失败或无消息:', messagesResult.error)
       messages.value = []
@@ -846,8 +846,12 @@ const subscribeToMessages = () => {
           return
         }
 
-        // 添加到界面
+        // ⚡ 阅后即焚：添加新消息时，保持最多5条
         messages.value.push(newMessage)
+        if (messages.value.length > 5) {
+          messages.value.shift() // 删除最旧的消息
+        }
+        
         scrollToBottom()
         
         // ⚡ 更新在线人数（有新消息说明有人活跃）
