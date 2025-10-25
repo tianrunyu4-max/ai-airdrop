@@ -612,13 +612,13 @@ const getDefaultGroup = async () => {
       return
     }
 
-    // 第2步：查消息
+    // 第2步：查消息（⚡ 只查最新3条）
     const { data: msgs } = await supabase
       .from('messages')
       .select('*')
       .eq('chat_group_id', groupData.id)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(3)
 
     console.log('💬 消息数据:', msgs)
 
@@ -774,9 +774,9 @@ const subscribeToMessages = () => {
           return
         }
 
-        // ⚡ 阅后即焚：添加新消息时，保持最多5条
+        // ⚡ 阅后即焚：添加新消息时，保持最多3条
         messages.value.push(newMessage)
-        if (messages.value.length > 5) {
+        if (messages.value.length > 3) {
           messages.value.shift() // 删除最旧的消息
         }
         
