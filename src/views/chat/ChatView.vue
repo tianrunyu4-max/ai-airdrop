@@ -1318,32 +1318,110 @@ const startPeriodicRefresh = () => {
 
 // 🔥 简化版：一步到位初始化（批量加载，0次跳转）
 onMounted(async () => {
-  cleanupOldLocalStorage()  // 清理旧数据
-  
-  // 🚀 第1步：立即加载缓存（瞬间显示UI）
-  const hasCache = loadFromCache()
-  
-  if (hasCache) {
-    // ✅ 有缓存：立即显示，后台刷新
+  try {
+    cleanupOldLocalStorage()  // 清理旧数据
+    
+    // 🚨 超时保护：3秒后强制关闭loading
+    const timeoutId = setTimeout(() => {
+      if (loading.value) {
+        console.warn('⚠️ 加载超时，强制显示页面')
+        loading.value = false
+        
+        // 如果没有群组信息，创建一个默认的
+        if (!currentGroup.value) {
+          currentGroup.value = {
+            id: 'loading-fallback',
+            type: 'default',
+            icon: '💰',
+            description: 'AI 空投计划',
+            name: 'AI 空投计划',
+            member_count: 10,
+            is_active: true,
+            sort_order: 1
+          } as any
+          onlineCount.value = 6
+        }
+      }
+    }, 3000)
+    
+    // 🚀 第1步：立即加载缓存（瞬间显示UI）
+    const hasCache = loadFromCache()
+    
+    if (hasCache) {
+      // ✅ 有缓存：立即显示，后台刷新
+      loading.value = false
+      clearTimeout(timeoutId)
+      
+      // 订阅实时消息
+      subscribeToMessages()
+      
+      // 滚动到底部
+      await nextTick()
+      scrollToBottom(false)
+      
+      // 后台静默刷新数据
+      setTimeout(() => {
+        getDefaultGroup(true).catch(err => {
+          console.error('后台刷新失败:', err)
+        })
+      }, 100)
+    } else {
+      // ❌ 无缓存：正常加载
+      try {
+        await getDefaultGroup(false)
+        clearTimeout(timeoutId)
+      } catch (err) {
+        console.error('加载群组失败:', err)
+        clearTimeout(timeoutId)
+        loading.value = false
+        
+        // 创建临时群组信息
+        if (!currentGroup.value) {
+          currentGroup.value = {
+            id: 'error-fallback',
+            type: 'default',
+            icon: '💰',
+            description: 'AI 空投计划',
+            name: 'AI 空投计划',
+            member_count: 10,
+            is_active: true,
+            sort_order: 1
+          } as any
+          onlineCount.value = 6
+          messages.value = []
+        }
+      }
+    }
+    
+    startPeriodicRefresh()    // 启动定时刷新
+  } catch (error) {
+    console.error('🚨 初始化失败:', error)
     loading.value = false
     
-    // 订阅实时消息
-    subscribeToMessages()
-    
-    // 滚动到底部
-    await nextTick()
-    scrollToBottom(false)
-    
-    // 后台静默刷新数据
+    // 确保有基本的群组信息
+    if (!currentGroup.value) {
+      currentGroup.value = {
+        id: 'init-error-fallback',
+        type: 'default',
+        icon: '💰',
+        description: 'AI 空投计划',
+        name: 'AI 空投计划',
+        member_count: 10,
+        is_active: true,
+        sort_order: 1
+      } as any
+      onlineCount.value = 6
+      messages.value = []
+    }
+  } finally {
+    // 🚨 最后的保险：确保loading一定会关闭
     setTimeout(() => {
-      getDefaultGroup(true)  // silent=true，不显示loading
-    }, 100)
-  } else {
-    // ❌ 无缓存：正常加载
-    await getDefaultGroup(false)
+      if (loading.value) {
+        console.error('🚨 检测到loading未关闭，强制关闭')
+        loading.value = false
+      }
+    }, 5000)
   }
-  
-  startPeriodicRefresh()    // 启动定时刷新
 })
 
 // 监听路由变化已禁用（避免重复加载）
