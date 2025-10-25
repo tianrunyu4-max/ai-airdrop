@@ -588,13 +588,10 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
   }
 }
 
-// 🔥 终极优化：一步到位初始化（批量操作，0次跳转）
-const getDefaultGroup = async (silent = false) => {
+// ⚡ 极简加载：直接查询，不阻塞
+const getDefaultGroup = async () => {
   try {
-    // 🚀 如果是后台刷新，不显示loading
-    if (!silent) {
-      loading.value = true
-    }
+    loading.value = true
 
     // 🎯 第1步：查询群组
     const { data, error: queryError } = await supabase
@@ -690,23 +687,17 @@ const getDefaultGroup = async (silent = false) => {
     // 🚀 保存到缓存
     saveToCache()
 
-    // 🎯 第4步：订阅实时消息（只在第一次初始化时）
-    if (!silent && !messageSubscription) {
-      subscribeToMessages()
-    }
+    // 🎯 第4步：订阅实时消息
+    subscribeToMessages()
     
-    // 🎯 第5步：如果有消息，立即滚动到底部（无动画，避免视觉跳动）
-    if (messages.value.length > 0) {
-      await nextTick()
-      scrollToBottom(false)  // false = 无动画，立即跳转
-    }
+    // 🎯 第5步：滚动到底部
+    await nextTick()
+    scrollToBottom(false)
     
     // ✅ 关闭loading
-    if (!silent) {
-      loading.value = false
-    }
+    loading.value = false
   } catch (error) {
-    console.error('初始化失败:', error)
+    console.error('加载失败:', error)
     loading.value = false
   }
 }
@@ -1364,81 +1355,10 @@ const startPeriodicRefresh = () => {
 }
 
 // 🔥 简化版：一步到位初始化（批量加载，0次跳转）
+// ⚡ 极简初始化：直接加载，不阻塞
 onMounted(async () => {
-  try {
-    cleanupOldLocalStorage()  // 清理旧数据
-    
-    // 🚨 超时保护：3秒后强制关闭loading
-    const timeoutId = setTimeout(() => {
-      if (loading.value) {
-        console.warn('⚠️ 加载超时，强制显示页面')
-        loading.value = false
-        
-        // 如果没有群组信息，显示空状态（禁止发送消息）
-        if (!currentGroup.value) {
-          // 不创建假的群组，让空状态显示
-          messages.value = []
-          onlineCount.value = 0
-        }
-      }
-    }, 3000)
-    
-    // 🚀 第1步：立即加载缓存（瞬间显示UI）
-    const hasCache = loadFromCache()
-    
-    if (hasCache) {
-      // ✅ 有缓存：立即显示，后台刷新
-      loading.value = false
-      clearTimeout(timeoutId)
-      
-      // 订阅实时消息
-      subscribeToMessages()
-      
-      // 滚动到底部
-      await nextTick()
-      scrollToBottom(false)
-      
-      // 后台静默刷新数据
-      setTimeout(() => {
-        getDefaultGroup(true).catch(err => {
-          console.error('后台刷新失败:', err)
-        })
-      }, 100)
-    } else {
-      // ❌ 无缓存：正常加载
-      try {
-        await getDefaultGroup(false)
-        clearTimeout(timeoutId)
-      } catch (err) {
-        console.error('加载群组失败:', err)
-        clearTimeout(timeoutId)
-        loading.value = false
-        
-        // 显示错误状态，不创建假群组
-        messages.value = []
-        onlineCount.value = 0
-        alert('❌ 加载失败，请刷新页面重试')
-      }
-    }
-    
-    startPeriodicRefresh()    // 启动定时刷新
-  } catch (error) {
-    console.error('🚨 初始化失败:', error)
-    loading.value = false
-    
-    // 显示错误状态，不创建假群组
-    messages.value = []
-    onlineCount.value = 0
-    alert('❌ 初始化失败，请刷新页面重试')
-  } finally {
-    // 🚨 最后的保险：确保loading一定会关闭
-    setTimeout(() => {
-      if (loading.value) {
-        console.error('🚨 检测到loading未关闭，强制关闭')
-        loading.value = false
-      }
-    }, 5000)
-  }
+  cleanupOldLocalStorage()
+  await getDefaultGroup()
 })
 
 // 监听路由变化已禁用（避免重复加载）
