@@ -7,22 +7,22 @@ INSERT INTO system_config (key, value, description)
 VALUES (
   'recharge_config',
   jsonb_build_object(
-    'usdt_trc20', '请在这里填写你的TRC20地址',  -- ⚠️ 替换为你的TRC20地址
-    'usdt_bep20', '请在这里填写你的BEP20地址',  -- ⚠️ 替换为你的BEP20地址
+    'usdt_trc20', 'TQTjfehUeHRWkw7QkcRKojWYdzYPebr9iS',  -- ✅ TRC20波场链地址
+    'usdt_bep20', '0xc8288b98f7c2cc11bccbc033754effcc87c1909e',  -- ✅ BEP20币安智能链地址
     'enable_recharge', true,
     'min_amount', 30,  -- ✅ 最低充值30U
-    'notice', '💡 充值说明：\n1. 转账后请填写交易哈希\n2. 管理员审核后到账\n3. 最低充值30 USDT'
+    'notice', '💡 充值说明：\n1. 选择网络并复制地址转账\n2. 填写充值金额和交易哈希\n3. 管理员审核后自动到账\n4. 最低充值30 USDT'
   ),
   '充值系统配置（TRC20波场链 + BEP20币安智能链）'
 )
 ON CONFLICT (key) DO UPDATE
 SET 
   value = jsonb_build_object(
-    'usdt_trc20', '请在这里填写你的TRC20地址',  -- ⚠️ 替换为你的TRC20地址
-    'usdt_bep20', '请在这里填写你的BEP20地址',  -- ⚠️ 替换为你的BEP20地址
+    'usdt_trc20', 'TQTjfehUeHRWkw7QkcRKojWYdzYPebr9iS',  -- ✅ TRC20波场链地址
+    'usdt_bep20', '0xc8288b98f7c2cc11bccbc033754effcc87c1909e',  -- ✅ BEP20币安智能链地址
     'enable_recharge', true,
     'min_amount', 30,  -- ✅ 最低充值30U
-    'notice', '💡 充值说明：\n1. 转账后请填写交易哈希\n2. 管理员审核后到账\n3. 最低充值30 USDT'
+    'notice', '💡 充值说明：\n1. 选择网络并复制地址转账\n2. 填写充值金额和交易哈希\n3. 管理员审核后自动到账\n4. 最低充值30 USDT'
   ),
   updated_at = NOW();
 
