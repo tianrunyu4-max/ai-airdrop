@@ -18,9 +18,9 @@ export const BinaryConfig = {
   // ========== 对碰奖励（配对奖励）V5.0 ==========
   PAIRING: {
     BONUS_PER_PAIR: 6,             // 每单对碰奖励6U
-    MEMBER_RATIO: 1.0,             // 100%到账会员（6U）
-    MEMBER_AMOUNT: 6,              // 会员实际获得：6U × 100% = 6U
-    RESERVED_RATIO: 0,             // 0%预留
+    MEMBER_RATIO: 0.8,             // 80%封顶到账会员
+    MEMBER_AMOUNT: 4.8,            // 会员实际获得：6U × 80% = 4.8U
+    RESERVED_RATIO: 0.2,           // 20%预留
     RATIO: '2:1_OR_1:2',           // 对碰比例2:1或1:2（灵活配对）
     REQUIRED_UNITS: {
       TWO_ONE: { A: 2, B: 1 },     // 2:1 配对所需单量
