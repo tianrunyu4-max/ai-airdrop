@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 export interface RechargeConfig {
   usdt_trc20: string
-  usdt_erc20: string
+  usdt_bep20: string
   enable_recharge: boolean
   min_amount: number
   notice: string

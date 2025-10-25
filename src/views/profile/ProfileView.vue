@@ -477,11 +477,11 @@
                 TRC20
               </button>
               <button 
-                @click="rechargeData.network = 'ERC20'"
+                @click="rechargeData.network = 'BEP20'"
                 class="btn flex-1"
-                :class="rechargeData.network === 'ERC20' ? 'btn-warning' : 'btn-outline'"
+                :class="rechargeData.network === 'BEP20' ? 'btn-warning' : 'btn-outline'"
               >
-                ERC20
+                BEP20
               </button>
             </div>
           </div>
@@ -490,10 +490,10 @@
           <div v-if="rechargeConfig" class="bg-gray-50 rounded-lg p-4">
             <div class="text-sm text-gray-600 mb-2">转账至此地址</div>
             <div class="font-mono text-sm bg-white p-3 rounded border break-all">
-              {{ rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_erc20 }}
+              {{ rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_bep20 }}
             </div>
             <button 
-              @click="copyAddress(rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_erc20)"
+              @click="copyAddress(rechargeData.network === 'TRC20' ? rechargeConfig.usdt_trc20 : rechargeConfig.usdt_bep20)"
               class="btn btn-sm btn-primary w-full mt-2"
             >
               📋 复制地址
