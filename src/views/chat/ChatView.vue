@@ -828,6 +828,7 @@ const sendMessage = async () => {
     const messageData: any = {
       chat_group_id: currentGroup.value.id,
       user_id: userId,
+      username: authStore.user.username, // ✅ 保存用户名到数据库
       content: contentToSend,
       type: messageType,
       is_bot: false
