@@ -644,16 +644,17 @@ export class BinaryService extends BaseService {
   }
 
   /**
-   * 🎁 触发见单奖（直推链5层，每层1U）
-   * 下线每次对碰成功，直推链上的5层上级各获得1U
+   * 🎁 触发见单奖（直推链5代，每次对碰各1U）
+   * 下线每次对碰成功，直推链上的5代上级各获得1U（不管对碰几组）
+   * 条件：上级直推≥2人才能获得见单奖
    */
   private static async triggerOrderBonus(
     triggerId: string,
     pairsCount: number
   ): Promise<void> {
     try {
-      const ORDER_BONUS_DEPTH = 5  // 直推链5层
-      const ORDER_BONUS_PER_PAIR = 1  // 每组对碰每层1U
+      const ORDER_BONUS_DEPTH = 5  // 直推链5代
+      const ORDER_BONUS_AMOUNT = 1  // 每次对碰固定1U（不管几组）
 
       // 获取触发者的用户信息
       const { data: triggerUser } = await supabase
@@ -666,11 +667,11 @@ export class BinaryService extends BaseService {
         return // 没有上级，无需发放
       }
 
-      // 向上追溯5层直推链
+      // 向上追溯5代直推链（串糖葫芦式）
       let currentUserId = triggerUser.inviter_id
       let generation = 1
 
-      console.log(`🎁 见单奖触发：${triggerUser.username}对碰${pairsCount}组，向上追溯${ORDER_BONUS_DEPTH}层直推链`)
+      console.log(`🎁 见单奖触发：${triggerUser.username}对碰（不管${pairsCount}组），向上追溯${ORDER_BONUS_DEPTH}代直推链`)
 
       while (currentUserId && generation <= ORDER_BONUS_DEPTH) {
         // 获取当前上级
@@ -682,45 +683,57 @@ export class BinaryService extends BaseService {
 
         if (!upline) break
 
-        // 🎁 发放见单奖：每组对碰 × 1U
-        const orderBonus = ORDER_BONUS_PER_PAIR * pairsCount
+        // ⚠️ 检查条件：直推≥2人才能拿见单奖
+        const { count: directReferrals } = await supabase
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('inviter_id', upline.id)
 
-        await WalletManager.add(
-          upline.id,
-          orderBonus,
-          'order_bonus',
-          `见单奖（第${generation}层）：下线${triggerUser.username}对碰${pairsCount}组 × 1U = ${orderBonus.toFixed(2)}U`
-        )
+        const referralCount = directReferrals || 0
 
-        // 记录见单奖到详细记录表
-        await supabase
-          .from('order_bonuses')
-          .insert({
-            user_id: upline.id,
-            trigger_user_id: triggerUser.id,
-            generation: generation,
-            pairs: pairsCount,
-            amount: orderBonus,
-            trigger_username: triggerUser.username
-          })
+        if (referralCount >= 2) {
+          // ✅ 满足条件：发放见单奖（固定1U）
+          const orderBonus = ORDER_BONUS_AMOUNT
 
-        // 更新 binary_members 统计
-        await supabase
-          .from('binary_members')
-          .update({
-            total_order_bonus: supabase.raw(`COALESCE(total_order_bonus, 0) + ${orderBonus}`),
-            total_earnings: supabase.raw(`total_earnings + ${orderBonus}`)
-          })
-          .eq('user_id', upline.id)
+          await WalletManager.add(
+            upline.id,
+            orderBonus,
+            'order_bonus',
+            `见单奖（第${generation}代）：下线${triggerUser.username}对碰 → 1U`
+          )
 
-        console.log(`  ✅ 第${generation}层 ${upline.username} 获得见单奖：${orderBonus.toFixed(2)}U`)
+          // 记录见单奖到详细记录表
+          await supabase
+            .from('order_bonuses')
+            .insert({
+              user_id: upline.id,
+              trigger_user_id: triggerUser.id,
+              generation: generation,
+              pairs: pairsCount,
+              amount: orderBonus,
+              trigger_username: triggerUser.username
+            })
+
+          // 更新 binary_members 统计
+          await supabase
+            .from('binary_members')
+            .update({
+              total_order_bonus: supabase.raw(`COALESCE(total_order_bonus, 0) + ${orderBonus}`),
+              total_earnings: supabase.raw(`total_earnings + ${orderBonus}`)
+            })
+            .eq('user_id', upline.id)
+
+          console.log(`  ✅ 第${generation}代 ${upline.username}（直推${referralCount}人）获得见单奖：1U`)
+        } else {
+          console.log(`  ⚠️ 第${generation}代 ${upline.username}（直推${referralCount}人<2）不满足条件，跳过`)
+        }
 
         // 继续向上追溯
         currentUserId = upline.inviter_id
         generation++
       }
 
-      console.log(`✅ 见单奖发放完成：共发放${generation - 1}层，总计${ORDER_BONUS_PER_PAIR * pairsCount * (generation - 1)}U`)
+      console.log(`✅ 见单奖发放完成：共追溯${generation - 1}代直推链`)
     } catch (error) {
       console.error('触发见单奖失败:', error)
     }
