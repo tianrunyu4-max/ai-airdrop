@@ -320,6 +320,13 @@ const fileInput = ref<HTMLInputElement>()
 // 环境标识：区分开发和生产环境的localStorage
 const ENV_PREFIX = isDevMode ? 'dev_' : 'prod_'
 
+// 🚀 缓存key
+const CACHE_KEYS = {
+  GROUP: `${ENV_PREFIX}chat_group_cache`,
+  MESSAGES: `${ENV_PREFIX}chat_messages_cache`,
+  TIMESTAMP: `${ENV_PREFIX}chat_cache_timestamp`
+}
+
 // UUID验证函数
 const isValidUUID = (uuid: string): boolean => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -329,6 +336,47 @@ const isValidUUID = (uuid: string): boolean => {
 // 🎯 极简方案：不做过滤，直接显示所有消息
 // 由管理员手动清理数据库中的旧消息
 const validMessages = computed(() => messages.value)
+
+// 🚀 缓存管理
+const loadFromCache = () => {
+  try {
+    const groupCache = localStorage.getItem(CACHE_KEYS.GROUP)
+    const messagesCache = localStorage.getItem(CACHE_KEYS.MESSAGES)
+    const timestamp = localStorage.getItem(CACHE_KEYS.TIMESTAMP)
+    
+    // 缓存有效期：5分钟
+    if (timestamp && Date.now() - parseInt(timestamp) < 5 * 60 * 1000) {
+      if (groupCache) {
+        currentGroup.value = JSON.parse(groupCache)
+        onlineCount.value = Math.floor((currentGroup.value?.member_count || 10) * 0.6)
+      }
+      if (messagesCache) {
+        messages.value = JSON.parse(messagesCache)
+      }
+      return true
+    }
+    return false
+  } catch (e) {
+    console.error('缓存加载失败:', e)
+    return false
+  }
+}
+
+const saveToCache = () => {
+  try {
+    if (currentGroup.value) {
+      localStorage.setItem(CACHE_KEYS.GROUP, JSON.stringify(currentGroup.value))
+    }
+    if (messages.value.length > 0) {
+      // 只缓存最近50条消息
+      const recentMessages = messages.value.slice(-50)
+      localStorage.setItem(CACHE_KEYS.MESSAGES, JSON.stringify(recentMessages))
+    }
+    localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString())
+  } catch (e) {
+    console.error('缓存保存失败:', e)
+  }
+}
 
 // 订阅实时消息
 let messageSubscription: any = null
@@ -485,8 +533,13 @@ const loadMessages = async (groupId?: string, silent: boolean = false) => {
 }
 
 // 🔥 终极优化：一步到位初始化（批量操作，0次跳转）
-const getDefaultGroup = async () => {
+const getDefaultGroup = async (silent = false) => {
   try {
+    // 🚀 如果是后台刷新，不显示loading
+    if (!silent) {
+      loading.value = true
+    }
+
     // 🎯 第1步：查询群组
     let { data } = await supabase
       .from('chat_groups')
@@ -517,7 +570,10 @@ const getDefaultGroup = async () => {
       if (newGroup) data = newGroup
     }
 
-    if (!data) return
+    if (!data) {
+      loading.value = false
+      return
+    }
 
     // 🎯 第2步：并行加载消息和加入群组（优化：去除关联查询）
     const [messagesResult, _] = await Promise.all([
@@ -555,8 +611,13 @@ const getDefaultGroup = async () => {
     // ⚡ 更新在线人数（基于真实成员数）
     onlineCount.value = Math.floor((data.member_count || 10) * 0.6) // 60%在线率
 
-    // 🎯 第4步：订阅实时消息（数据已全部加载完成）
-    subscribeToMessages()
+    // 🚀 保存到缓存
+    saveToCache()
+
+    // 🎯 第4步：订阅实时消息（只在第一次初始化时）
+    if (!silent && !messageSubscription) {
+      subscribeToMessages()
+    }
     
     // 🎯 第5步：如果有消息，立即滚动到底部（无动画，避免视觉跳动）
     if (messages.value.length > 0) {
@@ -564,11 +625,14 @@ const getDefaultGroup = async () => {
       scrollToBottom(false)  // false = 无动画，立即跳转
     }
     
-    // AI空投计划群为纯聊天群，无需启动机器人
+    // ✅ 关闭loading
+    if (!silent) {
+      loading.value = false
+    }
   } catch (error) {
     console.error('初始化失败:', error)
+    loading.value = false
   }
-  // ✅ 不在这里设置loading=false，由onMounted统一控制
 }
 
 // 🔥 生产模式：加入群组（智能分群）
@@ -717,6 +781,9 @@ const subscribeToMessages = () => {
             onlineCount.value + 1 // 至少+1
           )
         }
+        
+        // 🚀 更新缓存
+        saveToCache()
       }
     )
     .subscribe((status) => {
@@ -857,6 +924,9 @@ const sendMessage = async () => {
       ...newMessage,
       username: authStore.user.username
     })
+    
+    // 🚀 更新缓存
+    saveToCache()
     
   } catch (error) {
     console.error('发送消息异常:', error)
@@ -1205,15 +1275,32 @@ const startPeriodicRefresh = () => {
 
 // 🔥 简化版：一步到位初始化（批量加载，0次跳转）
 onMounted(async () => {
-  // ✅ 保持loading=true，直到所有数据加载完成
-  loading.value = true
-  
   cleanupOldLocalStorage()  // 清理旧数据
-  await getDefaultGroup()   // 一次性完成所有初始化
-  startPeriodicRefresh()    // 启动定时刷新
   
-  // ✅ 数据加载完成，关闭loading
-  loading.value = false
+  // 🚀 第1步：立即加载缓存（瞬间显示UI）
+  const hasCache = loadFromCache()
+  
+  if (hasCache) {
+    // ✅ 有缓存：立即显示，后台刷新
+    loading.value = false
+    
+    // 订阅实时消息
+    subscribeToMessages()
+    
+    // 滚动到底部
+    await nextTick()
+    scrollToBottom(false)
+    
+    // 后台静默刷新数据
+    setTimeout(() => {
+      getDefaultGroup(true)  // silent=true，不显示loading
+    }, 100)
+  } else {
+    // ❌ 无缓存：正常加载
+    await getDefaultGroup(false)
+  }
+  
+  startPeriodicRefresh()    // 启动定时刷新
 })
 
 // 监听路由变化已禁用（避免重复加载）
