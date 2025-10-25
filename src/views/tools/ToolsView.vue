@@ -19,35 +19,63 @@
         <router-link to="/profile" class="btn btn-sm btn-primary">前往订阅</router-link>
       </div>
 
-      <!-- 发布表单 -->
-      <div v-if="authStore.user?.is_agent" class="card bg-white shadow-xl mb-6">
-        <div class="card-body">
-          <h2 class="card-title text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            发布内容
-          </h2>
-          
-          <!-- 周限制提示 -->
-          <div class="alert alert-info shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+      <!-- 🎯 隐藏式+号按钮 -->
+      <button
+        v-if="authStore.user?.is_agent && !isFormExpanded"
+        @click="isFormExpanded = true"
+        class="fixed bottom-20 left-6 btn btn-circle btn-lg btn-primary shadow-2xl hover:scale-110 transition-all z-50"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+
+      <!-- 🎯 展开状态：发布表单 -->
+      <div 
+        v-if="isFormExpanded"
+        class="fixed bottom-16 left-0 right-0 bg-white border-t-2 border-primary shadow-2xl z-50 animate-slide-up"
+      >
+        <div class="container mx-auto p-4 max-w-4xl">
+          <!-- 标题栏 -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-primary flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              发布内容
+            </h3>
+            <button
+              @click="isFormExpanded = false"
+              class="btn btn-ghost btn-circle btn-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 系统限制提示 -->
+          <div class="alert alert-info shadow-sm mb-4 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span>每周限制1次发布机会 | 本周剩余：{{ weeklyRemaining }} 次</span>
+            <div class="flex-1">
+              <p>每周限制1次发布 | 本周剩余：<span class="font-bold">{{ weeklyRemaining }}</span> 次</p>
+              <p class="text-xs mt-1">系统当前共 <span class="font-bold">{{ posts.length }}/20</span> 条发布</p>
+            </div>
           </div>
 
           <!-- 发布表单 -->
-          <form @submit.prevent="submitPost" class="space-y-4 mt-4">
+          <form @submit.prevent="submitPost" class="space-y-3">
             <!-- 文字内容 -->
             <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold">内容（最多50字）</span>
-                <span class="label-text-alt text-base-content/60">{{ postForm.content.length }}/50</span>
+              <label class="label py-1">
+                <span class="label-text font-semibold text-sm">内容（最多50字）</span>
+                <span class="label-text-alt text-xs">{{ postForm.content.length }}/50</span>
               </label>
               <textarea
                 v-model="postForm.content"
-                class="textarea textarea-bordered h-24 resize-none"
+                class="textarea textarea-bordered h-20 resize-none text-sm"
                 placeholder="输入您想发布的内容..."
                 maxlength="50"
                 required
@@ -56,12 +84,12 @@
 
             <!-- 图片上传 -->
             <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold">图片（最多2张）</span>
+              <label class="label py-1">
+                <span class="label-text font-semibold text-sm">图片（最多2张）</span>
               </label>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-3">
                 <!-- 图片1 -->
-                <div class="relative border-2 border-dashed border-base-300 rounded-lg p-4 hover:border-primary transition-colors">
+                <div class="relative border-2 border-dashed border-base-300 rounded-lg p-2 hover:border-primary transition-colors">
                   <input
                     type="file"
                     accept="image/*"
@@ -69,20 +97,20 @@
                     class="hidden"
                     ref="fileInput1"
                   />
-                  <div v-if="!postForm.images[0]" @click="$refs.fileInput1.click()" class="cursor-pointer flex flex-col items-center justify-center h-32">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div v-if="!postForm.images[0]" @click="$refs.fileInput1.click()" class="cursor-pointer flex flex-col items-center justify-center h-24">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span class="text-sm text-base-content/60 mt-2">点击上传图片</span>
+                    <span class="text-xs text-base-content/60 mt-1">点击上传</span>
                   </div>
                   <div v-else class="relative">
-                    <img :src="postForm.images[0]" class="w-full h-32 object-cover rounded" />
+                    <img :src="postForm.images[0]" class="w-full h-24 object-cover rounded" />
                     <button type="button" @click="removeImage(0)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2">✕</button>
                   </div>
                 </div>
 
                 <!-- 图片2 -->
-                <div class="relative border-2 border-dashed border-base-300 rounded-lg p-4 hover:border-primary transition-colors">
+                <div class="relative border-2 border-dashed border-base-300 rounded-lg p-2 hover:border-primary transition-colors">
                   <input
                     type="file"
                     accept="image/*"
@@ -90,14 +118,14 @@
                     class="hidden"
                     ref="fileInput2"
                   />
-                  <div v-if="!postForm.images[1]" @click="$refs.fileInput2.click()" class="cursor-pointer flex flex-col items-center justify-center h-32">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div v-if="!postForm.images[1]" @click="$refs.fileInput2.click()" class="cursor-pointer flex flex-col items-center justify-center h-24">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span class="text-sm text-base-content/60 mt-2">点击上传图片</span>
+                    <span class="text-xs text-base-content/60 mt-1">点击上传</span>
                   </div>
                   <div v-else class="relative">
-                    <img :src="postForm.images[1]" class="w-full h-32 object-cover rounded" />
+                    <img :src="postForm.images[1]" class="w-full h-24 object-cover rounded" />
                     <button type="button" @click="removeImage(1)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2">✕</button>
                   </div>
                 </div>
@@ -105,17 +133,26 @@
             </div>
 
             <!-- 提交按钮 -->
-            <button
-              type="submit"
-              class="btn btn-primary w-full"
-              :disabled="loading || weeklyRemaining === 0 || !postForm.content.trim()"
-            >
-              <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-              <span v-if="loading" class="loading loading-spinner"></span>
-              {{ loading ? '发布中...' : '立即发布' }}
-            </button>
+            <div class="flex gap-2">
+              <button
+                type="submit"
+                class="btn btn-primary flex-1"
+                :disabled="loading || weeklyRemaining === 0 || !postForm.content.trim() || posts.length >= 20"
+              >
+                <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                <span v-if="loading" class="loading loading-spinner loading-sm"></span>
+                {{ loading ? '发布中...' : '立即发布' }}
+              </button>
+              <button
+                type="button"
+                @click="isFormExpanded = false"
+                class="btn btn-ghost"
+              >
+                取消
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -145,7 +182,10 @@
       <!-- 发布列表 -->
       <div class="card bg-white shadow-xl">
         <div class="card-body">
-          <h2 class="card-title text-primary">📋 最新发布</h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title text-primary">📋 最新发布</h2>
+            <span class="badge badge-primary badge-lg">{{ posts.length }}/20</span>
+          </div>
           
           <div v-if="postsLoading" class="flex justify-center py-8">
             <span class="loading loading-spinner loading-lg text-primary"></span>
@@ -156,6 +196,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
             <p class="text-lg">暂无发布内容</p>
+            <p class="text-sm mt-2" v-if="authStore.user?.is_agent">点击左下角 + 号发布内容</p>
           </div>
 
           <div v-else class="space-y-4">
@@ -222,6 +263,7 @@ const loading = ref(false)
 const postsLoading = ref(false)
 const weeklyRemaining = ref(1)
 const posts = ref<any[]>([])
+const isFormExpanded = ref(false) // 🎯 控制表单显示
 
 const postForm = ref({
   content: '',
@@ -286,8 +328,15 @@ const removeImage = (index: number) => {
 
 // 提交发布
 const submitPost = async () => {
+  // 检查周限制
   if (weeklyRemaining.value === 0) {
     alert('本周发布次数已用完，下周一重置')
+    return
+  }
+  
+  // ⚡ 检查系统20条限制
+  if (posts.value.length >= 20) {
+    alert('系统发布已达上限（20条），请联系管理员清理后再发布')
     return
   }
   
@@ -321,6 +370,9 @@ const submitPost = async () => {
     postForm.value.content = ''
     postForm.value.images = ['', '']
     
+    // 🎯 自动收起表单
+    isFormExpanded.value = false
+    
     // 重新加载
     await Promise.all([
       loadPosts(),
@@ -334,7 +386,7 @@ const submitPost = async () => {
   }
 }
 
-// 加载发布列表
+// 加载发布列表（⚡ 限制20条）
 const loadPosts = async () => {
   postsLoading.value = true
   
@@ -345,7 +397,7 @@ const loadPosts = async () => {
       .order('is_pinned', { ascending: false })
       .order('pin_order', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(20) // ⚡ 系统最多显示20条
     
     if (error) throw error
     
@@ -404,11 +456,9 @@ const clearAllPosts = async () => {
 
 // 初始化（优化：批量并行加载，避免跳转）
 onMounted(async () => {
-  // 设置loading状态
   postsLoading.value = true
   
   try {
-    // 并行加载所有数据
     const tasks = [loadPosts()]
     
     if (authStore.user?.is_agent) {
@@ -424,3 +474,20 @@ onMounted(async () => {
 })
 </script>
 
+<style scoped>
+/* 🎯 表单展开动画 */
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+</style>
