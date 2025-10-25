@@ -306,17 +306,51 @@ const checkWeeklyLimit = async () => {
   }
 }
 
-// 图片上传
+// 图片上传（⚡ 优化：压缩图片）
 const handleImageUpload = async (event: Event, index: number) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   
   if (!file) return
   
-  // 简单示例：使用base64（实际应上传到云存储）
+  // ⚡ 检查文件大小（最大 2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    alert('图片太大！请选择小于 2MB 的图片')
+    target.value = ''
+    return
+  }
+  
+  // ⚡ 压缩图片
   const reader = new FileReader()
   reader.onload = (e) => {
-    postForm.value.images[index] = e.target?.result as string
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+      
+      // 限制最大尺寸 800px
+      const maxSize = 800
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = (height * maxSize) / width
+          width = maxSize
+        } else {
+          width = (width * maxSize) / height
+          height = maxSize
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      // 压缩为 JPEG，质量 0.7
+      const compressed = canvas.toDataURL('image/jpeg', 0.7)
+      postForm.value.images[index] = compressed
+    }
+    img.src = e.target?.result as string
   }
   reader.readAsDataURL(file)
 }
@@ -345,7 +379,8 @@ const submitPost = async () => {
   try {
     // 随机顶置（50%概率）
     const isPinned = Math.random() > 0.5
-    const pinOrder = isPinned ? Date.now() : 0
+    // ⚡ 修复：使用秒级时间戳，避免整数溢出
+    const pinOrder = isPinned ? Math.floor(Date.now() / 1000) : 0
     
     const { error } = await supabase.from('posts').insert({
       user_id: authStore.user?.id,
