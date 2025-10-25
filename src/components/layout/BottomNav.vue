@@ -27,6 +27,7 @@
 import {
   ChatBubbleLeftRightIcon,
   SparklesIcon,
+  WrenchScrewdriverIcon,
   UsersIcon,
   UserCircleIcon
 } from '@heroicons/vue/24/outline'
@@ -35,6 +36,7 @@ import {
 const navItems = [
   { name: 'chat', path: '/chat', icon: ChatBubbleLeftRightIcon, label: '聊天' },
   { name: 'points', path: '/points', icon: SparklesIcon, label: 'AI学习' },
+  { name: 'tools', path: '/tools', icon: WrenchScrewdriverIcon, label: '工具' },
   { name: 'team', path: '/team', icon: UsersIcon, label: '团队' },
   { name: 'profile', path: '/profile', icon: UserCircleIcon, label: '我的' }
 ]
