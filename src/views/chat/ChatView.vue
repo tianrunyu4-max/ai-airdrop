@@ -347,18 +347,41 @@ const loadFromCache = () => {
     // 缓存有效期：5分钟
     if (timestamp && Date.now() - parseInt(timestamp) < 5 * 60 * 1000) {
       if (groupCache) {
-        currentGroup.value = JSON.parse(groupCache)
-        onlineCount.value = Math.floor((currentGroup.value?.member_count || 10) * 0.6)
+        const parsedGroup = JSON.parse(groupCache)
+        // ✅ 验证缓存数据的有效性
+        if (parsedGroup && parsedGroup.id && parsedGroup.description) {
+          currentGroup.value = parsedGroup
+          onlineCount.value = Math.floor((currentGroup.value?.member_count || 10) * 0.6)
+        } else {
+          console.warn('缓存的群组数据无效，清除缓存')
+          clearCache()
+          return false
+        }
       }
       if (messagesCache) {
-        messages.value = JSON.parse(messagesCache)
+        const parsedMessages = JSON.parse(messagesCache)
+        if (Array.isArray(parsedMessages)) {
+          messages.value = parsedMessages
+        }
       }
       return true
     }
     return false
   } catch (e) {
-    console.error('缓存加载失败:', e)
+    console.error('缓存加载失败，清除缓存:', e)
+    clearCache()
     return false
+  }
+}
+
+// 清除缓存
+const clearCache = () => {
+  try {
+    localStorage.removeItem(CACHE_KEYS.GROUP)
+    localStorage.removeItem(CACHE_KEYS.MESSAGES)
+    localStorage.removeItem(CACHE_KEYS.TIMESTAMP)
+  } catch (e) {
+    console.error('清除缓存失败:', e)
   }
 }
 
@@ -541,7 +564,7 @@ const getDefaultGroup = async (silent = false) => {
     }
 
     // 🎯 第1步：查询群组
-    let { data } = await supabase
+    const { data, error: queryError } = await supabase
       .from('chat_groups')
       .select('*')
       .eq('type', 'default')
@@ -550,9 +573,20 @@ const getDefaultGroup = async (silent = false) => {
       .limit(1)
       .maybeSingle()
 
+    if (queryError) {
+      console.error('查询群组失败:', queryError)
+      // 清除可能损坏的缓存
+      clearCache()
+      loading.value = false
+      alert('❌ 加载群组失败，请刷新页面重试')
+      return
+    }
+
+    let groupData = data
+
     // 如果没有默认群，直接创建
-    if (!data) {
-      const { data: newGroup } = await supabase
+    if (!groupData) {
+      const { data: newGroup, error: createError } = await supabase
         .from('chat_groups')
         .insert({
           type: 'default',
@@ -567,11 +601,19 @@ const getDefaultGroup = async (silent = false) => {
         .select()
         .single()
 
-      if (newGroup) data = newGroup
+      if (createError) {
+        console.error('创建群组失败:', createError)
+        loading.value = false
+        alert('❌ 创建群组失败，请刷新页面重试')
+        return
+      }
+
+      if (newGroup) groupData = newGroup
     }
 
-    if (!data) {
+    if (!groupData) {
       loading.value = false
+      alert('❌ 无法加载群组，请刷新页面重试')
       return
     }
 
@@ -581,7 +623,7 @@ const getDefaultGroup = async (silent = false) => {
       supabase
         .from('messages')
         .select('*')
-        .eq('chat_group_id', data.id)
+        .eq('chat_group_id', groupData.id)
         .order('created_at', { ascending: true })
         .limit(50),
       
@@ -589,7 +631,7 @@ const getDefaultGroup = async (silent = false) => {
       authStore.user ? supabase
         .from('group_members')
         .upsert({
-          group_id: data.id,
+          group_id: groupData.id,
           user_id: authStore.user.id,
           role: 'member'
         }, { onConflict: 'group_id,user_id', ignoreDuplicates: true }) : Promise.resolve()
@@ -597,19 +639,20 @@ const getDefaultGroup = async (silent = false) => {
 
     // 🎯 第3步：一次性设置所有数据（只触发1次渲染）
     currentGroup.value = {
-      ...data,
-      name: data.description || 'AI 空投计划'
+      ...groupData,
+      name: groupData.description || 'AI 空投计划'
     } as any
 
     if (!messagesResult.error && messagesResult.data) {
       // ⚡ 优化：直接使用消息中的username，无需额外处理
       messages.value = messagesResult.data
     } else {
+      console.warn('加载消息失败或无消息:', messagesResult.error)
       messages.value = []
     }
     
     // ⚡ 更新在线人数（基于真实成员数）
-    onlineCount.value = Math.floor((data.member_count || 10) * 0.6) // 60%在线率
+    onlineCount.value = Math.floor((groupData.member_count || 10) * 0.6) // 60%在线率
 
     // 🚀 保存到缓存
     saveToCache()
@@ -654,7 +697,7 @@ const joinGroup = async (groupId: string) => {
         .from('chat_groups')
         .select('member_count, max_members, type, group_number')
         .eq('id', groupId)
-        .single()
+        .maybeSingle()
 
       if (group && group.member_count >= group.max_members && group.type === 'default') {
         // 默认群已满，创建或加入下一个群
