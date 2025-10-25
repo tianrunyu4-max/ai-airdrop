@@ -161,8 +161,8 @@
               <span class="text-yellow-600 font-bold">直接到账</span>
             </div>
             <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">15% 自动清0</span>
-              <span class="text-red-600 font-bold">防泡沫</span>
+              <span class="text-gray-600">15% 充学分</span>
+              <span class="text-blue-600 font-bold">学习AI</span>
             </div>
           </div>
         </div>
