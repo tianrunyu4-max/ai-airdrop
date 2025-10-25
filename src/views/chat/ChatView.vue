@@ -348,12 +348,12 @@ const loadFromCache = () => {
     if (timestamp && Date.now() - parseInt(timestamp) < 5 * 60 * 1000) {
       if (groupCache) {
         const parsedGroup = JSON.parse(groupCache)
-        // ✅ 验证缓存数据的有效性
-        if (parsedGroup && parsedGroup.id && parsedGroup.description) {
+        // ✅ 验证缓存数据的有效性（包括UUID格式）
+        if (parsedGroup && parsedGroup.id && parsedGroup.description && isValidUUID(parsedGroup.id)) {
           currentGroup.value = parsedGroup
           onlineCount.value = Math.floor((currentGroup.value?.member_count || 10) * 0.6)
         } else {
-          console.warn('缓存的群组数据无效，清除缓存')
+          console.warn('缓存的群组数据无效（ID格式错误），清除缓存')
           clearCache()
           return false
         }
@@ -879,7 +879,14 @@ const sendMessage = async () => {
   }
   
   if (!currentGroup.value.id) {
-    alert('❌ 群组ID错误，请切换群组')
+    alert('❌ 群组ID错误，请刷新页面')
+    return
+  }
+
+  // ✅ 验证群组ID是否为合法UUID
+  if (!isValidUUID(currentGroup.value.id)) {
+    console.error('❌ 群组ID格式错误:', currentGroup.value.id)
+    alert('❌ 数据加载异常，请刷新页面')
     return
   }
 
@@ -1327,19 +1334,11 @@ onMounted(async () => {
         console.warn('⚠️ 加载超时，强制显示页面')
         loading.value = false
         
-        // 如果没有群组信息，创建一个默认的
+        // 如果没有群组信息，显示空状态（禁止发送消息）
         if (!currentGroup.value) {
-          currentGroup.value = {
-            id: 'loading-fallback',
-            type: 'default',
-            icon: '💰',
-            description: 'AI 空投计划',
-            name: 'AI 空投计划',
-            member_count: 10,
-            is_active: true,
-            sort_order: 1
-          } as any
-          onlineCount.value = 6
+          // 不创建假的群组，让空状态显示
+          messages.value = []
+          onlineCount.value = 0
         }
       }
     }, 3000)
@@ -1375,21 +1374,10 @@ onMounted(async () => {
         clearTimeout(timeoutId)
         loading.value = false
         
-        // 创建临时群组信息
-        if (!currentGroup.value) {
-          currentGroup.value = {
-            id: 'error-fallback',
-            type: 'default',
-            icon: '💰',
-            description: 'AI 空投计划',
-            name: 'AI 空投计划',
-            member_count: 10,
-            is_active: true,
-            sort_order: 1
-          } as any
-          onlineCount.value = 6
-          messages.value = []
-        }
+        // 显示错误状态，不创建假群组
+        messages.value = []
+        onlineCount.value = 0
+        alert('❌ 加载失败，请刷新页面重试')
       }
     }
     
@@ -1398,21 +1386,10 @@ onMounted(async () => {
     console.error('🚨 初始化失败:', error)
     loading.value = false
     
-    // 确保有基本的群组信息
-    if (!currentGroup.value) {
-      currentGroup.value = {
-        id: 'init-error-fallback',
-        type: 'default',
-        icon: '💰',
-        description: 'AI 空投计划',
-        name: 'AI 空投计划',
-        member_count: 10,
-        is_active: true,
-        sort_order: 1
-      } as any
-      onlineCount.value = 6
-      messages.value = []
-    }
+    // 显示错误状态，不创建假群组
+    messages.value = []
+    onlineCount.value = 0
+    alert('❌ 初始化失败，请刷新页面重试')
   } finally {
     // 🚨 最后的保险：确保loading一定会关闭
     setTimeout(() => {
