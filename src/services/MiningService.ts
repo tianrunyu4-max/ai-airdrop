@@ -397,6 +397,18 @@ export class MiningService extends BaseService {
       user.u_balance = newUBalance
       localStorage.setItem('user_session', JSON.stringify(user))
       
+      // ✅ V5.2：同步更新 binary_members.total_earnings（用于复投计算）
+      const { error: binaryError } = await supabase
+        .from('binary_members')
+        .update({
+          total_earnings: supabase.raw(`COALESCE(total_earnings, 0) + ${uAmount}`)
+        })
+        .eq('user_id', userId)
+      
+      if (!binaryError) {
+        console.log(`✅ 学习卡收益已计入复投：+${uAmount.toFixed(2)}U`)
+      }
+      
       // 7. 记录签到释放流水
       const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
       const timestamp = new Date().toISOString()
