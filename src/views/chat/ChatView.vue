@@ -628,11 +628,14 @@ const getDefaultGroup = async () => {
     onlineCount.value = 6
 
     console.log('✅ 加载完成')
+    console.log('📊 messages.value:', messages.value)
+    console.log('📊 messages.value.length:', messages.value.length)
+    console.log('📊 validMessages:', validMessages.value)
   } catch (error) {
     console.error('❌ 加载错误:', error)
   } finally {
     loading.value = false
-    console.log('🎯 Loading已关闭')
+    console.log('🎯 Loading已关闭, loading.value:', loading.value)
   }
 }
 
