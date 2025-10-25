@@ -402,12 +402,25 @@ const clearAllPosts = async () => {
   }
 }
 
-// 初始化
+// 初始化（优化：批量并行加载，避免跳转）
 onMounted(async () => {
-  if (authStore.user?.is_agent) {
-    await checkWeeklyLimit()
+  // 设置loading状态
+  postsLoading.value = true
+  
+  try {
+    // 并行加载所有数据
+    const tasks = [loadPosts()]
+    
+    if (authStore.user?.is_agent) {
+      tasks.push(checkWeeklyLimit())
+    }
+    
+    await Promise.all(tasks)
+  } catch (error) {
+    console.error('初始化失败:', error)
+  } finally {
+    postsLoading.value = false
   }
-  await loadPosts()
 })
 </script>
 
