@@ -358,16 +358,37 @@ const loadCheckinRecords = async () => {
     // 从localStorage读取交易记录
     const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
     
-    // 筛选签到释放记录
+    // 筛选签到释放记录 - 添加调试日志
+    console.log(`📊 localStorage中共有${transactions.length}条交易记录`)
+    
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    
     checkinRecords.value = transactions
-      .filter((tx: any) => tx.user_id === userId && tx.type === 'checkin_release')
+      .filter((tx: any) => {
+        const isSameUser = tx.user_id === userId
+        const isCheckinType = tx.type === 'checkin_release'
+        const txDate = new Date(tx.created_at)
+        const isToday = txDate >= todayStart
+        
+        if (isToday && isSameUser && isCheckinType) {
+          console.log(`✅ 找到今天的签到记录:`, tx)
+        }
+        
+        return isSameUser && isCheckinType
+      })
       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 50)
     
     // 计算签到总收益
     checkinEarnings.value = checkinRecords.value.reduce((sum, record) => sum + (record.amount || 0), 0)
     
-    console.log(`✅ 加载了${checkinRecords.value.length}条签到释放记录`)
+    console.log(`✅ 共加载${checkinRecords.value.length}条签到释放记录，今日记录数：${checkinRecords.value.filter(r => new Date(r.created_at) >= todayStart).length}`)
+    
+    // 如果没有记录，输出提示
+    if (checkinRecords.value.length === 0) {
+      console.warn('⚠️ 没有找到任何签到释放记录，请检查是否已签到')
+    }
   } catch (error: any) {
     console.error('加载签到记录失败:', error)
     toast.error('加载签到记录失败')
