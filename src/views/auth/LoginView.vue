@@ -186,15 +186,16 @@ const handleLogin = async () => {
     const result = await authStore.login(form.username, form.password)
 
     if (result.success) {
-      // 立即跳转到群聊（不等待）
+      // ✅ 优化：立即跳转，不等待loading.value = false
+      console.log('🚀 登录成功，立即跳转')
       router.replace('/chat')
     } else {
       errors.general = result.error || t('auth.errors.loginFailed')
+      loading.value = false
     }
   } catch (error: any) {
     console.error('Login error:', error)
     errors.general = error.message || t('auth.errors.loginFailed')
-  } finally {
     loading.value = false
   }
 }

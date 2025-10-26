@@ -217,15 +217,16 @@ const handleRegister = async () => {
     const result = await authStore.register(form.username, form.password)
 
     if (result.success) {
-      // 注册成功，直接跳转到群聊
+      // ✅ 优化：立即跳转，不等待loading.value = false
+      console.log('🚀 注册成功，立即跳转')
       router.replace('/chat')
     } else {
       errors.general = result.error || t('auth.errors.registerFailed')
+      loading.value = false
     }
   } catch (error: any) {
     console.error('Register error:', error)
     errors.general = error.message || t('auth.errors.registerFailed')
-  } finally {
     loading.value = false
   }
 }

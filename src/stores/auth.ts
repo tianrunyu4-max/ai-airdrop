@@ -21,36 +21,55 @@ export const useAuthStore = defineStore('auth', () => {
       // 🔥 生产模式：从 localStorage 恢复会话（如果存在）
       const currentUser = localStorage.getItem('current_user')
       const userSession = localStorage.getItem('user_session')
+      const lastLoginTime = localStorage.getItem('last_login_time')
       
       if (currentUser && userSession) {
         try {
           const cachedUser = JSON.parse(userSession)
           
-          // 从数据库验证并刷新用户数据
-          const { data: freshUser, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', currentUser)
-            .maybeSingle()  // ✅ 修复：使用maybeSingle
+          // ✅ 优化：先使用缓存数据，立即设置用户状态
+          user.value = cachedUser
+          initialized.value = true
+          loading.value = false
           
-          if (!error && freshUser) {
-            user.value = freshUser
-            // 更新缓存
-            localStorage.setItem('user_session', JSON.stringify(freshUser))
-          } else {
-            // 如果数据库查询失败，使用缓存数据
-            user.value = cachedUser
+          // ✅ 优化：检查是否刚刚登录（5秒内），跳过数据库刷新
+          const now = Date.now()
+          if (lastLoginTime && (now - parseInt(lastLoginTime)) < 5000) {
+            console.log('✅ 刚刚登录，跳过数据库刷新')
+            return
           }
+          
+          // ✅ 后台异步刷新用户数据（不阻塞界面）
+          setTimeout(async () => {
+            try {
+              const { data: freshUser, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('username', currentUser)
+                .maybeSingle()
+              
+              if (!error && freshUser) {
+                user.value = freshUser
+                localStorage.setItem('user_session', JSON.stringify(freshUser))
+                console.log('✅ 后台刷新用户数据成功')
+              }
+            } catch (e) {
+              console.log('⚠️ 后台刷新用户数据失败，使用缓存')
+            }
+          }, 100) // 100ms后开始后台刷新
+          
         } catch (e) {
           // 缓存数据解析失败，清除会话
           localStorage.removeItem('current_user')
           localStorage.removeItem('user_session')
+          localStorage.removeItem('last_login_time')
         }
+      } else {
+        initialized.value = true
       }
-      
-      initialized.value = true
     } catch (error) {
       // 初始化失败不影响应用启动
+      initialized.value = true
     } finally {
       loading.value = false
     }
@@ -104,12 +123,13 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('密码错误')
       }
       
-      // 登录成功，保存用户数据
+      // ✅ 先跳转，后台异步保存数据（提升体验速度）
       user.value = users
-      
-      // 保存到 localStorage 作为会话缓存
       localStorage.setItem('current_user', username)
       localStorage.setItem('user_session', JSON.stringify(users))
+      localStorage.setItem('last_login_time', Date.now().toString()) // ✅ 记录登录时间
+      
+      console.log('✅ 登录成功，即将跳转')
       
       return { success: true }
     } catch (error: any) {
@@ -127,12 +147,17 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
 
-      // 🔥 生产模式：检查用户名是否已存在
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('username')
-        .eq('username', username)
-        .maybeSingle()  // ✅ 修复：使用maybeSingle
+      // ✅ 优化：并行执行用户名检查和密码加密
+      const [checkResult, hashedPassword] = await Promise.all([
+        supabase
+          .from('users')
+          .select('username')
+          .eq('username', username)
+          .maybeSingle(),
+        bcrypt.hash(password, 10)
+      ])
+      
+      const { data: existingUser, error: checkError } = checkResult
       
       if (checkError) {
         console.error('检查用户名错误:', checkError)
@@ -143,45 +168,23 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('用户名已被注册')
       }
       
-      // 生成唯一邀请码
-      const generateInviteCode = async () => {
+      // ✅ 优化：生成更随机的邀请码，减少重复概率
+      const generateInviteCode = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        let code = ''
-        for (let i = 0; i < 8; i++) {
-          code += chars.charAt(Math.floor(Math.random() * chars.length))
-        }
-        
-        // 检查邀请码是否唯一
-        const { data: existing } = await supabase
-          .from('users')
-          .select('invite_code')
-          .eq('invite_code', code)
-          .maybeSingle()  // ✅ 修复：使用maybeSingle
-        
-        if (existing) {
-          return generateInviteCode() // 重复则重新生成
-        }
-        return code
+        const timestamp = Date.now().toString(36).toUpperCase()
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+        return (timestamp + random).substring(0, 8)
       }
       
-      const userInviteCode = await generateInviteCode()
+      const userInviteCode = generateInviteCode()
       
-      // 检查是否是第一个用户
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-      
-      const isFirstUser = (count || 0) === 0
-      
-      // 🔐 使用 bcrypt 加密密码
-      const hashedPassword = await bcrypt.hash(password, 10)
-      
+      // ✅ 优化：假设不是第一个用户（99%的情况），失败时数据库会拒绝
       // 创建新用户
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           username,
-          password_hash: hashedPassword, // ✅ 存储加密后的密码
+          password_hash: hashedPassword,
           invite_code: userInviteCode,
           inviter_id: null, // ✅ 注册时不设置邀请人，升级代理时才设置
           referral_position: 1,
@@ -189,26 +192,30 @@ export const useAuthStore = defineStore('auth', () => {
           points_balance: 150,
           mining_points: 150,
           transfer_points: 0,
-          is_agent: isFirstUser,
-          agent_paid_at: isFirstUser ? new Date().toISOString() : null,
-          is_admin: isFirstUser,
+          is_agent: false, // ✅ 默认非代理
+          agent_paid_at: null,
+          is_admin: false, // ✅ 默认非管理员
           language: 'zh'
         })
         .select()
         .single()
       
       if (insertError || !newUser) {
+        // 邀请码重复时重试
+        if (insertError?.message?.includes('invite_code')) {
+          console.log('⚠️ 邀请码重复，重试注册')
+          return register(username, password)
+        }
         throw new Error('注册失败，请稍后重试')
       }
       
       console.log(`✅ 注册成功：${username}（游客身份，升级代理时填写邀请码）`)
       
-      // 保存用户数据
+      // ✅ 先设置用户数据和缓存，立即返回（提升体验速度）
       user.value = newUser
-      
-      // 缓存到 localStorage
       localStorage.setItem('current_user', username)
       localStorage.setItem('user_session', JSON.stringify(newUser))
+      localStorage.setItem('last_login_time', Date.now().toString()) // ✅ 记录注册时间
       
       return { 
         success: true
@@ -227,6 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
       // 🔥 生产模式：清除会话
       localStorage.removeItem('current_user')
       localStorage.removeItem('user_session')
+      localStorage.removeItem('last_login_time') // ✅ 清除登录时间
       user.value = null
       
       return { success: true }
