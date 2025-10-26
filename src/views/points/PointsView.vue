@@ -528,33 +528,41 @@ const loadMyMachines = async () => {
   }
 }
 
-// V4.3 计算释放率（0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶）
+// ✅ 计算释放率（正确公式：基础1% + 每人3% = 最高15%）
 const calculateReleaseRate = async () => {
   if (!user.value?.id) return
   
   try {
-    // 从localStorage查询直推AI代理数量
-    const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+    // ✅ 从数据库查询直推人数（referral_relationships表）
+    const { count, error } = await supabase
+      .from('referral_relationships')
+      .select('*', { count: 'exact', head: true })
+      .eq('referrer_id', user.value.id)
+      .eq('is_active', true)
     
-    // 统计直推AI代理数量
-    let referralCount = 0
-    for (const key in registeredUsers) {
-      const userData = registeredUsers[key].userData
-      if (userData.inviter_id === user.value.id && userData.is_agent) {
-        referralCount++
-      }
+    if (error) {
+      console.error('查询直推数量失败:', error)
+      releaseRate.value = 0.01
+      return
     }
     
-    // V4.3：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶
-    let rate: number
-    if (referralCount === 0) {
-      rate = 0.01 // 1%
-    } else {
-      const count = Math.min(referralCount, 5) // 最多5个直推
-      const boost = 0.01 * (3 * count - 1)
-      rate = Math.min(0.01 + boost, 0.15) // 上限15%
-    }
-    releaseRate.value = rate
+    const referralCount = count || 0
+    
+    // ✅ 计算释放率（正确公式）
+    // 0个直推：1%
+    // 1个直推：4% = 1% + 3%
+    // 2个直推：7% = 1% + 6%
+    // 3个直推：10% = 1% + 9%
+    // 4个直推：13% = 1% + 12%
+    // 5个直推：15% = 1% + 15%（封顶）
+    const BASE_RATE = 0.01              // 基础1%
+    const BOOST_PER_PERSON = 0.03       // 每人+3%
+    const MAX_BOOST = 0.15              // 最高+15%
+    
+    const boostRate = Math.min(referralCount * BOOST_PER_PERSON, MAX_BOOST)
+    releaseRate.value = Math.min(BASE_RATE + boostRate, 0.15)  // 封顶15%
+    
+    console.log(`✅ 释放率计算: ${referralCount}人 → ${(releaseRate.value * 100).toFixed(1)}%`)
   } catch (error) {
     console.error('计算释放率失败:', error)
     releaseRate.value = 0.01

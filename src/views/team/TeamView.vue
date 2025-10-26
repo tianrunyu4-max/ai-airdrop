@@ -370,22 +370,38 @@ const loadReferralList = async () => {
       }
     }
 
-    // 🔥 生产模式：从数据库查询直推用户（只查询AI代理）
+    // ✅ 从直推关系表查询（referral_relationships）
     const { data, error } = await supabase
-      .from('users')
-      .select('id, username, network_side, created_at, is_agent')
-      .eq('inviter_id', userId)
-      .eq('is_agent', true) // ✅ 只查询AI代理
+      .from('referral_relationships')
+      .select(`
+        created_at,
+        users!referee_id (
+          id,
+          username,
+          network_side,
+          created_at,
+          is_agent
+        )
+      `)
+      .eq('referrer_id', userId)
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (error) {
-      // 查询失败，使用空数组
+      console.error('查询直推列表失败:', error)
       referralList.value = []
       return
     }
 
-    referralList.value = data || []
+    // 转换数据格式（从 { users: {...} } 转为 {...}）
+    referralList.value = (data || []).map(item => ({
+      id: item.users.id,
+      username: item.users.username,
+      network_side: item.users.network_side,
+      created_at: item.created_at,  // 使用关系建立时间
+      is_agent: item.users.is_agent
+    }))
     
     // ✅ 保存到缓存
     localStorage.setItem(cacheKey, JSON.stringify({

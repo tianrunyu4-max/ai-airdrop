@@ -469,46 +469,44 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * V4.3 计算释放率（0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶）
+   * ✅ 计算释放率（正确公式：基础1% + 每人3% = 最高15%）
    */
   private static async calculateReleaseRate(userId: string): Promise<number> {
     try {
-      // 1. 查询直推AI代理数量
+      // 1. ✅ 从直推关系表查询直推人数
       const { count, error } = await supabase
-        .from('users')
-        .select('id', { count: 'exact', head: true })
-        .eq('inviter_id', userId)
-        .eq('is_agent', true)
+        .from('referral_relationships')
+        .select('*', { count: 'exact', head: true })
+        .eq('referrer_id', userId)
+        .eq('is_active', true)
 
       if (error) {
         console.error('查询直推数量失败:', error)
-        return AILearningConfig.RELEASE.BASE_RATE
+        return 0.01  // 降级返回基础释放率
       }
 
       const referralCount = count || 0
 
-      // 2. 计算释放率
+      // 2. ✅ 计算释放率（正确公式）
       // 0个直推：1%
-      // 1个直推：3% = 1% + 2%
-      // 2个直推：6% = 1% + 5%
-      // 3个直推：9% = 1% + 8%
-      // 4个直推：12% = 1% + 11%
-      // 5个直推：15% = 1% + 14%（封顶）
-      // 公式：rate = 0.01 + 0.01 * (3 * count - 1) when count > 0
-      let rate: number
-      if (referralCount === 0) {
-        rate = 0.01 // 1%
-      } else {
-        const boost = 0.01 * (3 * Math.min(referralCount, AILearningConfig.RELEASE.MAX_REFERRALS) - 1)
-        rate = Math.min(0.01 + boost, AILearningConfig.RELEASE.MAX_RATE)
-      }
+      // 1个直推：4% = 1% + 3%
+      // 2个直推：7% = 1% + 6%
+      // 3个直推：10% = 1% + 9%
+      // 4个直推：13% = 1% + 12%
+      // 5个直推：15% = 1% + 15%（封顶）
+      const BASE_RATE = 0.01              // 基础1%
+      const BOOST_PER_PERSON = 0.03       // 每人+3%
+      const MAX_BOOST = 0.15              // 最高+15%
+      
+      const boostRate = Math.min(referralCount * BOOST_PER_PERSON, MAX_BOOST)
+      const finalRate = Math.min(BASE_RATE + boostRate, 0.15)  // 封顶15%
 
-      console.log(`✅ V4.3释放率: ${referralCount}个直推 = ${(rate * 100).toFixed(0)}%`)
+      console.log(`✅ 释放率计算: ${referralCount}个直推 → ${(finalRate * 100).toFixed(1)}%`)
 
-      return rate
+      return finalRate
     } catch (error) {
       console.error('计算释放率失败:', error)
-      return AILearningConfig.RELEASE.BASE_RATE
+      return 0.01  // 降级返回基础释放率
     }
   }
 

@@ -12,9 +12,13 @@ export class TransactionLogger {
    */
   static async log(params: TransactionCreateParams): Promise<void> {
     try {
+      // ✅ 限制description长度为200字符（数据库限制500，留有余量）
+      if (params.description && params.description.length > 200) {
+        params.description = params.description.substring(0, 200)
+      }
       await TransactionRepository.create(params)
     } catch (error) {
-      console.error('Transaction log failed:', error)
+      console.error('❌ 交易流水记录失败:', error)
       // 不抛出错误，避免影响主流程
     }
   }

@@ -89,20 +89,19 @@ export class AgentService {
         }
       }
 
-      // 7. 扣除30U（使用WalletManager原子操作）
+      // 7. 扣除30U
       await WalletManager.deduct(
         userId,
         this.AGENT_FEE,
         'agent_purchase',
-        `成为AI代理，加入Binary对碰系统（30U，邀请人：${inviter.username}）`
+        `升级AI代理(30U)`
       )
 
-      // 8. 设置为代理 + 设置邀请人关系（关键！）
+      // 8. 设置为代理（不设置inviter_id）
       const { error: updateError } = await supabase
         .from('users')
         .update({
           is_agent: true,
-          inviter_id: inviter.id, // ✅ 付费时才设置邀请人
           agent_paid_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -110,38 +109,53 @@ export class AgentService {
 
       if (updateError) throw updateError
 
-      console.log(`✅ 设置邀请人关系：${user.username} → ${inviter.username}`)
+      // 9. ✅ 写入直推关系表（referral_relationships）
+      const { error: relationError } = await supabase
+        .from('referral_relationships')
+        .insert({
+          referrer_id: inviter.id,
+          referee_id: userId
+        })
 
-      // 9. 自动加入Binary对碰系统
-      console.log('🔄 自动加入Binary对碰系统...')
-      const binaryResult = await BinaryService.joinBinarySystem(userId)
-      
-      if (!binaryResult.success) {
-        console.error('⚠️ 加入Binary系统失败，但代理身份已设置:', binaryResult.error)
-        // 不回滚，只记录错误
+      if (relationError) {
+        console.error('⚠️ 写入直推关系表失败:', relationError)
+        // 不抛出错误，继续执行
       } else {
-        console.log('✅ 成功加入Binary对碰系统')
+        console.log(`✅ 直推关系建立：${user.username} → ${inviter.username}`)
       }
 
-      // 10. 自动赠送100积分（V4.0新增）
-      console.log('🎁 自动赠送100互转积分...')
-      
-      // ✅ 同时增加 transfer_points 和 points_balance
+      // 10. 赠送100互转积分
       await WalletManager.addTransferPoints(
         userId,
         100,
         'binary_auto_gift',
-        '加入Binary系统自动赠送100互转积分（可激活学习卡）'
+        '赠送100互转积分'
       )
-      
+
+      // 11. 赠送100总积分
       await WalletManager.addPoints(
         userId,
         100,
         'binary_auto_gift',
-        '加入Binary系统自动赠送100积分（总积分余额）'
+        '赠送100积分'
       )
-      
-      console.log('✅ 已赠送100互转积分')
+
+      console.log(`✅ 关键操作完成`)
+
+      // 12. ✅ 后台异步加入Binary系统（不阻塞主流程）
+      setTimeout(async () => {
+        try {
+          console.log('🔄 后台加入Binary系统...')
+          const binaryResult = await BinaryService.joinBinarySystem(userId)
+          if (binaryResult.success) {
+            console.log('✅ Binary系统加入成功')
+          } else {
+            console.log('⚠️ Binary系统加入失败:', binaryResult.error)
+          }
+        } catch (e) {
+          console.log('⚠️ Binary系统加入异常:', e)
+        }
+      }, 100)
 
       console.log('✅ 成为AI代理成功')
 

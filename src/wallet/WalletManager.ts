@@ -70,13 +70,13 @@ export class WalletManager {
 
     const newBalance = data as number
 
-    // 3. 记录流水
+    // 3. 记录流水（TransactionLogger会自动限制长度）
     await TransactionLogger.log({
       user_id: userId,
       type,
       amount,
       balance_after: newBalance,
-      description: description.substring(0, 200), // 限制长度
+      description,
       related_user_id: relatedUserId,
       currency: 'U'
     })
@@ -115,13 +115,13 @@ export class WalletManager {
 
     const newBalance = data as number
 
-    // 3. 记录流水
+    // 3. 记录流水（TransactionLogger会自动限制长度）
     await TransactionLogger.log({
       user_id: userId,
       type,
       amount: -amount,
       balance_after: newBalance,
-      description: description.substring(0, 200),
+      description,
       related_user_id: relatedUserId,
       currency: 'U'
     })
@@ -279,7 +279,7 @@ export class WalletManager {
       type,
       amount,
       balance_after: newBalance,
-      description: description.substring(0, 200),
+      description,
       currency: 'POINTS'
     })
   }
@@ -314,7 +314,7 @@ export class WalletManager {
       type,
       amount: -amount,
       balance_after: newBalance,
-      description: description.substring(0, 200),
+      description,
       currency: 'POINTS'
     })
   }
@@ -347,7 +347,7 @@ export class WalletManager {
       type,
       amount,
       balance_after: newBalance,
-      description: description.substring(0, 200),
+      description,
       currency: 'TRANSFER_POINTS'
     })
   }
