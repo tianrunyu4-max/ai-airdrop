@@ -1,9 +1,17 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-yellow-50 pb-20">
     <!-- 顶部标题 -->
-    <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 p-6 pb-8">
-      <h1 class="text-white text-2xl font-bold">💸 互转中心</h1>
-      <p class="text-yellow-100 text-sm mt-1">用户间U和积分互转</p>
+    <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-4 pt-6 pb-8">
+      <div class="flex items-center justify-between mb-4">
+        <button @click="$router.back()" class="text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 class="text-xl font-bold text-white">💸 互转中心</h1>
+        <div class="w-6"></div>
+      </div>
+      <p class="text-yellow-100 text-sm text-center">用户间U和积分互转</p>
     </div>
 
     <!-- 余额卡片 -->
