@@ -15,237 +15,185 @@
 
     <!-- 我的资产卡片 -->
     <div v-if="user" class="px-4 -mt-4">
-      <div class="bg-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-200">
-        <div class="text-center mb-4">
-          <div class="text-gray-500 text-sm mb-1">我的资产</div>
-          <div class="text-4xl font-bold text-yellow-600">{{ (user.u_balance || 0).toFixed(2) }} U</div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">互转积分</div>
-            <div class="text-yellow-700 font-bold text-lg">{{ (user.transfer_points || 0).toFixed(2) }}</div>
+      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl shadow-2xl p-5">
+        <div class="flex items-center justify-between">
+          <div class="text-white">
+            <div class="text-sm opacity-90 mb-1">💰 我的资产</div>
+            <div class="text-3xl font-bold">{{ (user.u_balance || 0).toFixed(2) }} U</div>
           </div>
-          <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">学习卡数量</div>
-            <div class="text-yellow-700 font-bold text-lg">{{ myMachines.length }}张</div>
+          <div class="flex gap-3">
+            <div class="bg-white/20 rounded-xl p-3 text-center backdrop-blur-sm">
+              <div class="text-white/80 text-xs mb-1">学习卡</div>
+              <div class="text-white font-bold text-lg">{{ myMachines.length }}张</div>
+            </div>
+            <div class="bg-white/20 rounded-xl p-3 text-center backdrop-blur-sm">
+              <div class="text-white/80 text-xs mb-1">积分</div>
+              <div class="text-white font-bold text-lg">{{ (user.transfer_points || 0).toFixed(0) }}</div>
+            </div>
           </div>
         </div>
-
-        <!-- 功能按钮 -->
-        <div class="grid grid-cols-3 gap-2">
-          <button 
-            @click="goToTransfer"
-            class="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white py-3 rounded-xl font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all text-sm shadow-md"
-          >
-            互转积分
-          </button>
-          <button 
-            @click="goToEarnings"
-            class="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white py-3 rounded-xl font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all text-sm shadow-md"
-          >
+        <div class="grid grid-cols-3 gap-2 mt-4">
+          <button @click="goToEarnings" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
             收益记录
           </button>
-          <button 
-            @click="refreshPage"
-            class="bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all text-sm border-2 border-gray-200"
-          >
-            刷新
+          <button @click="goToTransfer" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
+            互转积分
+          </button>
+          <button @click="refreshPage" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
+            🔄 刷新
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 每日签到区 -->
-    <div v-if="user" class="px-4 mt-6">
-      <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
-        <span class="bg-green-400 w-1 h-6 rounded-full mr-3"></span>
-        📅 每日签到
-      </h3>
-      
-      <div class="bg-white rounded-xl shadow-lg p-4 border-2 border-green-300">
-        <!-- 签到状态 -->
-        <div class="text-center mb-3">
-          <div v-if="isCheckedInToday" class="text-green-600 font-bold mb-1">
-            ✅ 今日已签到
+    <!-- ⚡ 横排双卡片：签到 + 兑换 -->
+    <div v-if="user" class="px-4 mt-4">
+      <div class="grid grid-cols-2 gap-3">
+        
+        <!-- 左卡：每日签到 -->
+        <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 shadow-xl">
+          <div class="text-white/90 text-xs mb-2 font-semibold">📅 每日签到</div>
+          <div class="text-white text-2xl font-bold mb-2">
+            {{ isCheckedInToday ? '已签到' : '未签到' }}
           </div>
-          <div v-else class="text-gray-600 font-bold mb-1">
-            ⏰ 今日未签到
+          <div class="text-white/80 text-xs mb-3">
+            {{ activeCardCount }} 张卡 · {{ (releaseRate * 100).toFixed(1) }}% 释放率
           </div>
-          
-          <div class="text-xs text-gray-500">
-            {{ activeCardCount }} 张学习卡
+          <button 
+            @click="handleCheckin"
+            :disabled="isCheckedInToday || activeCardCount === 0 || loading"
+            class="w-full py-3 rounded-xl font-bold text-sm transition-all"
+            :class="isCheckedInToday || activeCardCount === 0 || loading
+              ? 'bg-white/30 text-white/60 cursor-not-allowed'
+              : 'bg-white text-green-600 hover:bg-white/90 shadow-lg'"
+          >
+            {{ loading ? '签到中...' : isCheckedInToday ? '✅ 今日已签' : '🚀 启动释放' }}
+          </button>
+          <div v-if="!isCheckedInToday && activeCardCount > 0" class="text-white/90 text-xs mt-2 text-center">
+            ⚠️ 不签到不释放
           </div>
         </div>
-        
-        <!-- 签到按钮 -->
-        <button 
-          @click="handleCheckin"
-          :disabled="isCheckedInToday || activeCardCount === 0 || loading"
-          class="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
-          :class="isCheckedInToday || activeCardCount === 0 || loading
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'"
-        >
-          {{ loading ? '签到中...' : isCheckedInToday ? '✅ 今日已签到' : '📅 签到启动释放' }}
-        </button>
-        
-        <div v-if="!isCheckedInToday && activeCardCount > 0" class="text-center text-red-500 text-sm mt-3">
-          ⚠️ 不签到不释放，请记得每天签到！
+
+        <!-- 右卡：兑换学习卡 -->
+        <div class="bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl p-4 shadow-xl">
+          <div class="text-white/90 text-xs mb-2 font-semibold">💳 兑换学习卡</div>
+          <div class="text-white text-2xl font-bold mb-2">
+            8U/张
+          </div>
+          <div class="text-white/80 text-xs mb-3">
+            {{ myMachines.length }}/10张 · 3倍出局
+          </div>
+          <button 
+            @click="showExchangeModal = true"
+            :disabled="!user?.is_agent || loading"
+            class="w-full py-3 rounded-xl font-bold text-sm transition-all"
+            :class="!user?.is_agent || loading
+              ? 'bg-white/30 text-white/60 cursor-not-allowed'
+              : 'bg-white text-orange-600 hover:bg-white/90 shadow-lg'"
+          >
+            {{ !user?.is_agent ? '需代理身份' : myMachines.length >= 10 ? '已达上限' : '💎 立即兑换' }}
+          </button>
+          <div v-if="user?.is_agent && myMachines.length < 10" class="text-white/90 text-xs mt-2 text-center">
+            💡 最多10张
+          </div>
         </div>
-        
-        <div v-if="activeCardCount === 0" class="text-center text-gray-500 text-sm mt-3">
-          💡 还没有学习卡，请先兑换学习卡
-        </div>
+
       </div>
     </div>
 
-    <!-- AI学习卡兑换区 -->
-    <div v-if="user" class="px-4 mt-6">
-      <h3 class="text-gray-800 text-xl font-bold mb-4 flex items-center">
-        <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
-        💳 兑换学习卡
-      </h3>
-
-      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-yellow-300">
-        <!-- 学习卡图标 -->
-        <div class="flex justify-center mb-4">
-          <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-3xl flex items-center justify-center shadow-xl transform hover:scale-105 transition-all text-6xl">
-            💳
-          </div>
+    <!-- 兑换学习卡弹窗 -->
+    <div v-if="showExchangeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click="showExchangeModal = false">
+      <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" @click.stop>
+        <!-- 标题栏 -->
+        <div class="sticky top-0 bg-gradient-to-r from-yellow-500 to-orange-500 p-4 flex items-center justify-between">
+          <h3 class="text-white font-bold text-lg">💳 兑换学习卡</h3>
+          <button @click="showExchangeModal = false" class="text-white hover:bg-white/20 rounded-full p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <!-- 学习卡信息 -->
-        <div class="text-center mb-6">
-          <h4 class="text-2xl font-bold text-gray-800 mb-2">AI智能学习卡</h4>
-          <p class="text-gray-600 text-sm">每日签到 · 持续释放 · 智能分配</p>
-        </div>
+        <div class="p-5">
+          <!-- 核心信息 -->
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200 text-center">
+              <div class="text-gray-600 text-xs mb-1">兑换成本</div>
+              <div class="text-yellow-600 font-bold text-2xl">8U</div>
+            </div>
+            <div class="bg-orange-50 rounded-xl p-3 border border-orange-200 text-center">
+              <div class="text-gray-600 text-xs mb-1">3倍出局</div>
+              <div class="text-orange-600 font-bold text-2xl">300积分</div>
+            </div>
+          </div>
 
-        <!-- 重启机制说明 -->
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5 mb-4 border-2 border-blue-400">
-          <div class="text-center text-blue-700 font-bold text-lg mb-3">🎓 AI智能学习系统</div>
-          <div class="text-sm text-gray-800 text-center font-semibold leading-relaxed">
-            <span class="text-red-600">重启机制</span> · <span class="text-blue-600">消耗积分</span> · 用来学习各种<span class="text-purple-600">AI工具</span>
+          <!-- 收益分配 -->
+          <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border border-blue-200">
+            <div class="text-sm font-bold text-gray-700 mb-2 text-center">📊 每日收益分配</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-white rounded-lg p-2 text-center">
+                <div class="text-green-600 font-bold">80% → U</div>
+              </div>
+              <div class="bg-white rounded-lg p-2 text-center">
+                <div class="text-blue-600 font-bold">20% → 学分</div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">兑换成本</div>
-            <div class="text-yellow-600 font-bold text-xl">8U</div>
-            <div class="text-gray-500 text-xs mt-1">= 100积分</div>
+          <!-- 释放率说明 -->
+          <div class="bg-yellow-50 rounded-xl p-3 mb-4 border border-yellow-200">
+            <div class="text-xs text-gray-700 text-center">
+              <div class="font-bold mb-1">📈 释放率</div>
+              <div>基础1% · 1直推3% · 5直推15%封顶</div>
+            </div>
           </div>
-          <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">出局倍数</div>
-            <div class="text-yellow-600 font-bold text-xl">3倍</div>
-            <div class="text-gray-500 text-xs mt-1">共300积分</div>
-          </div>
-          <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">基础释放</div>
-            <div class="text-yellow-600 font-bold text-xl">1%/天</div>
-            <div class="text-gray-500 text-xs mt-1">0个直推</div>
-          </div>
-          <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-            <div class="text-gray-600 text-xs mb-1">直推加速</div>
-            <div class="text-yellow-600 font-bold text-xl">1→3→15%</div>
-            <div class="text-gray-500 text-xs mt-1">5个封顶</div>
-          </div>
-        </div>
 
-        <!-- 收益分配 -->
-        <div class="bg-gradient-to-r from-yellow-100 to-yellow-50 rounded-xl p-4 mb-4 border border-yellow-300">
-          <div class="text-center text-sm font-bold text-gray-700 mb-3">📊 每日收益自动分配</div>
-          <div class="space-y-2">
-            <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">80% 自动转U</span>
-              <span class="text-yellow-600 font-bold">直接到账</span>
+          <!-- 数量选择 -->
+          <div class="mb-4">
+            <div class="text-center text-sm text-gray-700 font-bold mb-3">选择数量</div>
+            <div class="flex items-center justify-center gap-4">
+              <button 
+                @click="purchaseCount = Math.max(1, purchaseCount - 1)"
+                class="w-10 h-10 bg-gray-200 rounded-full font-bold text-xl text-gray-700 hover:bg-gray-300 transition-all"
+              >
+                -
+              </button>
+              <div class="text-4xl font-bold text-yellow-600 w-16 text-center">
+                {{ purchaseCount }}
+              </div>
+              <button 
+                @click="purchaseCount = Math.min(10 - myMachines.length, purchaseCount + 1)"
+                class="w-10 h-10 bg-yellow-500 rounded-full font-bold text-xl text-white hover:bg-yellow-600 transition-all"
+              >
+                +
+              </button>
             </div>
-            <div class="flex items-center justify-between bg-white rounded-lg p-3">
-              <span class="text-gray-600">20% 充学分</span>
-              <span class="text-blue-600 font-bold">学习AI</span>
+            <div class="text-center text-sm text-gray-600 mt-2">
+              总成本：<span class="font-bold text-yellow-600">{{ (purchaseCount * 8).toFixed(0) }}U</span>
             </div>
           </div>
-        </div>
 
-        <!-- 释放量对照表 V4.4 -->
-        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 mb-6 border border-blue-200">
-          <div class="text-center text-sm font-bold text-gray-700 mb-3">💰 每日释放量对照表</div>
-          <div class="space-y-1.5 text-xs">
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">0个直推：1%</span>
-              <span class="text-blue-600 font-bold">3积分/天 → 0.204U</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">1个直推：3%</span>
-              <span class="text-blue-600 font-bold">9积分/天 → 0.612U</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">2个直推：6%</span>
-              <span class="text-blue-600 font-bold">18积分/天 → 1.224U</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">3个直推：9%</span>
-              <span class="text-blue-600 font-bold">27积分/天 → 1.836U</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-              <span class="text-gray-600">4个直推：12%</span>
-              <span class="text-green-600 font-bold">36积分/天 → 2.448U</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border-2 border-green-400">
-              <span class="text-gray-700 font-bold">5个直推：15%</span>
-              <span class="text-green-600 font-bold">45积分/天 → 3.06U</span>
-            </div>
-          </div>
-          <div class="text-center text-xs text-gray-500 mt-2">
-            💡 基于300积分总产出（3倍出局），80%到账，5个直推封顶
-          </div>
-        </div>
+          <!-- 兑换按钮 -->
+          <button 
+            @click="exchangeCard"
+            :disabled="!canExchange || loading"
+            class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
+          >
+            {{ loading ? '兑换中...' : canExchange ? `💎 兑换 ${purchaseCount} 张` : (!user?.is_agent ? '需代理身份' : 'U余额不足') }}
+          </button>
 
-        <!-- 叠加数量选择 -->
-        <div class="mb-6">
-          <label class="block text-gray-700 font-bold mb-3 text-center">
-            兑换数量（最多10张）
-          </label>
-          <div class="flex items-center justify-center gap-4">
-            <button 
-              @click="purchaseCount = Math.max(1, purchaseCount - 1)"
-              class="w-12 h-12 bg-gray-200 rounded-full font-bold text-xl text-gray-700 hover:bg-gray-300 transition-all"
-            >
-              -
-            </button>
-            <div class="text-4xl font-bold text-yellow-600 w-20 text-center">
-              {{ purchaseCount }}
+          <!-- 提示 -->
+          <div class="mt-3 text-xs text-center text-gray-500">
+            <div v-if="!user?.is_agent" class="text-red-600 font-medium">
+              ⚠️ 需先加入Binary系统（30U）
             </div>
-            <button 
-              @click="purchaseCount = Math.min(10, purchaseCount + 1)"
-              class="w-12 h-12 bg-yellow-500 rounded-full font-bold text-xl text-white hover:bg-yellow-600 transition-all"
-            >
-              +
-            </button>
+            <div v-else-if="(user?.u_balance || 0) < purchaseCount * 8" class="text-red-600 font-medium">
+              余额不足，需要 {{ (purchaseCount * 8).toFixed(2) }}U
+            </div>
+            <div v-else class="text-gray-600">
+              💡 最多10张 · 当前{{ myMachines.length }}张
+            </div>
           </div>
-          <div class="text-center text-sm text-gray-600 mt-2">
-            总成本：{{ (purchaseCount * 8).toFixed(0) }}U = {{ (purchaseCount * 100) }}积分
-          </div>
-        </div>
-
-        <!-- 兑换按钮 -->
-        <button 
-          @click="exchangeCard"
-          :disabled="!canExchange || loading"
-          class="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 transition-all shadow-xl"
-        >
-          {{ loading ? '兑换中...' : canExchange ? `💳 兑换 ${purchaseCount} 张学习卡` : (!user?.is_agent ? '请先加入Binary系统' : 'U余额不足') }}
-        </button>
-
-        <!-- 提示信息 -->
-        <div class="mt-4 text-xs text-gray-500 text-center">
-          <div v-if="!user?.is_agent" class="text-purple-600 font-medium mb-2">
-            💡 需要先加入Binary对碰系统（30U）才能兑换学习卡
-          </div>
-          <div v-else-if="(user?.u_balance || 0) < purchaseCount * 8" class="text-red-600 font-medium mb-2">
-            余额不足，需要 {{ (purchaseCount * 8).toFixed(2) }}U
-          </div>
-          <div>💳 加入代理自动送100积分，可激活第1张学习卡</div>
         </div>
       </div>
     </div>
@@ -359,6 +307,7 @@ const purchaseCount = ref(1)
 const myMachines = ref<MiningMachine[]>([])
 const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
+const showExchangeModal = ref(false) // 兑换弹窗
 
 // 活跃学习卡数量（未完成的学习卡）
 const activeCardCount = computed(() => {
@@ -450,6 +399,7 @@ const exchangeCard = async () => {
       toast.removeToast(loadingToast)
       toast.success(result.message || `成功兑换${purchaseCount.value}张学习卡！`, 3000)
       purchaseCount.value = 1
+      showExchangeModal.value = false // 关闭弹窗
       
       // 刷新数据
       await loadMyMachines()
