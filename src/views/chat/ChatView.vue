@@ -54,7 +54,6 @@
       <div 
         v-for="message in validMessages"
         :key="message.id"
-        class="animate-fade-in"
       >
         <!-- AI空投机器人消息 -->
         <div v-if="message.is_bot" class="card bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/20 shadow-lg hover:shadow-xl transition-shadow">
@@ -494,19 +493,12 @@ const formatNumber = (num: number) => {
   return num.toString()
 }
 
-// 滚动到底部
-const scrollToBottom = (smooth = true) => {
-  // 🎯 使用 requestAnimationFrame 确保 DOM 已完全渲染
-  requestAnimationFrame(() => {
-    nextTick(() => {
-      if (messageContainer.value) {
-        messageContainer.value.scrollTo({
-          top: messageContainer.value.scrollHeight,
-          behavior: smooth ? 'smooth' : 'auto'
-        })
-      }
-    })
-  })
+// ⚡ 滚动到底部（优化：减少抖动）
+const scrollToBottom = (smooth = false) => {
+  // 🎯 直接滚动，不使用多层异步
+  if (messageContainer.value) {
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+  }
 }
 
 // 🔥 生产模式：切换群组（优化版）
@@ -884,7 +876,7 @@ const sendMessage = async () => {
     }
     
   messages.value.push(tempMessage)
-  scrollToBottom(false)
+  // ⚡ 移除滚动调用，减少抖动
 
     // 🔥 后台异步发送（不阻塞UI，不显示loading）
     const messageData: any = {
@@ -1338,24 +1330,9 @@ const shareAirdrop = (message: any) => {
 </script>
 
 <style scoped>
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-/* 🎯 新增：滑入动画 */
+/* ⚡ 输入框滑入动画（保留） */
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.2s ease-out;
 }
 
 @keyframes slide-up {
@@ -1369,9 +1346,9 @@ const shareAirdrop = (message: any) => {
   }
 }
 
-/* 🎯 优化：减少重绘抖动 */
+/* ⚡ 优化：GPU加速，防止抖动 */
 .space-y-4 > * {
   transform: translateZ(0);
-  backface-visibility: hidden;
+  will-change: auto;
 }
 </style>
