@@ -269,8 +269,20 @@ const viewImage = (url: string) => {
   window.open(url, '_blank')
 }
 
-// 检查本周剩余次数
+// ⚡ 检查本周剩余次数（添加缓存，60秒有效）
 const checkWeeklyLimit = async () => {
+  // ✅ 从缓存加载
+  const cacheKey = `weekly_limit_${authStore.user?.id}`
+  const cached = localStorage.getItem(cacheKey)
+  if (cached) {
+    const { data: cachedData, timestamp } = JSON.parse(cached)
+    if (Date.now() - timestamp < 60000) {
+      weeklyRemaining.value = cachedData
+      console.log('✅ 从缓存加载周限制')
+      return
+    }
+  }
+  
   try {
     const { data, error } = await supabase.rpc('can_post_this_week', {
       p_user_id: authStore.user?.id
@@ -278,6 +290,12 @@ const checkWeeklyLimit = async () => {
     
     if (!error) {
       weeklyRemaining.value = data ? 1 : 0
+      
+      // ✅ 保存到缓存
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: weeklyRemaining.value,
+        timestamp: Date.now()
+      }))
     }
   } catch (error) {
     console.error('检查周限制失败:', error)
@@ -399,8 +417,20 @@ const submitPost = async () => {
   }
 }
 
-// 加载发布列表（⚡ 限制20条）
+// ⚡ 加载发布列表（添加缓存，30秒有效）
 const loadPosts = async () => {
+  // ✅ 从缓存加载
+  const cacheKey = 'tools_posts_cache'
+  const cached = localStorage.getItem(cacheKey)
+  if (cached) {
+    const { data: cachedData, timestamp } = JSON.parse(cached)
+    if (Date.now() - timestamp < 30000) {
+      posts.value = cachedData || []
+      console.log('✅ 从缓存加载工具发布列表')
+      return
+    }
+  }
+  
   postsLoading.value = true
   
   try {
@@ -415,6 +445,12 @@ const loadPosts = async () => {
     if (error) throw error
     
     posts.value = data || []
+    
+    // ✅ 保存到缓存
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: posts.value,
+      timestamp: Date.now()
+    }))
   } catch (error) {
     console.error('加载发布失败:', error)
   } finally {
@@ -442,11 +478,12 @@ const deletePost = async (postId: string) => {
   }
 }
 
-// 初始化（优化：批量并行加载，避免跳转）
+// ⚡ 初始化（优化：批量并行加载+缓存）
 onMounted(async () => {
   postsLoading.value = true
   
   try {
+    // ✅ 并行加载，缓存加速
     const tasks = [loadPosts()]
     
     if (authStore.user?.is_agent) {
