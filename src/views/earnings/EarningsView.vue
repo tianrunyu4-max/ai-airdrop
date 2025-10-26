@@ -237,30 +237,6 @@
       </div>
     </div>
 
-    <!-- 底部说明 -->
-    <div class="px-4 mt-6 pb-4">
-      <div class="bg-white rounded-xl p-4 text-xs border-2 border-yellow-200 shadow-lg">
-        <div class="font-bold text-gray-800 mb-3 text-sm">💡 收益说明</div>
-        <ul class="space-y-2 text-gray-600">
-          <li class="flex items-start gap-2">
-            <span class="text-green-500">📅</span>
-            <span><strong class="text-gray-800">签到释放：</strong>每日签到释放学习卡积分，基础2%/天，70%到账U余额</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="text-yellow-500">💰</span>
-            <span><strong class="text-gray-800">对碰奖：</strong>A/B两区配对，每组6U（100%到账）</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="text-green-500">🎁</span>
-            <span><strong class="text-gray-800">见单奖：</strong>下线对碰成功，上级5层直推链各得1U</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="text-blue-500">💎</span>
-            <span><strong class="text-gray-800">分红：</strong>直推≥10人，每周一、三、五、日结算，分红池15%平均分配</span>
-          </li>
-        </ul>
-      </div>
-    </div>
   </div>
 </template>
 
