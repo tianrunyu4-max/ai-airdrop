@@ -182,19 +182,36 @@ const handleLogin = async () => {
   loading.value = true
   errors.general = ''
 
+  // ✅ 超时保护：3秒后强制重置loading（防止卡死）
+  const timeoutId = setTimeout(() => {
+    if (loading.value) {
+      console.warn('⚠️ 登录超时，重置loading状态')
+      loading.value = false
+    }
+  }, 3000)
+
   try {
     const result = await authStore.login(form.username, form.password)
 
     if (result.success) {
-      // ✅ 优化：立即跳转，不等待loading.value = false
       console.log('🚀 登录成功，立即跳转')
-      router.replace('/chat')
+      
+      // ✅ 立即跳转
+      await router.replace('/chat')
+      
+      // ✅ 清除超时计时器
+      clearTimeout(timeoutId)
+      
+      // ✅ 跳转后重置loading（防止跳转失败时卡住）
+      loading.value = false
     } else {
+      clearTimeout(timeoutId)
       errors.general = result.error || t('auth.errors.loginFailed')
       loading.value = false
     }
   } catch (error: any) {
-    console.error('Login error:', error)
+    clearTimeout(timeoutId)
+    console.error('❌ 登录错误:', error)
     errors.general = error.message || t('auth.errors.loginFailed')
     loading.value = false
   }
