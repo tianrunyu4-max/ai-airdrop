@@ -394,14 +394,16 @@ const loadReferralList = async () => {
       return
     }
 
-    // 转换数据格式（从 { users: {...} } 转为 {...}）
-    referralList.value = (data || []).map(item => ({
-      id: item.users.id,
-      username: item.users.username,
-      network_side: item.users.network_side,
-      created_at: item.created_at,  // 使用关系建立时间
-      is_agent: item.users.is_agent
-    }))
+    // ✅ 转换数据格式并过滤非AI代理
+    referralList.value = (data || [])
+      .filter(item => item.users && item.users.is_agent === true)  // ✅ 只显示AI代理
+      .map(item => ({
+        id: item.users.id,
+        username: item.users.username,
+        network_side: item.users.network_side,
+        created_at: item.created_at,  // 使用关系建立时间
+        is_agent: item.users.is_agent
+      }))
     
     // ✅ 保存到缓存
     localStorage.setItem(cacheKey, JSON.stringify({
