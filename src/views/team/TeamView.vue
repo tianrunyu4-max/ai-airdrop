@@ -1,164 +1,170 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-yellow-50 pb-24">
-    <!-- 顶部统计 -->
-    <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-4 pt-6 pb-8">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-white">💎 我的团队</h1>
-        <button @click="refreshData" class="text-white">
+  <div class="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-50 pb-24">
+    <!-- 顶部标题栏 -->
+    <div class="bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 px-4 pt-8 pb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-white mb-1">💎 我的团队</h1>
+          <p class="text-white/80 text-sm">团队总业绩：<span class="font-bold">{{ totalSales }}人</span> | 直推：<span class="font-bold">{{ directReferrals }}人</span></p>
+        </div>
+        <button @click="refreshData" class="btn btn-circle btn-ghost text-white">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
       </div>
-
-      <!-- 总业绩卡片 -->
-      <div class="bg-white/90 backdrop-blur-lg rounded-2xl p-4 mb-4 shadow-xl">
-        <div class="text-gray-600 text-sm mb-1">团队总业绩</div>
-        <div class="text-3xl font-bold text-yellow-600 mb-2">{{ totalSales }}人</div>
-        <div class="flex items-center justify-between text-sm">
-          <div>
-            <span class="text-gray-600">直推：</span>
-            <span class="text-gray-800 font-bold">{{ directReferrals }}人</span>
-          </div>
-          <div :class="isUnlocked ? 'text-green-600' : 'text-orange-600'" class="font-bold">
-            {{ isUnlocked ? '✅ 已解锁对碰奖' : '⚠️ 未解锁（需直推≥2人）' }}
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- A/B区对碰展示 -->
+    <!-- 主要内容区域 -->
     <div class="px-4 -mt-4">
-      <!-- 对碰奖预览卡片 -->
-      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-4 mb-4 shadow-xl">
+      <!-- ⚡ 横排双卡片：A/B区对碰 -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <!-- A区卡片 -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 shadow-xl">
+          <div class="text-white/80 text-xs mb-2 font-semibold">A区业绩</div>
+          <div class="text-white text-3xl font-bold mb-3">{{ aSideSales }}</div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-white/90 text-xs">
+              <span>已结算</span>
+              <span class="font-bold">{{ aSideSettled }}单</span>
+            </div>
+            <div class="flex justify-between text-white/90 text-xs">
+              <span>未结算</span>
+              <span class="font-bold">{{ aSidePending }}单</span>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-white/20">
+            <div class="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div class="h-full bg-white rounded-full transition-all duration-500" :style="{ width: aSidePercentage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- B区卡片 -->
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-xl">
+          <div class="text-white/80 text-xs mb-2 font-semibold">B区业绩</div>
+          <div class="text-white text-3xl font-bold mb-3">{{ bSideSales }}</div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-white/90 text-xs">
+              <span>已结算</span>
+              <span class="font-bold">{{ bSideSettled }}单</span>
+            </div>
+            <div class="flex justify-between text-white/90 text-xs">
+              <span>未结算</span>
+              <span class="font-bold">{{ bSidePending }}单</span>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-white/20">
+            <div class="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div class="h-full bg-white rounded-full transition-all duration-500" :style="{ width: bSidePercentage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⚡ 横排三卡片：对碰统计 -->
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="bg-white rounded-xl p-4 shadow-lg">
+          <div class="text-yellow-500 text-2xl mb-1">{{ pendingPairs }}</div>
+          <div class="text-gray-600 text-xs">可对碰</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-lg">
+          <div class="text-blue-500 text-2xl mb-1">{{ settledPairs }}</div>
+          <div class="text-gray-600 text-xs">已对碰</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-lg">
+          <div class="text-green-500 text-2xl mb-1">{{ totalPairingBonus.toFixed(0) }}</div>
+          <div class="text-gray-600 text-xs">累计奖金</div>
+        </div>
+      </div>
+
+      <!-- ⚡ 对碰奖励大卡片 -->
+      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-5 mb-4 shadow-2xl">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-white text-sm">预计对碰奖</div>
-          <div class="text-white text-xs opacity-80">每日凌晨12点结算</div>
+          <div class="text-white text-sm font-semibold">💰 预计对碰奖</div>
+          <div class="text-white/80 text-xs">每日凌晨12点结算</div>
         </div>
-        <div class="text-white text-3xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }} U</div>
-        <div class="text-white/80 text-xs">{{ pendingPairs }}组 × 6U = {{ estimatedPairingBonus.toFixed(2) }}U</div>
+        <div class="text-white text-4xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }} U</div>
+        <div class="text-white/90 text-xs">{{ pendingPairs }}组待结算 × 6U = {{ estimatedPairingBonus.toFixed(2) }}U</div>
+        <div :class="isUnlocked ? 'bg-green-500/30 text-white' : 'bg-orange-500/30 text-white'" class="mt-3 py-2 px-3 rounded-lg text-xs font-semibold">
+          {{ isUnlocked ? '✅ 已解锁对碰奖' : '⚠️ 未解锁（需直推≥2人）' }}
+        </div>
       </div>
 
-      <!-- A/B区业绩对比 -->
-      <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
-        <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2">
-          <span>双区业绩</span>
-          <span class="text-xs text-gray-500">（弱区优先，2:1/1:2灵活配对）</span>
-        </h3>
-
-        <!-- 可视化对比 -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-blue-600 font-bold">A区</div>
-            <div class="text-blue-600 text-xl font-bold">{{ aSideSales }}单</div>
-          </div>
-          <div class="h-3 bg-gray-200 rounded-full overflow-hidden mb-1">
-            <div 
-              class="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
-              :style="{ width: aSidePercentage + '%' }"
-            ></div>
-          </div>
-          <div class="text-xs text-gray-600 mb-4">
-            已结算：{{ aSideSettled }}单 | 未结算：{{ aSidePending }}单
-          </div>
-
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-green-600 font-bold">B区</div>
-            <div class="text-green-600 text-xl font-bold">{{ bSideSales }}单</div>
-          </div>
-          <div class="h-3 bg-gray-200 rounded-full overflow-hidden mb-1">
-            <div 
-              class="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
-              :style="{ width: bSidePercentage + '%' }"
-            ></div>
-          </div>
-          <div class="text-xs text-gray-600">
-            已结算：{{ bSideSettled }}单 | 未结算：{{ bSidePending }}单
+      <!-- ⚡ 横排双卡片：收益统计 -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <!-- 对碰+见单 -->
+        <div class="bg-white rounded-2xl p-4 shadow-lg">
+          <div class="text-gray-500 text-xs mb-3">奖励收益</div>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-600">对碰奖</span>
+              <span class="text-yellow-600 font-bold">{{ totalPairingBonus.toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-600">见单奖</span>
+              <span class="text-green-600 font-bold">{{ totalLevelBonus.toFixed(2) }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- 对碰统计 -->
-        <div class="grid grid-cols-3 gap-2 text-center text-xs">
-          <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-200">
-            <div class="text-gray-600 mb-1">可对碰</div>
-            <div class="text-yellow-700 font-bold text-lg">{{ pendingPairs }}</div>
-          </div>
-          <div class="bg-blue-50 rounded-lg p-2 border border-blue-200">
-            <div class="text-gray-600 mb-1">已对碰</div>
-            <div class="text-blue-700 font-bold text-lg">{{ settledPairs }}</div>
-          </div>
-          <div class="bg-green-50 rounded-lg p-2 border border-green-200">
-            <div class="text-gray-600 mb-1">累计奖金</div>
-            <div class="text-green-700 font-bold text-lg">{{ totalPairingBonus.toFixed(0) }}</div>
+        <!-- 分红+总收益 -->
+        <div class="bg-white rounded-2xl p-4 shadow-lg">
+          <div class="text-gray-500 text-xs mb-3">累计收益</div>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-600">分红</span>
+              <span class="text-blue-600 font-bold">{{ totalDividend.toFixed(2) }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-600">总收益</span>
+              <span class="text-orange-600 font-bold text-lg">{{ totalEarnings.toFixed(2) }} U</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 收益统计 -->
-      <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
-        <h3 class="text-gray-800 font-bold mb-4">收益统计</h3>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="text-center">
-            <div class="text-yellow-600 text-2xl font-bold">{{ totalPairingBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">对碰奖</div>
-          </div>
-          <div class="text-center">
-            <div class="text-green-600 text-2xl font-bold">{{ totalLevelBonus.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">见单奖</div>
-          </div>
-          <div class="text-center">
-            <div class="text-blue-600 text-2xl font-bold">{{ totalDividend.toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">分红</div>
-          </div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-200 text-center">
-          <div class="text-gray-600 text-sm">总收益</div>
-          <div class="text-yellow-600 text-2xl font-bold">{{ totalEarnings.toFixed(2) }} U</div>
-        </div>
-      </div>
-
-      <!-- 直推列表 -->
-      <div class="bg-white rounded-2xl p-4 mb-4 shadow-lg border-2 border-yellow-200">
+      <!-- ⚡ 直推列表 -->
+      <div class="bg-white rounded-2xl p-4 shadow-lg">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-gray-800 font-bold">直推列表</h3>
-          <div class="text-sm text-gray-600">共{{ directReferrals }}人</div>
+          <h3 class="text-gray-800 font-bold flex items-center gap-2">
+            <span>👥</span>
+            <span>直推列表</span>
+          </h3>
+          <div class="badge badge-warning badge-sm">{{ directReferrals }}人</div>
         </div>
 
-        <div v-if="loading" class="text-center py-8">
-          <div class="loading loading-spinner loading-md text-yellow-500"></div>
+        <div v-if="loading" class="text-center py-12">
+          <div class="loading loading-spinner loading-lg text-yellow-500"></div>
         </div>
 
-        <div v-else-if="referralList.length === 0" class="text-center py-8">
-          <div class="text-gray-400 text-4xl mb-2">👥</div>
-          <p class="text-gray-600">暂无直推会员</p>
-          <p class="text-xs text-gray-500 mt-2">分享你的推荐码邀请好友加入</p>
+        <div v-else-if="referralList.length === 0" class="text-center py-12">
+          <div class="text-6xl mb-3">👥</div>
+          <p class="text-gray-600 font-medium mb-1">暂无直推会员</p>
+          <p class="text-xs text-gray-500">分享你的推荐码邀请好友加入</p>
         </div>
 
-        <div v-else class="space-y-2">
+        <div v-else class="grid grid-cols-2 gap-3">
           <div 
             v-for="(member, index) in referralList" 
             :key="member.id"
-            class="bg-yellow-50 rounded-xl p-3 flex items-center justify-between hover:bg-yellow-100 transition-all border border-yellow-200"
+            class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-3 shadow-sm border border-yellow-200 hover:shadow-md transition-all"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold">
+            <div class="flex items-center justify-between mb-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                 {{ index + 1 }}
               </div>
-              <div>
-                <div class="text-gray-800 font-medium">{{ member.username }}</div>
-                <div class="text-xs text-gray-600">{{ formatDate(member.created_at) }}</div>
-              </div>
-            </div>
-            <div class="text-right">
               <div 
                 :class="[
-                  'text-xs font-bold px-2 py-1 rounded-full',
-                  member.network_side === 'A' ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-green-100 text-green-700 border border-green-300'
+                  'text-xs font-bold px-2 py-0.5 rounded-full',
+                  member.network_side === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                 ]"
               >
                 {{ member.network_side }}区
               </div>
             </div>
+            <div class="text-gray-800 font-medium text-sm mb-1 truncate">{{ member.username }}</div>
+            <div class="text-xs text-gray-500">{{ formatDate(member.created_at) }}</div>
           </div>
         </div>
       </div>
