@@ -15,8 +15,24 @@
       <!-- 签到释放统计 -->
       <div class="bg-white/90 backdrop-blur-lg rounded-2xl p-4 shadow-xl">
         <div class="text-gray-600 text-sm mb-1">签到释放总收益</div>
-        <div class="text-4xl font-bold text-green-600">{{ checkinEarnings.toFixed(2) }} U</div>
-        <div class="text-xs text-gray-500 mt-2">每日签到释放学习卡积分</div>
+        <div class="text-4xl font-bold text-green-600 mb-3">{{ checkinEarnings.toFixed(2) }} U</div>
+        
+        <!-- 直推释放率 -->
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border border-blue-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs text-gray-600 mb-1">📈 当前释放率</div>
+              <div class="text-2xl font-bold text-blue-600">{{ (releaseRate * 100).toFixed(1) }}%</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-600 mb-1">直推AI代理</div>
+              <div class="text-lg font-bold text-purple-600">{{ referralCount }}人</div>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500 mt-2 text-center">
+            {{ referralCount >= 5 ? '🎉 已达最高释放率15%' : `💡 再直推${5 - referralCount}人达到15%封顶` }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -100,6 +116,10 @@ const loading = ref(true)
 // 收益统计
 const checkinEarnings = ref(0)
 
+// 释放率相关
+const releaseRate = ref(0.01) // 默认1%
+const referralCount = ref(0)
+
 // 记录列表
 const checkinRecords = ref<any[]>([])
 
@@ -168,10 +188,52 @@ const loadCheckinRecords = async () => {
   }
 }
 
+// 计算释放率（0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶）
+const calculateReleaseRate = async () => {
+  try {
+    const userId = authStore.user?.id
+    if (!userId) return
+
+    // 从localStorage查询直推AI代理数量
+    const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+    
+    // 统计直推AI代理数量
+    let count = 0
+    for (const key in registeredUsers) {
+      const userData = registeredUsers[key].userData
+      if (userData.inviter_id === userId && userData.is_agent) {
+        count++
+      }
+    }
+    
+    referralCount.value = count
+    
+    // 计算释放率：0个1%，1个3%，2个6%，3个9%，4个12%，5个15%封顶
+    let rate: number
+    if (count === 0) {
+      rate = 0.01 // 1%
+    } else {
+      const limitedCount = Math.min(count, 5) // 最多5个直推
+      const boost = 0.01 * (3 * limitedCount - 1)
+      rate = Math.min(0.01 + boost, 0.15) // 上限15%
+    }
+    releaseRate.value = rate
+    
+    console.log(`✅ 释放率计算完成: 直推${count}人 → 释放率${(rate * 100).toFixed(1)}%`)
+  } catch (error) {
+    console.error('计算释放率失败:', error)
+    releaseRate.value = 0.01
+    referralCount.value = 0
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
-    await loadCheckinRecords()
+    await Promise.all([
+      loadCheckinRecords(),
+      calculateReleaseRate()
+    ])
   } finally {
     loading.value = false
   }
