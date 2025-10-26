@@ -207,8 +207,10 @@ const totalDividend = ref(0)
 const isUnlocked = ref(false)
 
 // 直推列表
-const directReferrals = ref(0)
 const referralList = ref<any[]>([])
+
+// 计算直推人数（基于实际列表长度，而不是缓存的数字）
+const directReferrals = computed(() => referralList.value.length)
 
 // 计算属性
 const totalSales = computed(() => aSideSales.value + bSideSales.value)
@@ -257,6 +259,21 @@ const loadNetworkStats = async () => {
     const userId = authStore.user?.id
     if (!userId) return
 
+    // ✅ 检查用户是否是AI代理
+    if (!authStore.user?.is_agent) {
+      console.log('⚠️ 非AI代理用户，不加载团队数据')
+      aSideSales.value = 0
+      bSideSales.value = 0
+      aSideSettled.value = 0
+      bSideSettled.value = 0
+      totalPairingBonus.value = 0
+      totalLevelBonus.value = 0
+      totalDividend.value = 0
+      isUnlocked.value = false
+      // directReferrals 现在是computed，不需要手动设置
+      return
+    }
+
     // ✅ 优化：从缓存加载（如果存在且新鲜）
     const cacheKey = `team_stats_${userId}`
     const cached = localStorage.getItem(cacheKey)
@@ -272,7 +289,7 @@ const loadNetworkStats = async () => {
         totalLevelBonus.value = cachedData.totalLevelBonus || 0
         totalDividend.value = cachedData.totalDividend || 0
         isUnlocked.value = cachedData.isUnlocked || false
-        directReferrals.value = cachedData.directReferrals || 0
+        // directReferrals 现在是computed，不需要从缓存加载
         console.log('✅ 从缓存加载团队统计 (10秒)')
         return
       }
@@ -293,9 +310,9 @@ const loadNetworkStats = async () => {
       totalLevelBonus.value = data.total_level_bonus || 0
       totalDividend.value = data.total_dividend || 0
       isUnlocked.value = data.level_bonus_unlocked || false
-      directReferrals.value = data.direct_referrals || 0
+      // directReferrals 现在是computed，不需要手动设置
       
-      // ✅ 保存到缓存
+      // ✅ 保存到缓存（不包括directReferrals，因为它是computed）
       localStorage.setItem(cacheKey, JSON.stringify({
         data: {
           aSideSales: aSideSales.value,
@@ -305,8 +322,7 @@ const loadNetworkStats = async () => {
           totalPairingBonus: totalPairingBonus.value,
           totalLevelBonus: totalLevelBonus.value,
           totalDividend: totalDividend.value,
-          isUnlocked: isUnlocked.value,
-          directReferrals: directReferrals.value
+          isUnlocked: isUnlocked.value
         },
         timestamp: Date.now()
       }))
@@ -320,7 +336,7 @@ const loadNetworkStats = async () => {
       totalLevelBonus.value = 0
       totalDividend.value = 0
       isUnlocked.value = false
-      directReferrals.value = 0
+      // directReferrals 现在是computed，不需要手动设置
     }
   } catch (error: any) {
     console.error('加载网络统计失败:', error)
@@ -333,6 +349,13 @@ const loadReferralList = async () => {
   try {
     const userId = authStore.user?.id
     if (!userId) return
+
+    // ✅ 检查用户是否是AI代理
+    if (!authStore.user?.is_agent) {
+      console.log('⚠️ 非AI代理用户，不加载直推列表')
+      referralList.value = []
+      return
+    }
 
     // ✅ 优化：从缓存加载（如果存在且新鲜）
     const cacheKey = `team_referrals_${userId}`
@@ -347,11 +370,12 @@ const loadReferralList = async () => {
       }
     }
 
-    // 🔥 生产模式：从数据库查询直推用户
+    // 🔥 生产模式：从数据库查询直推用户（只查询AI代理）
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, network_side, created_at')
+      .select('id, username, network_side, created_at, is_agent')
       .eq('inviter_id', userId)
+      .eq('is_agent', true) // ✅ 只查询AI代理
       .order('created_at', { ascending: false })
       .limit(50)
 
