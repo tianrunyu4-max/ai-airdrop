@@ -124,15 +124,24 @@ export class AgentService {
       }
 
       // 10. 自动赠送100积分（V4.0新增）
-      console.log('🎁 自动赠送100积分...')
-      await WalletManager.add(
+      console.log('🎁 自动赠送100互转积分...')
+      
+      // ✅ 同时增加 transfer_points 和 points_balance
+      await WalletManager.addTransferPoints(
         userId,
         100,
-        'transfer_points',
         'binary_auto_gift',
-        '加入Binary系统自动赠送100积分（可激活学习卡）'
+        '加入Binary系统自动赠送100互转积分（可激活学习卡）'
       )
-      console.log('✅ 已赠送100积分')
+      
+      await WalletManager.addPoints(
+        userId,
+        100,
+        'binary_auto_gift',
+        '加入Binary系统自动赠送100积分（总积分余额）'
+      )
+      
+      console.log('✅ 已赠送100互转积分')
 
       console.log('✅ 成为AI代理成功')
 

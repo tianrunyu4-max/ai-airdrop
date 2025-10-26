@@ -174,14 +174,14 @@ export class BinaryService extends BaseService {
    * AI自动排线（弱区优先，1:1平衡）
    */
   private static async autoPlacement(inviterId: string | null): Promise<{
-    uplineId: string
+    uplineId: string | null
     side: BinarySide
     depth: number
   }> {
-    // 如果没有邀请人，返回创世用户
+    // ✅ 如果没有邀请人，设置uplineId为null（根节点）
     if (!inviterId) {
       return {
-        uplineId: 'GENESIS_USER_ID', // 需要替换为实际的创世用户ID
+        uplineId: null,
         side: 'A',
         depth: 1
       }
@@ -195,9 +195,9 @@ export class BinaryService extends BaseService {
       .maybeSingle()
 
     if (!inviter) {
-      // 如果邀请人还没有加入二元，返回创世用户
+      // ✅ 如果邀请人还没有加入二元，设置uplineId为null（根节点）
       return {
-        uplineId: 'GENESIS_USER_ID',
+        uplineId: null,
         side: 'A',
         depth: 1
       }
