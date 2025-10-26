@@ -669,7 +669,7 @@ export class BinaryService extends BaseService {
    * 🎁 触发见单奖（直推链5代，每组1U）
    * 下线每次对碰成功，直推链上的5代上级各按组数获得奖励
    * 公式：见单奖 = 对碰组数 × 1U
-   * 条件：上级直推≥2人才能获得见单奖
+   * 条件：上级直推≥2人才能获得见单奖（串糖葫芦式业务推荐关系）
    */
   private static async triggerOrderBonus(
     triggerId: string,
@@ -679,38 +679,43 @@ export class BinaryService extends BaseService {
       const ORDER_BONUS_DEPTH = 5  // 直推链5代
       const ORDER_BONUS_PER_PAIR = 1  // 每组1U
 
-      // 获取触发者的用户信息
-      const { data: triggerUser } = await supabase
-        .from('users')
-        .select('id, username, inviter_id')
-        .eq('id', triggerId)
+      // ✅ 获取触发者的推荐人（从 referral_relationships 表）
+      const { data: referralRelation } = await supabase
+        .from('referral_relationships')
+        .select('referrer_id, users!referee_id(username)')
+        .eq('referee_id', triggerId)
+        .eq('is_active', true)
         .single()
 
-      if (!triggerUser || !triggerUser.inviter_id) {
-        return // 没有上级，无需发放
+      if (!referralRelation || !referralRelation.referrer_id) {
+        console.log(`⚠️ 用户${triggerId}没有推荐人，无需发放见单奖`)
+        return // 没有推荐人，无需发放
       }
 
-      // 向上追溯5代直推链（串糖葫芦式）
-      let currentUserId = triggerUser.inviter_id
+      const triggerUsername = referralRelation.users?.username || '未知用户'
+
+      // ✅ 向上追溯5代直推链（串糖葫芦式，沿着 referral_relationships）
+      let currentUserId = referralRelation.referrer_id
       let generation = 1
 
-      console.log(`🎁 见单奖触发：${triggerUser.username}对碰${pairsCount}组，向上追溯${ORDER_BONUS_DEPTH}代直推链`)
+      console.log(`🎁 见单奖触发：${triggerUsername}对碰${pairsCount}组，向上追溯${ORDER_BONUS_DEPTH}代业务推荐链`)
 
       while (currentUserId && generation <= ORDER_BONUS_DEPTH) {
-        // 获取当前上级
+        // ✅ 获取当前上级的信息
         const { data: upline } = await supabase
           .from('users')
-          .select('id, username, inviter_id')
+          .select('id, username')
           .eq('id', currentUserId)
           .single()
 
         if (!upline) break
 
-        // ⚠️ 检查条件：直推≥2人才能拿见单奖
+        // ✅ 检查条件：直推≥2人才能拿见单奖（从 referral_relationships 查询）
         const { count: directReferrals } = await supabase
-          .from('users')
-          .select('id', { count: 'exact', head: true })
-          .eq('inviter_id', upline.id)
+          .from('referral_relationships')
+          .select('*', { count: 'exact', head: true })
+          .eq('referrer_id', upline.id)
+          .eq('is_active', true)
 
         const referralCount = directReferrals || 0
 
@@ -722,7 +727,7 @@ export class BinaryService extends BaseService {
             upline.id,
             orderBonus,
             'order_bonus',
-            `见单奖（第${generation}代）：下线${triggerUser.username}对碰${pairsCount}组 × 1U = ${orderBonus.toFixed(2)}U`
+            `见单奖（第${generation}代）：下线${triggerUsername}对碰${pairsCount}组 × 1U = ${orderBonus.toFixed(2)}U`
           )
 
           // 记录见单奖到详细记录表
@@ -730,11 +735,11 @@ export class BinaryService extends BaseService {
             .from('order_bonuses')
             .insert({
               user_id: upline.id,
-              trigger_user_id: triggerUser.id,
+              trigger_user_id: triggerId,
               generation: generation,
               pairs: pairsCount,
               amount: orderBonus,
-              trigger_username: triggerUser.username
+              trigger_username: triggerUsername
             })
 
           // 更新 binary_members 统计
@@ -751,12 +756,19 @@ export class BinaryService extends BaseService {
           console.log(`  ⚠️ 第${generation}代 ${upline.username}（直推${referralCount}人<2）不满足条件，跳过`)
         }
 
-        // 继续向上追溯
-        currentUserId = upline.inviter_id
+        // ✅ 继续向上追溯（查询当前用户的推荐人）
+        const { data: nextRelation } = await supabase
+          .from('referral_relationships')
+          .select('referrer_id')
+          .eq('referee_id', currentUserId)
+          .eq('is_active', true)
+          .single()
+
+        currentUserId = nextRelation?.referrer_id || null
         generation++
       }
 
-      console.log(`✅ 见单奖发放完成：共追溯${generation - 1}代直推链`)
+      console.log(`✅ 见单奖发放完成：共追溯${generation - 1}代业务推荐链`)
     } catch (error) {
       console.error('触发见单奖失败:', error)
     }
