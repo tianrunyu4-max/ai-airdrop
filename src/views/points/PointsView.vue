@@ -475,9 +475,14 @@ const refreshPage = async () => {
   const loadingToast = toast.info('刷新中...', 0)
   
   try {
-    // 清除相关缓存
+    // 清除所有相关缓存
+    const userId = authStore.user?.id
     localStorage.removeItem('tools_posts_cache')
-    localStorage.removeItem(`weekly_limit_${authStore.user?.id}`)
+    localStorage.removeItem(`weekly_limit_${userId}`)
+    localStorage.removeItem(`team_stats_${userId}`) // 团队统计缓存
+    localStorage.removeItem(`team_referrals_${userId}`) // 直推列表缓存
+    
+    console.log('✅ 已清除所有缓存')
     
     // 重新加载所有数据
     await Promise.all([

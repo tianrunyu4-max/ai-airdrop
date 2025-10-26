@@ -262,8 +262,8 @@ const loadNetworkStats = async () => {
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       const { data: cachedData, timestamp } = JSON.parse(cached)
-      // 缓存30秒有效
-      if (Date.now() - timestamp < 30000) {
+      // 缓存10秒有效（加快直推数据更新）
+      if (Date.now() - timestamp < 10000) {
         aSideSales.value = cachedData.aSideSales || 0
         bSideSales.value = cachedData.bSideSales || 0
         aSideSettled.value = cachedData.aSideSettled || 0
@@ -273,7 +273,7 @@ const loadNetworkStats = async () => {
         totalDividend.value = cachedData.totalDividend || 0
         isUnlocked.value = cachedData.isUnlocked || false
         directReferrals.value = cachedData.directReferrals || 0
-        console.log('✅ 从缓存加载团队统计')
+        console.log('✅ 从缓存加载团队统计 (10秒)')
         return
       }
     }
@@ -339,10 +339,10 @@ const loadReferralList = async () => {
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       const { data: cachedData, timestamp } = JSON.parse(cached)
-      // 缓存30秒有效
-      if (Date.now() - timestamp < 30000) {
+      // 缓存10秒有效（加快直推数据更新）
+      if (Date.now() - timestamp < 10000) {
         referralList.value = cachedData || []
-        console.log('✅ 从缓存加载直推列表')
+        console.log('✅ 从缓存加载直推列表 (10秒)')
         return
       }
     }
@@ -377,15 +377,30 @@ const loadReferralList = async () => {
 // 刷新数据
 const refreshData = async () => {
   loading.value = true
+  const loadingToast = toast.info('刷新中...', 0)
+  
   try {
+    // 先清除缓存
+    const userId = authStore.user?.id
+    localStorage.removeItem(`team_stats_${userId}`)
+    localStorage.removeItem(`team_referrals_${userId}`)
+    console.log('✅ 已清除团队缓存')
+    
+    // 重新加载数据
     await Promise.all([
       loadNetworkStats(),
       loadReferralList()
     ])
-    toast.success('数据已刷新')
+    
+    toast.removeToast(loadingToast)
+    toast.success('✅ 刷新成功！', 2000)
     
     // 检查是否需要复投
     await checkReinvestment()
+  } catch (error) {
+    console.error('刷新失败:', error)
+    toast.removeToast(loadingToast)
+    toast.error('刷新失败，请重试')
   } finally {
     loading.value = false
   }
