@@ -115,11 +115,42 @@
         </div>
 
         <div class="p-5">
+          <!-- ✅ 支付方式选择 -->
+          <div class="mb-4">
+            <div class="text-center text-sm text-gray-700 font-bold mb-3">💳 支付方式</div>
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                @click="paymentMethod = 'u'"
+                :class="paymentMethod === 'u' 
+                  ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-2 border-yellow-600' 
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300'"
+                class="p-4 rounded-xl font-bold text-sm transition-all hover:shadow-md"
+              >
+                <div class="text-2xl mb-1">💰</div>
+                <div>80% → U</div>
+                <div class="text-xs opacity-80 mt-1">8U/张</div>
+              </button>
+              <button
+                @click="paymentMethod = 'points'"
+                :class="paymentMethod === 'points' 
+                  ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white border-2 border-purple-600' 
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300'"
+                class="p-4 rounded-xl font-bold text-sm transition-all hover:shadow-md"
+              >
+                <div class="text-2xl mb-1">⭐</div>
+                <div>20% → 学分</div>
+                <div class="text-xs opacity-80 mt-1">100积分/张</div>
+              </button>
+            </div>
+          </div>
+
           <!-- 核心信息 -->
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200 text-center">
               <div class="text-gray-600 text-xs mb-1">兑换成本</div>
-              <div class="text-yellow-600 font-bold text-2xl">8U</div>
+              <div class="text-yellow-600 font-bold text-2xl">
+                {{ paymentMethod === 'u' ? '8U' : '100积分' }}
+              </div>
             </div>
             <div class="bg-orange-50 rounded-xl p-3 border border-orange-200 text-center">
               <div class="text-gray-600 text-xs mb-1">3倍出局</div>
@@ -169,7 +200,9 @@
               </button>
             </div>
             <div class="text-center text-sm text-gray-600 mt-2">
-              总成本：<span class="font-bold text-yellow-600">{{ (purchaseCount * 8).toFixed(0) }}U</span>
+              总成本：<span class="font-bold" :class="paymentMethod === 'u' ? 'text-yellow-600' : 'text-purple-600'">
+                {{ paymentMethod === 'u' ? (purchaseCount * 8).toFixed(0) + 'U' : (purchaseCount * 100).toFixed(0) + '积分' }}
+              </span>
             </div>
           </div>
 
@@ -177,9 +210,12 @@
           <button 
             @click="exchangeCard"
             :disabled="!canExchange || loading"
-            class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
+            :class="paymentMethod === 'u' 
+              ? 'bg-gradient-to-r from-yellow-400 to-orange-500' 
+              : 'bg-gradient-to-r from-purple-400 to-blue-500'"
+            class="w-full text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
           >
-            {{ loading ? '兑换中...' : canExchange ? `💎 兑换 ${purchaseCount} 张` : (!user?.is_agent ? '需代理身份' : 'U余额不足') }}
+            {{ loading ? '兑换中...' : canExchange ? `💎 兑换 ${purchaseCount} 张` : (!user?.is_agent ? '需代理身份' : (paymentMethod === 'u' ? 'U余额不足' : '积分不足')) }}
           </button>
 
           <!-- 提示 -->
@@ -308,6 +344,7 @@ const myMachines = ref<MiningMachine[]>([])
 const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
 const showExchangeModal = ref(false) // 兑换弹窗
+const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=U余额，points=积分
 
 // 活跃学习卡数量（未完成的学习卡）
 const activeCardCount = computed(() => {
@@ -317,13 +354,22 @@ const activeCardCount = computed(() => {
   }).length
 })
 
-// 是否可以兑换（V4.0新逻辑：8U余额）
+// ✅ 是否可以兑换（支持U余额或积分）
 const canExchange = computed(() => {
   if (!user.value?.is_agent) return false
-  const totalCostU = purchaseCount.value * 8
-  const uBalance = user.value?.u_balance || 0
+  
   const currentCount = myMachines.value.length
-  return uBalance >= totalCostU && currentCount + purchaseCount.value <= 10
+  if (currentCount + purchaseCount.value > 10) return false
+  
+  if (paymentMethod.value === 'u') {
+    // U余额支付：8U/张
+    const totalCost = purchaseCount.value * 8
+    return (user.value.u_balance || 0) >= totalCost
+  } else {
+    // 积分支付：100积分/张
+    const totalCost = purchaseCount.value * 100
+    return (user.value.transfer_points || 0) >= totalCost
+  }
 })
 
 // 格式化日期
@@ -362,7 +408,7 @@ const handleCheckin = async () => {
   }
 }
 
-// V4.0兑换学习卡（8U = 100积分）
+// ✅ V4.0兑换学习卡（支持8U或100积分）
 const exchangeCard = async () => {
   if (!user.value?.id) return
   
@@ -373,14 +419,23 @@ const exchangeCard = async () => {
     return
   }
   
-  // 检查余额
-  const totalCost = purchaseCount.value * 8
-  if ((user.value.u_balance || 0) < totalCost) {
-    toast.error(`U余额不足，需要${totalCost}U`)
-    return
+  // 根据支付方式检查余额
+  let confirmMsg = ''
+  if (paymentMethod.value === 'u') {
+    const totalCost = purchaseCount.value * 8
+    if ((user.value.u_balance || 0) < totalCost) {
+      toast.error(`U余额不足，需要${totalCost}U`)
+      return
+    }
+    confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n💰 支付方式：U余额\n💵 总成本：${totalCost}U\n📊 签到送3倍积分学习`
+  } else {
+    const totalCost = purchaseCount.value * 100
+    if ((user.value.transfer_points || 0) < totalCost) {
+      toast.error(`积分不足，需要${totalCost}积分`)
+      return
+    }
+    confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n⭐ 支付方式：积分\n💎 总成本：${totalCost}积分\n📊 签到送3倍积分学习`
   }
-  
-  const confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n总成本：${totalCost}U\n签到送3倍积分学习`
   
   if (!confirm(confirmMsg)) {
     return
@@ -390,15 +445,27 @@ const exchangeCard = async () => {
   const loadingToast = toast.info('兑换中...', 0)
   
   try {
-    const result = await MiningService.purchaseMachine(
-      user.value.id,
-      purchaseCount.value
-    )
+    let result
+    
+    if (paymentMethod.value === 'u') {
+      // U余额支付
+      result = await MiningService.purchaseMachine(
+        user.value.id,
+        purchaseCount.value
+      )
+    } else {
+      // ✅ 积分支付
+      result = await MiningService.purchaseMachineWithPoints(
+        user.value.id,
+        purchaseCount.value
+      )
+    }
     
     if (result.success) {
       toast.removeToast(loadingToast)
       toast.success(result.message || `成功兑换${purchaseCount.value}张学习卡！`, 3000)
       purchaseCount.value = 1
+      paymentMethod.value = 'u' // 重置支付方式
       showExchangeModal.value = false // 关闭弹窗
       
       // 刷新数据

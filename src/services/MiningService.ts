@@ -164,6 +164,138 @@ export class MiningService extends BaseService {
   }
 
   /**
+   * ✅ 用积分兑换学习卡（100积分 = 1张学习卡）
+   * 注意：需要代理身份（已加入Binary系统）
+   */
+  static async purchaseMachineWithPoints(
+    userId: string,
+    quantity: number = 1,
+    machineType: 'type1' | 'type2' | 'type3' = 'type1'
+  ): Promise<ApiResponse<MiningMachine>> {
+    this.validateRequired({ userId, quantity }, ['userId', 'quantity'])
+
+    try {
+      // 1. 验证数量
+      if (quantity < 1 || quantity > 10) {
+        return { success: false, error: '每次兑换数量必须在1-10张之间' }
+      }
+
+      // 2. 从localStorage获取当前用户信息
+      const userSession = localStorage.getItem('user_session')
+      if (!userSession) {
+        return { success: false, error: '请先登录' }
+      }
+
+      let user
+      try {
+        user = JSON.parse(userSession)
+        if (user.id !== userId) {
+          return { success: false, error: '用户ID不匹配' }
+        }
+      } catch (e) {
+        return { success: false, error: '用户数据异常' }
+      }
+
+      // 3. 必须是代理身份
+      if (!user.is_agent) {
+        return {
+          success: false,
+          error: '请先加入Binary对碰系统（30U）才能兑换学习卡'
+        }
+      }
+
+      // 4. 检查学习卡数量限制
+      const storageKey = 'user_learning_cards'
+      const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+      const userCards = allCards.filter((card: any) => card.user_id === userId)
+
+      if (userCards.length + quantity > 10) {
+        return {
+          success: false,
+          error: '已达到最大学习卡数量限制（10张）'
+        }
+      }
+
+      // 5. 计算费用（100积分 × 数量）
+      const totalCost = 100 * quantity
+
+      // 6. 检查积分余额
+      const currentPoints = Number(user.transfer_points) || 0
+      if (currentPoints < totalCost) {
+        return {
+          success: false,
+          error: `积分不足，需要${totalCost}积分，当前${currentPoints.toFixed(0)}积分`
+        }
+      }
+
+      // 7. 扣除积分（使用WalletManager原子操作）
+      const { WalletManager } = await import('@/wallet/WalletManager')
+      await WalletManager.deductTransferPoints(
+        userId,
+        totalCost,
+        'exchange_learning_card',
+        `兑换${quantity}张AI学习卡（${totalCost}积分）`
+      )
+
+      // 8. 从数据库重新加载用户数据（确保数据一致）
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (fetchError || !updatedUser) {
+        console.error('获取用户数据失败:', fetchError)
+        return { success: false, error: '获取用户数据失败' }
+      }
+
+      // 9. 更新localStorage用户数据
+      localStorage.setItem('user_session', JSON.stringify(updatedUser))
+
+      // 10. 批量创建学习卡
+      const timestamp = new Date().toISOString()
+
+      for (let i = 0; i < quantity; i++) {
+        const machine = {
+          id: `lc-${Date.now()}-${i}`,
+          user_id: userId,
+          type: machineType,
+          status: 'inactive',
+          is_active: false,
+          total_points: 300, // 3倍出局
+          released_points: 0,
+          daily_output: 5,
+          base_rate: 0.01, // 1% 基础释放率
+          boost_rate: 0,
+          compound_count: 0,
+          compound_level: 0,
+          restart_count: 0,
+          last_release_date: null,
+          last_checkin_date: null,
+          created_at: timestamp,
+          expires_at: null
+        }
+
+        allCards.push(machine)
+      }
+
+      // 11. 保存学习卡到localStorage
+      localStorage.setItem(storageKey, JSON.stringify(allCards))
+
+      console.log(`✅ 成功用积分兑换${quantity}张学习卡`)
+
+      return {
+        success: true,
+        data: allCards[allCards.length - 1] as MiningMachine,
+        message: `🎉 成功兑换${quantity}张AI学习卡！请每日签到启动释放积分`
+      }
+    } catch (error) {
+      console.error('积分兑换失败:', error)
+      return this.handleError(error)
+    }
+  }
+
+  /**
    * 每日释放积分（V3.0：70%转U，30%互转积分，10%基础释放率，2倍出局，20天完成）
    * 注意：出局后自动停止，不再释放
    */
