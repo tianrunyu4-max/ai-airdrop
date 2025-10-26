@@ -84,7 +84,7 @@
             {{ myMachines.length }}/10张 · 3倍出局
           </div>
           <button 
-            @click="showExchangeModal = true"
+            @click="openExchangeModal"
             :disabled="!user?.is_agent || loading"
             class="w-full py-3 rounded-xl font-bold text-sm transition-all"
             :class="!user?.is_agent || loading
@@ -102,8 +102,8 @@
     </div>
 
     <!-- 兑换学习卡弹窗 -->
-    <div v-if="showExchangeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click="showExchangeModal = false">
-      <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" @click.stop>
+    <div v-if="showExchangeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click="showExchangeModal = false">
+      <div class="bg-white rounded-2xl max-w-md w-full my-8" @click.stop>
         <!-- 标题栏 -->
         <div class="sticky top-0 bg-gradient-to-r from-yellow-500 to-orange-500 p-4 flex items-center justify-between">
           <h3 class="text-white font-bold text-lg">💳 兑换学习卡</h3>
@@ -115,31 +115,48 @@
         </div>
 
         <div class="p-5">
+          <!-- ✅ 当前余额显示 -->
+          <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border-2 border-blue-200">
+            <div class="text-center text-xs text-gray-600 mb-2 font-bold">💼 当前余额</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-lg p-2 text-center">
+                <div class="text-xs text-gray-500">U余额</div>
+                <div class="text-lg font-bold text-yellow-600">{{ (user?.u_balance || 0).toFixed(2) }}U</div>
+              </div>
+              <div class="bg-white rounded-lg p-2 text-center">
+                <div class="text-xs text-gray-500">积分</div>
+                <div class="text-lg font-bold text-purple-600">{{ (user?.transfer_points || 0).toFixed(0) }}</div>
+              </div>
+            </div>
+          </div>
+
           <!-- ✅ 支付方式选择 -->
           <div class="mb-4">
-            <div class="text-center text-sm text-gray-700 font-bold mb-3">💳 支付方式</div>
+            <div class="text-center text-sm text-gray-700 font-bold mb-3">💳 选择支付方式</div>
             <div class="grid grid-cols-2 gap-3">
               <button
                 @click="paymentMethod = 'u'"
                 :class="paymentMethod === 'u' 
-                  ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-2 border-yellow-600' 
+                  ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-2 border-yellow-600 shadow-lg' 
                   : 'bg-gray-100 text-gray-600 border-2 border-gray-300'"
                 class="p-4 rounded-xl font-bold text-sm transition-all hover:shadow-md"
               >
                 <div class="text-2xl mb-1">💰</div>
-                <div>80% → U</div>
+                <div>U余额</div>
                 <div class="text-xs opacity-80 mt-1">8U/张</div>
+                <div v-if="paymentMethod === 'u'" class="text-xs mt-1">✓ 已选择</div>
               </button>
               <button
                 @click="paymentMethod = 'points'"
                 :class="paymentMethod === 'points' 
-                  ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white border-2 border-purple-600' 
+                  ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white border-2 border-purple-600 shadow-lg' 
                   : 'bg-gray-100 text-gray-600 border-2 border-gray-300'"
                 class="p-4 rounded-xl font-bold text-sm transition-all hover:shadow-md"
               >
                 <div class="text-2xl mb-1">⭐</div>
-                <div>20% → 学分</div>
+                <div>积分</div>
                 <div class="text-xs opacity-80 mt-1">100积分/张</div>
+                <div v-if="paymentMethod === 'points'" class="text-xs mt-1">✓ 已选择</div>
               </button>
             </div>
           </div>
@@ -215,8 +232,22 @@
               : 'bg-gradient-to-r from-purple-400 to-blue-500'"
             class="w-full text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
           >
-            {{ loading ? '兑换中...' : canExchange ? `💎 兑换 ${purchaseCount} 张` : (!user?.is_agent ? '需代理身份' : (paymentMethod === 'u' ? 'U余额不足' : '积分不足')) }}
+            <span v-if="loading">兑换中...</span>
+            <span v-else-if="!user?.is_agent">❌ 需代理身份</span>
+            <span v-else-if="canExchange">💎 确认兑换 {{ purchaseCount }} 张</span>
+            <span v-else-if="paymentMethod === 'u'">❌ U余额不足（需{{ (purchaseCount * 8).toFixed(0) }}U）</span>
+            <span v-else>❌ 积分不足（需{{ (purchaseCount * 100).toFixed(0) }}积分）</span>
           </button>
+          
+          <!-- ✅ 余额提示 -->
+          <div v-if="!canExchange && user?.is_agent" class="mt-3 text-center">
+            <div v-if="paymentMethod === 'u'" class="text-xs text-red-600 font-medium">
+              💡 您的U余额：{{ (user?.u_balance || 0).toFixed(2) }}U，需要：{{ (purchaseCount * 8).toFixed(0) }}U
+            </div>
+            <div v-else class="text-xs text-red-600 font-medium">
+              💡 您的积分：{{ (user?.transfer_points || 0).toFixed(0) }}，需要：{{ (purchaseCount * 100).toFixed(0) }}积分
+            </div>
+          </div>
 
           <!-- 提示 -->
           <div class="mt-3 text-xs text-center text-gray-500">
@@ -534,6 +565,13 @@ const goToTransfer = () => {
 // 跳转到收益记录页面
 const goToEarnings = () => {
   router.push('/earnings')
+}
+
+// ✅ 打开兑换弹窗（重置状态）
+const openExchangeModal = () => {
+  purchaseCount.value = 1 // 重置数量
+  paymentMethod.value = 'u' // 默认U余额支付
+  showExchangeModal.value = true
 }
 
 // 刷新页面
