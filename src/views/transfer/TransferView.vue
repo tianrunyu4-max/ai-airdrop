@@ -58,12 +58,12 @@
     <!-- 转账表单 -->
     <div v-show="activeTab === 'transfer'" class="px-4 mt-6">
       <div class="bg-white rounded-2xl p-6 border-2 border-yellow-200 shadow-lg">
-        <h3 class="text-gray-800 text-lg font-bold mb-4">发起互转</h3>
+        <h3 class="text-gray-800 text-lg font-bold mb-4">✨ 发起转账</h3>
 
         <!-- 转账类型选择 -->
         <div class="form-control mb-4">
           <label class="label">
-            <span class="label-text text-gray-700 font-medium">互转类型</span>
+            <span class="label-text text-gray-700 font-medium">📋 转账类型</span>
           </label>
           <div class="grid grid-cols-2 gap-2">
             <button
@@ -74,7 +74,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              U余额
+              U余额转账
             </button>
             <button
               @click="transferType = 'transfer_points'"
@@ -84,7 +84,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
               </svg>
-              互转
+              积分转账
             </button>
           </div>
         </div>
@@ -338,25 +338,27 @@ const validateReceiver = async () => {
 const submitTransfer = async () => {
   if (!user.value || !isValidTransfer.value || !receiverUser.value) return
 
-  // 互转积分需要双方都已加入Binary系统
+  // ✅ 互转积分需要双方都是AI代理
   if (transferType.value === 'transfer_points') {
     if (!user.value.is_agent) {
-      toast.error('仅Binary系统成员可以互转积分，请先加入系统（30U）')
+      toast.error('只有AI代理才能互转积分，请先升级为AI代理（30U）')
       return
     }
     if (!receiverUser.value.is_agent) {
-      toast.error(`接收方 ${receiverUsername.value} 还未加入Binary系统，无法接收积分`)
+      toast.error(`接收方 ${receiverUsername.value} 不是AI代理，无法接收积分转账`)
       return
     }
   }
 
-  const confirmMsg = `确认转账？\n类型：${transferType.value === 'u' ? 'U余额' : '互转'}\n接收方：${receiverUsername.value}\n金额：${transferAmount.value}\n${transferRemark.value ? `备注：${transferRemark.value}` : ''}`
+  // ✅ 更清晰的转账确认提示
+  const transferTypeName = transferType.value === 'u' ? 'U余额转账' : '积分转账'
+  const confirmMsg = `确认${transferTypeName}？\n\n接收方：${receiverUsername.value}\n转账金额：${transferAmount.value} ${transferType.value === 'u' ? 'U' : '积分'}${transferRemark.value ? `\n备注：${transferRemark.value}` : ''}`
   
   if (!confirm(confirmMsg)) {
     return
   }
 
-  const loadingToast = toast.info('正在处理转账...', 0)
+  const loadingToast = toast.info('正在处理转账，请稍候...', 0)
 
   try {
     // 使用TransactionService执行转账（自动验证+流水+回滚）
@@ -381,6 +383,9 @@ const submitTransfer = async () => {
     }
 
     if (result.success) {
+      // ✅ 立即移除loading提示，提升响应速度
+      toast.removeToast(loadingToast)
+      
       // 更新本地余额（添加防御性检查）
       if (transferType.value === 'u') {
         const currentBalance = Number(user.value.u_balance) || 0
@@ -392,16 +397,21 @@ const submitTransfer = async () => {
         user.value.points_balance = Number((currentPointsBalance - transferAmount.value).toFixed(2))
       }
 
-      // 同步localStorage (更新registered_users中的数据)
-      const currentUsername = localStorage.getItem('current_user')
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      if (currentUsername && registeredUsers[currentUsername]) {
-        registeredUsers[currentUsername].userData = user.value
-        localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
-      }
-
-      toast.removeToast(loadingToast)
-      toast.success(`✨ 转账成功！已转出 ${transferAmount.value} ${transferType.value === 'u' ? 'U' : '积分'}`, 4000)
+      // ✅ 异步同步localStorage，不阻塞界面
+      setTimeout(() => {
+        const currentUsername = localStorage.getItem('current_user')
+        const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
+        if (currentUsername && registeredUsers[currentUsername]) {
+          registeredUsers[currentUsername].userData = user.value
+          localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+        }
+      }, 50)
+      
+      // ✅ 更清晰的成功提示
+      const successMsg = transferType.value === 'u' 
+        ? `转账成功！已向 ${receiverUsername.value} 转出 ${transferAmount.value} U`
+        : `转账成功！已向 ${receiverUsername.value} 转出 ${transferAmount.value} 积分`
+      toast.success(`✨ ${successMsg}`, 4000)
 
       // 重置表单
       receiverUsername.value = ''
@@ -409,8 +419,13 @@ const submitTransfer = async () => {
       transferAmount.value = 0
       transferRemark.value = ''
       
-      // 重新加载历史记录
-      await loadTransferHistory()
+      // ✅ 异步加载历史记录，不阻塞界面（清除缓存以显示最新数据）
+      setTimeout(() => {
+        const cacheKey = `transfer_history_${user.value?.id}`
+        localStorage.removeItem(cacheKey)
+        localStorage.removeItem(`${cacheKey}_time`)
+        loadTransferHistory(false) // 强制刷新，不使用缓存
+      }, 100)
       
       // 切换到历史记录
       activeTab.value = 'history'
@@ -425,11 +440,25 @@ const submitTransfer = async () => {
   }
 }
 
-// 加载转账历史（使用重构后的TransactionService）
-const loadTransferHistory = async () => {
+// 加载转账历史（使用重构后的TransactionService + 缓存优化）
+const loadTransferHistory = async (useCache = true) => {
   if (!user.value?.id) return
 
   try {
+    // ✅ 使用缓存加速加载（5秒内不重复请求）
+    const cacheKey = `transfer_history_${user.value.id}`
+    const cached = localStorage.getItem(cacheKey)
+    const cacheTime = localStorage.getItem(`${cacheKey}_time`)
+    
+    if (useCache && cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime)
+      if (age < 5000) { // 5秒内使用缓存
+        transferHistory.value = JSON.parse(cached)
+        console.log('✅ 使用转账历史缓存')
+        return
+      }
+    }
+
     const result = await TransactionService.getUserTransactions(user.value.id, 50)
     
     if (result.success && result.data) {
@@ -440,6 +469,10 @@ const loadTransferHistory = async () => {
         t.type === 'points_transfer_out' ||
         t.type === 'points_transfer_in'
       )
+      
+      // ✅ 保存到缓存
+      localStorage.setItem(cacheKey, JSON.stringify(transferHistory.value))
+      localStorage.setItem(`${cacheKey}_time`, Date.now().toString())
     }
   } catch (error) {
     console.error('加载转账历史失败:', error)
