@@ -24,30 +24,31 @@
       <!-- Toast通知容器 -->
       <ToastContainer />
       
-      <!-- 🆕 升级AI代理横幅（非代理用户可见） -->
+      <!-- 🆕 升级AI代理横幅（非代理用户可见，50%宽度居中） -->
       <div v-if="authStore.user && !authStore.user.is_agent && !isUpgradeBannerClosed && showBottomNav" 
-           class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 flex items-center justify-between shadow-lg animate-slide-down">
-        <div class="flex items-center gap-3 flex-1">
-          <span class="text-2xl">👑</span>
-          <div>
-            <div class="font-bold text-sm">升级AI代理解锁全部功能！</div>
-            <div class="text-xs opacity-90">对碰奖励 · 见单奖励 · 积分互转 · AI学习卡</div>
+           class="fixed top-4 left-1/2 -translate-x-1/2 w-1/2 min-w-[300px] max-w-[500px] z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 px-3 rounded-xl shadow-2xl animate-slide-down">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-1">
+            <span class="text-xl">👑</span>
+            <div class="text-xs">
+              <span class="font-bold">升级AI代理 仅需30U</span>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button @click="goToUpgrade" 
-                  class="btn btn-sm bg-white text-purple-600 hover:bg-gray-100 border-none shadow-md hover:scale-105 transition-all">
-            仅需30U 立即升级 →
-          </button>
-          <button @click="closeBanner" 
-                  class="btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20">
-            ✕
-          </button>
+          <div class="flex items-center gap-1">
+            <button @click="goToUpgrade" 
+                    class="btn btn-xs bg-white text-purple-600 hover:bg-gray-100 border-none shadow-md">
+              立即升级
+            </button>
+            <button @click="closeBanner" 
+                    class="btn btn-ghost btn-xs btn-circle text-white hover:bg-white/20">
+              ✕
+            </button>
+          </div>
         </div>
       </div>
       
       <!-- 主内容区域 -->
-      <main class="flex-1 overflow-y-auto pb-16" :class="{ 'pt-16': authStore.user && !authStore.user.is_agent && !isUpgradeBannerClosed && showBottomNav }">
+      <main class="flex-1 overflow-y-auto pb-16">
         <router-view v-slot="{ Component, route }">
           <transition name="fade" mode="out-in">
             <!-- ✅ 使用 keep-alive 缓存底部导航的5个主要页面，加速切换 -->
@@ -68,8 +69,9 @@
       <!-- 🆕 悬浮升级按钮（非代理用户可见） -->
       <button v-if="authStore.user && !authStore.user.is_agent && showBottomNav"
               @click="goToUpgrade"
-              class="fixed bottom-24 right-6 btn btn-circle btn-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-2xl hover:scale-110 transition-all z-40 border-none animate-bounce-slow">
-        <span class="text-3xl">👑</span>
+              class="fixed bottom-24 right-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-2xl hover:scale-110 transition-all z-40 border-none rounded-full px-4 py-3 flex flex-col items-center justify-center animate-bounce-slow">
+        <span class="text-2xl mb-1">👑</span>
+        <span class="text-xs font-bold whitespace-nowrap">AI代理</span>
       </button>
       
       <!-- 🆕 悬浮按钮提示气泡 -->
