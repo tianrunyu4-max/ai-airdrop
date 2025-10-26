@@ -7,8 +7,8 @@ export class AdminCleanupService {
   /**
    * 清理过期消息
    * - 用户消息：5分钟
-   * - 机器人消息（AI空投计划群）：10分钟
-   * - 机器人消息（AI空投计划群）：24小时
+   * - 机器人消息（AI科技创薪群）：10分钟
+   * - 机器人消息（AI科技创薪群）：24小时
    */
   static async cleanupExpiredMessages() {
     try {

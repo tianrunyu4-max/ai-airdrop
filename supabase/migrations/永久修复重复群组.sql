@@ -15,7 +15,7 @@ ADD CONSTRAINT unique_group_type UNIQUE (type);
 -- 3. 重新创建2个群组（确保唯一）
 INSERT INTO chat_groups (type, icon, description, member_count, max_members, is_active, sort_order, bot_enabled)
 VALUES 
-  ('default', '💰', 'AI 空投计划', 10, 50000, true, 1, false),
+  ('default', '💰', 'AI 科技创薪', 10, 50000, true, 1, false),
   ('ai_push', '🚀', 'AI Web3 空投', 5, 50000, true, 2, true)
 ON CONFLICT (type) DO NOTHING;
 

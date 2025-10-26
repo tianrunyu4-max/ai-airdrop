@@ -8,7 +8,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
-        <h1 class="text-3xl font-bold text-white mb-2">AI 空投计划</h1>
+        <h1 class="text-3xl font-bold text-white mb-2">AI 科技创薪</h1>
         <p class="text-white/80">持续学习 持续创新</p>
         <div class="mt-6">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>

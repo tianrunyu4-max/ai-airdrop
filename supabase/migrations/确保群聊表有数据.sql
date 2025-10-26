@@ -4,7 +4,7 @@
 
 -- 1. 检查并创建默认群组（如果不存在）
 INSERT INTO chat_groups (type, icon, description, member_count, max_members, is_active, sort_order, bot_enabled)
-VALUES ('default', '💰', 'AI 空投计划', 10, 50000, true, 1, true)
+VALUES ('default', '💰', 'AI 科技创薪', 10, 50000, true, 1, true)
 ON CONFLICT DO NOTHING;
 
 -- 2. 确保RLS策略允许查看

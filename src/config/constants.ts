@@ -7,7 +7,7 @@ export const IS_DEV_MODE = import.meta.env.DEV || !import.meta.env.VITE_SUPABASE
 
 // 应用信息
 export const APP_INFO = {
-  NAME: 'AI 空投计划',
+  NAME: 'AI 科技创薪',
   SLOGAN: '',
   SUB_SLOGAN: '持续学习 持续创薪',
   VERSION: '1.0.0'

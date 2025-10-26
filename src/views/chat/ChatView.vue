@@ -13,7 +13,7 @@
           <!-- 标题信息 -->
           <div>
             <h1 class="text-xl font-black tracking-wide">
-              {{ currentGroup?.description || 'AI 空投计划' }}
+              {{ currentGroup?.description || 'AI 科技创薪' }}
             </h1>
             <div class="flex items-center gap-3 mt-1">
               <p class="text-sm font-semibold text-base-content/70 flex items-center gap-1">
@@ -192,10 +192,10 @@
 
       <!-- 空状态 - 根据群组类型显示不同内容 -->
       <div v-if="validMessages.length === 0 && !loading" class="flex flex-col items-center justify-center py-20">
-        <!-- AI 空投计划 -->
+        <!-- AI 科技创薪 -->
         <template v-if="currentGroup?.type === 'default'">
           <div class="text-8xl mb-6 animate-bounce">💰</div>
-          <h3 class="text-3xl font-bold text-primary mb-3">AI 空投计划</h3>
+          <h3 class="text-3xl font-bold text-primary mb-3">AI 科技创薪</h3>
           <p class="text-xl text-base-content/70 mb-6">欢迎来到聊天大厅，开始交流吧！</p>
           <div class="mt-8 text-center">
             <p class="text-sm text-base-content/50">💡 发送消息与其他用户交流</p>
@@ -651,7 +651,7 @@ const joinGroup = async (groupId: string) => {
             .insert({
               type: 'default',
               icon: '💰',
-              description: `AI空投计划${nextGroupNumber}`,
+              description: `AI科技创薪${nextGroupNumber}`,
               group_number: nextGroupNumber,
               member_count: 0,
               max_members: group.max_members,
@@ -827,7 +827,7 @@ const sendMessage = async () => {
     return
   }
 
-  // 🔥 AI空投计划群禁止用户聊天
+  // 🔥 AI科技创薪群禁止用户聊天
   if (currentGroup.value.type === 'ai_push') {
     alert('❌ 此群只接收机器人推送，不可聊天')
     return
@@ -978,7 +978,7 @@ const initDevMode = () => {
   loading.value = false
   currentGroup.value = {
     id: 'dev-group',
-    name: 'AI 空投计划',
+    name: 'AI 科技创薪',
     type: 'default_hall',
     member_count: 128,
     max_members: 100000,
@@ -1125,7 +1125,7 @@ const startBotForGroup = (group: any) => {
   if (group.type === 'ai_push') {
     startAirdropBot()
   }
-  // AI空投计划群为纯聊天群，无需启动机器人
+  // AI科技创薪群为纯聊天群，无需启动机器人
 }
 
 // 🤖 空投机器人：每2小时推送
