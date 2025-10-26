@@ -37,7 +37,7 @@
             收益记录
           </button>
           <button @click="goToTransfer" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
-            互转积分
+            互转
           </button>
           <button @click="refreshPage" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
             🔄 刷新
@@ -470,9 +470,34 @@ const goToEarnings = () => {
 }
 
 // 刷新页面
-const refreshPage = () => {
-  loadMyMachines()
-  toast.success('已刷新')
+const refreshPage = async () => {
+  loading.value = true
+  const loadingToast = toast.info('刷新中...', 0)
+  
+  try {
+    // 清除相关缓存
+    localStorage.removeItem('tools_posts_cache')
+    localStorage.removeItem(`weekly_limit_${authStore.user?.id}`)
+    
+    // 重新加载所有数据
+    await Promise.all([
+      authStore.loadUser(),
+      loadMyMachines(),
+      calculateReleaseRate()
+    ])
+    
+    // 重新检查签到状态
+    checkCheckinStatus()
+    
+    toast.removeToast(loadingToast)
+    toast.success('✅ 刷新成功！', 2000)
+  } catch (error) {
+    console.error('刷新失败:', error)
+    toast.removeToast(loadingToast)
+    toast.error('刷新失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 加载我的学习机（localStorage版本）
