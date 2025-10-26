@@ -31,7 +31,7 @@ export class UserRepository extends BaseRepository {
         .from(this.TABLE)
         .select('*')
         .eq('username', username)
-        .single()
+        .maybeSingle() // ✅ 使用maybeSingle避免用户不存在时抛出错误
     )
   }
 
@@ -44,7 +44,7 @@ export class UserRepository extends BaseRepository {
         .from(this.TABLE)
         .select('*')
         .eq('invite_code', inviteCode)
-        .single()
+        .maybeSingle() // ✅ 使用maybeSingle避免邀请码不存在时抛出错误
     )
   }
 

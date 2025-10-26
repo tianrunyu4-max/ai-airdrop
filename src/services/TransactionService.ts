@@ -139,39 +139,61 @@ export class TransactionService extends BaseService {
         return { success: false, error: '不能转账给自己' }
       }
 
-      // 2. 使用localStorage处理积分转账
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '{}')
-      const fromUserKey = Object.keys(registeredUsers).find(key => 
-        registeredUsers[key].userData.id === fromUserId
-      )
-      const toUserKey = Object.keys(registeredUsers).find(key => 
-        registeredUsers[key].userData.id === toUserId
-      )
-
-      if (!fromUserKey || !toUserKey) {
+      // 2. ✅ 使用Supabase处理积分转账
+      const { supabase } = await import('@/lib/supabase')
+      
+      // 查询双方用户
+      const { data: users, error: queryError } = await supabase
+        .from('users')
+        .select('id, username, transfer_points, points_balance')
+        .in('id', [fromUserId, toUserId])
+      
+      if (queryError) throw queryError
+      if (!users || users.length !== 2) {
         return { success: false, error: '用户不存在' }
       }
 
-      const fromUser = registeredUsers[fromUserKey].userData
-      const toUser = registeredUsers[toUserKey].userData
+      const fromUser = users.find(u => u.id === fromUserId)
+      const toUser = users.find(u => u.id === toUserId)
+      
+      if (!fromUser || !toUser) {
+        return { success: false, error: '用户不存在' }
+      }
 
       // 3. 检查积分是否充足
       if (fromUser.transfer_points < amount) {
-        return { success: false, error: `积分不足，当前可转账积分: ${fromUser.transfer_points}` }
+        return { success: false, error: `积分不足，当前可转积分: ${fromUser.transfer_points}` }
       }
 
-      // 4. 扣除发送方积分
-      fromUser.transfer_points = Number((fromUser.transfer_points - amount).toFixed(2))
-      fromUser.points_balance = Number((fromUser.points_balance - amount).toFixed(2))
-      
-      // 5. 增加接收方积分
-      toUser.transfer_points = Number((toUser.transfer_points + amount).toFixed(2))
-      toUser.points_balance = Number((toUser.points_balance + amount).toFixed(2))
+      // 4. 计算新积分
+      const newFromTransferPoints = Number((fromUser.transfer_points - amount).toFixed(2))
+      const newFromPointsBalance = Number((fromUser.points_balance - amount).toFixed(2))
+      const newToTransferPoints = Number((toUser.transfer_points + amount).toFixed(2))
+      const newToPointsBalance = Number((toUser.points_balance + amount).toFixed(2))
 
-      // 6. 保存更新后的用户数据
-      registeredUsers[fromUserKey].userData = fromUser
-      registeredUsers[toUserKey].userData = toUser
-      localStorage.setItem('registered_users', JSON.stringify(registeredUsers))
+      // 5. 更新发送方积分
+      const { error: fromError } = await supabase
+        .from('users')
+        .update({ 
+          transfer_points: newFromTransferPoints,
+          points_balance: newFromPointsBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fromUserId)
+      
+      if (fromError) throw fromError
+
+      // 6. 更新接收方积分
+      const { error: toError } = await supabase
+        .from('users')
+        .update({ 
+          transfer_points: newToTransferPoints,
+          points_balance: newToPointsBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', toUserId)
+      
+      if (toError) throw toError
 
       // 7. 记录转账流水
       const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
