@@ -130,6 +130,11 @@ const routes: RouteRecordRaw[] = [
         path: 'groups',
         name: 'admin-groups',
         component: () => import('@/views/admin/GroupManagement.vue')
+      },
+      {
+        path: 'restart',
+        name: 'admin-restart',
+        component: () => import('@/views/admin/RestartManagement.vue')
       }
     ]
   },

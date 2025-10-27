@@ -118,7 +118,8 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   GiftIcon,
-  ShareIcon
+  ShareIcon,
+  ArrowPathIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -175,6 +176,12 @@ const menuItems = [
     label: '群聊管理', 
     icon: ChatBubbleLeftRightIcon,
     desc: '群聊分类与群组管理'
+  },
+  { 
+    path: '/admin/restart', 
+    label: '学习卡重启', 
+    icon: ArrowPathIcon,
+    desc: '检测并销毁达标学习卡'
   },
   { 
     path: '/admin/params', 
