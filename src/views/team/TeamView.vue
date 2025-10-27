@@ -348,11 +348,16 @@ const loadNetworkStats = async (forceRefresh = false) => {
 const loadReferralList = async (forceRefresh = false) => {
   try {
     const userId = authStore.user?.id
-    if (!userId) return
+    console.log('🔍 [直推列表] 开始加载，用户ID:', userId, '是否代理:', authStore.user?.is_agent)
+    
+    if (!userId) {
+      console.error('❌ [直推列表] 用户ID不存在')
+      return
+    }
 
     // ✅ 检查用户是否是AI代理
     if (!authStore.user?.is_agent) {
-      console.log('⚠️ 非AI代理用户，不加载直推列表')
+      console.log('⚠️ [直推列表] 非AI代理用户，不加载直推列表')
       referralList.value = []
       return
     }
@@ -373,6 +378,7 @@ const loadReferralList = async (forceRefresh = false) => {
     }
 
     // ✅ 从直推关系表查询（referral_relationships）
+    console.log('🔍 [直推列表] 开始查询数据库，referrer_id:', userId)
     const { data: relationships, error: relError } = await supabase
       .from('referral_relationships')
       .select('referee_id, created_at')
@@ -381,14 +387,20 @@ const loadReferralList = async (forceRefresh = false) => {
       .order('created_at', { ascending: false })
       .limit(50)
 
+    console.log('🔍 [直推列表] 数据库查询结果:', {
+      relationships: relationships,
+      count: relationships?.length || 0,
+      error: relError
+    })
+
     if (relError) {
-      console.error('查询直推关系失败:', relError)
+      console.error('❌ [直推列表] 查询直推关系失败:', relError)
       referralList.value = []
       return
     }
 
     if (!relationships || relationships.length === 0) {
-      console.log('📊 当前无直推下级')
+      console.log('📊 [直推列表] 当前无直推下级')
       referralList.value = []
       // 更新缓存
       localStorage.setItem(cacheKey, JSON.stringify({
@@ -400,6 +412,7 @@ const loadReferralList = async (forceRefresh = false) => {
 
     // ✅ 获取所有被推荐人的ID
     const refereeIds = relationships.map(r => r.referee_id)
+    console.log('🔍 [直推列表] 被推荐人IDs:', refereeIds)
 
     // ✅ 查询用户信息（只查询AI代理）
     const { data: users, error: userError } = await supabase
@@ -408,8 +421,14 @@ const loadReferralList = async (forceRefresh = false) => {
       .in('id', refereeIds)
       .eq('is_agent', true)  // ✅ 只查询AI代理
 
+    console.log('🔍 [直推列表] 用户查询结果:', {
+      users: users,
+      count: users?.length || 0,
+      error: userError
+    })
+
     if (userError) {
-      console.error('查询用户信息失败:', userError)
+      console.error('❌ [直推列表] 查询用户信息失败:', userError)
       referralList.value = []
       return
     }
@@ -430,7 +449,7 @@ const loadReferralList = async (forceRefresh = false) => {
         }
       })
     
-    console.log(`📊 加载直推列表: ${referralList.value.length} 人`)
+    console.log(`✅ [直推列表] 加载完成: ${referralList.value.length} 人`, referralList.value)
     
     // ✅ 保存到缓存
     localStorage.setItem(cacheKey, JSON.stringify({
