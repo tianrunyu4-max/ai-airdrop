@@ -378,11 +378,26 @@ const loadReferralList = async (forceRefresh = false) => {
     }
 
     // ✅ 从直推关系表查询（referral_relationships）
-    console.log('🔍 [直推列表] 开始查询数据库，referrer_id:', userId)
+    // 🔧 修复：先通过username查询真实的user ID，避免localStorage缓存的ID不准确
+    const { data: currentUserData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', authStore.user?.username)
+      .single()
+    
+    if (userError || !currentUserData) {
+      console.error('❌ [直推列表] 查询当前用户失败:', userError)
+      referralList.value = []
+      return
+    }
+    
+    const realUserId = currentUserData.id
+    console.log('🔍 [直推列表] 真实用户ID:', realUserId, '开始查询直推关系')
+    
     const { data: relationships, error: relError } = await supabase
       .from('referral_relationships')
       .select('referee_id, created_at')
-      .eq('referrer_id', userId)
+      .eq('referrer_id', realUserId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50)
