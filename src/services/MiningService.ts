@@ -541,49 +541,84 @@ export class MiningService extends BaseService {
         console.log(`✅ 学习卡收益已计入复投：+${uAmount.toFixed(2)}U`)
       }
       
-      // 7. 记录签到释放流水
-      try {
-        const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
-        const timestamp = new Date().toISOString()
-        
-        const newTransaction = {
-          id: `tx-${Date.now()}-checkin`,
-          user_id: userId,
-          type: 'checkin_release',
-          amount: uAmount,
-          balance_after: newUBalance,
-          currency: 'U',
-          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
-          metadata: {
-            cards_count: checkedInCount,
-            total_released: totalReleased,
-            to_u: uAmount,
-            to_burn: toBurn,
-            release_rate: releaseRate
-          },
-          created_at: timestamp
+      // 7. ✅ 记录签到释放流水（增强版）
+      let transactionCreated = false
+      let retryCount = 0
+      const maxRetries = 3
+      
+      while (!transactionCreated && retryCount < maxRetries) {
+        try {
+          const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+          const timestamp = new Date().toISOString()
+          
+          const newTransaction = {
+            id: `tx-${Date.now()}-${retryCount}-checkin`,
+            user_id: userId,
+            type: 'checkin_release',
+            amount: uAmount,
+            balance_after: newUBalance,
+            currency: 'U',
+            description: `签到释放：${totalReleased.toFixed(2)}积分 → ${uAmount.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
+            metadata: {
+              cards_count: checkedInCount,
+              total_released: totalReleased,
+              to_u: uAmount,
+              to_burn: toBurn,
+              release_rate: releaseRate
+            },
+            created_at: timestamp
+          }
+          
+          transactions.push(newTransaction)
+          
+          // 尝试写入localStorage
+          try {
+            localStorage.setItem('user_transactions', JSON.stringify(transactions))
+          } catch (storageError) {
+            // 如果localStorage满了，清理旧记录
+            console.warn(`⚠️ localStorage写入失败(尝试${retryCount + 1}/${maxRetries})，尝试清理...`)
+            
+            // 只保留最近100条记录
+            if (transactions.length > 100) {
+              const recentTransactions = transactions.slice(-100)
+              localStorage.setItem('user_transactions', JSON.stringify(recentTransactions))
+              console.log(`🧹 已清理旧记录，保留最近100条`)
+              retryCount++
+              continue
+            } else {
+              throw storageError
+            }
+          }
+          
+          console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
+          console.log(`   余额变化：U ${currentUBalance} → ${newUBalance} (+${uAmount.toFixed(2)})`)
+          console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
+          console.log(`   📝 交易记录已创建: ${newTransaction.id}`)
+          console.log(`   📊 当前共有${transactions.length}条交易记录`)
+          
+          // 验证记录是否成功保存
+          const savedTransactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+          const recordFound = savedTransactions.some((tx: any) => tx.id === newTransaction.id)
+          
+          if (!recordFound) {
+            console.error(`⚠️ 交易记录验证失败(尝试${retryCount + 1}/${maxRetries})`)
+            retryCount++
+          } else {
+            console.log(`✅ 交易记录保存验证成功`)
+            transactionCreated = true
+          }
+        } catch (txError) {
+          console.error(`❌ 创建交易记录失败(尝试${retryCount + 1}/${maxRetries}):`, txError)
+          retryCount++
+          
+          if (retryCount >= maxRetries) {
+            console.error('❌ 交易记录创建彻底失败，但签到仍然成功')
+          }
         }
-        
-        transactions.push(newTransaction)
-        localStorage.setItem('user_transactions', JSON.stringify(transactions))
-        
-        console.log(`✅ 签到释放：${totalReleased.toFixed(2)}积分`)
-        console.log(`   余额变化：U ${currentUBalance} → ${newUBalance} (+${uAmount.toFixed(2)})`)
-        console.log(`   🔥 销毁：${toBurn.toFixed(2)}积分（防泡沫）`)
-        console.log(`   📝 交易记录已创建: ${newTransaction.id}`)
-        console.log(`   📊 当前共有${transactions.length}条交易记录`)
-        
-        // 验证记录是否成功保存
-        const savedTransactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
-        const recordFound = savedTransactions.some((tx: any) => tx.id === newTransaction.id)
-        if (!recordFound) {
-          console.error('⚠️ 警告：交易记录保存验证失败！')
-        } else {
-          console.log(`✅ 交易记录保存验证成功`)
-        }
-      } catch (txError) {
-        console.error('⚠️ 创建交易记录失败:', txError)
-        // 即使交易记录创建失败，签到仍然成功
+      }
+      
+      if (!transactionCreated) {
+        console.warn('⚠️ 警告：签到成功但交易记录未创建，收益记录页面可能不显示本次签到')
       }
 
       return {
