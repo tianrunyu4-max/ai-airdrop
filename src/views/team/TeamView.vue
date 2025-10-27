@@ -209,8 +209,8 @@ const isUnlocked = ref(false)
 // 直推列表
 const referralList = ref<any[]>([])
 
-// 计算直推人数（基于实际列表长度，而不是缓存的数字）
-const directReferrals = computed(() => referralList.value.length)
+// 计算直推人数 - 直接使用users表的direct_referral_count字段
+const directReferrals = computed(() => authStore.user?.direct_referral_count || referralList.value.length)
 
 // 计算属性
 const totalSales = computed(() => aSideSales.value + bSideSales.value)
