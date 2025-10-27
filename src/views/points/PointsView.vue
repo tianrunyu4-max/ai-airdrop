@@ -729,18 +729,34 @@ const checkCheckinStatus = () => {
   )
 }
 
-// ✅ 加载重启统计（从localStorage临时读取，后续从数据库）
+// ✅ 加载重启统计（从数据库读取）
 const loadRestartStats = async () => {
   if (!user.value?.id) return
   
   try {
-    // 临时从localStorage读取统计
-    const stats = localStorage.getItem(`restart_stats_${user.value.id}`)
+    const { data, error } = await supabase
+      .from('user_restart_stats')
+      .select('*')
+      .eq('user_id', user.value.id)
+      .maybeSingle()
     
-    if (stats) {
-      restartStats.value = JSON.parse(stats)
+    if (error) {
+      console.error('查询重启统计失败:', error)
+      // 如果查询失败，使用默认值
+      restartStats.value = {
+        user_id: user.value.id,
+        total_restarts: 0,
+        this_week: 0,
+        this_month: 0,
+        last_restart: null
+      }
+      return
+    }
+    
+    if (data) {
+      restartStats.value = data
     } else {
-      // 初始化统计
+      // 如果没有记录，显示初始状态
       restartStats.value = {
         user_id: user.value.id,
         total_restarts: 0,
