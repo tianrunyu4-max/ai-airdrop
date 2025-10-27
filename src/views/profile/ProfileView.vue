@@ -925,13 +925,14 @@ const loadPlatformContacts = async () => {
     // 从system_config表加载平台联系方式
     const { data } = await supabase
       .from('system_config')
-      .select('platform_contacts')
+      .select('value')
+      .eq('key', 'platform_contacts')
       .maybeSingle()
     
-    if (data?.platform_contacts) {
+    if (data?.value) {
       platformContacts.value = {
         ...platformContacts.value,
-        ...data.platform_contacts
+        ...data.value
       }
     }
   } catch (error) {
