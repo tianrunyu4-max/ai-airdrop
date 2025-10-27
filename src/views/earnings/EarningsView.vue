@@ -44,12 +44,42 @@
         <p class="text-gray-400 mt-4">加载中...</p>
       </div>
 
+      <!-- ✅ 自动修复提示 -->
+      <div v-if="showRepairHint" class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-2xl p-4 mb-4 shadow-lg">
+        <div class="flex items-start gap-3">
+          <div class="text-3xl">⚠️</div>
+          <div class="flex-1">
+            <div class="font-bold text-gray-800 mb-2">检测到签到异常</div>
+            <p class="text-sm text-gray-600 mb-3">
+              您有 {{ myCardsCount }} 张学习卡，但今天还没有签到记录。
+            </p>
+            <button 
+              @click="autoRepair"
+              class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:shadow-lg transition-all"
+            >
+              🔧 自动修复记录
+            </button>
+          </div>
+          <button @click="showRepairHint = false" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <!-- 签到释放记录 -->
       <div class="space-y-3">
         <div v-if="checkinRecords.length === 0" class="text-center py-12">
           <div class="text-6xl mb-4">📅</div>
           <p class="text-gray-600 font-medium mb-2">暂无签到释放记录</p>
-          <p class="text-xs text-gray-500">每日签到释放学习卡积分</p>
+          <p class="text-xs text-gray-500 mb-4">每日签到释放学习卡积分</p>
+          <button 
+            @click="$router.push('/points')"
+            class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-xl transition-all"
+          >
+            📱 前往签到
+          </button>
         </div>
         
         <div 
@@ -122,6 +152,10 @@ const referralCount = ref(0)
 
 // 记录列表
 const checkinRecords = ref<any[]>([])
+
+// ✅ 自动修复相关
+const showRepairHint = ref(false)
+const myCardsCount = ref(0)
 
 // 格式化日期
 const formatDate = (dateString: string) => {
@@ -232,6 +266,109 @@ const calculateReleaseRate = async () => {
   }
 }
 
+// ✅ 自动修复签到记录
+const autoRepair = async () => {
+  const loadingToast = toast.info('🔧 正在修复...', 0)
+  
+  try {
+    const userId = authStore.user?.id
+    if (!userId) {
+      toast.removeToast(loadingToast)
+      toast.error('请先登录')
+      return
+    }
+    
+    // 获取学习卡信息
+    const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+    const myCards = cards.filter((c: any) => c.user_id === userId)
+    
+    if (myCards.length === 0) {
+      toast.removeToast(loadingToast)
+      toast.error('您还没有学习卡')
+      return
+    }
+    
+    // 计算签到收益
+    const activeCards = myCards.filter((c: any) => {
+      const released = c.released_points || 0
+      const total = c.total_points || 300
+      return released < total
+    })
+    
+    const cardsCount = activeCards.length
+    const rate = releaseRate.value || 0.05
+    const totalReleased = cardsCount * 5 * rate
+    const toU = totalReleased * 0.8
+    const toBurn = totalReleased * 0.2
+    
+    // 创建补救记录
+    const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+    
+    const newRecord = {
+      id: `tx-${Date.now()}-checkin-修复`,
+      user_id: userId,
+      type: 'checkin_release',
+      amount: parseFloat(toU.toFixed(2)),
+      balance_after: authStore.user?.u_balance || 0,
+      currency: 'U',
+      description: `签到释放：${totalReleased.toFixed(2)}积分 → ${toU.toFixed(2)}U（释放率${(rate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
+      metadata: {
+        cards_count: cardsCount,
+        total_released: totalReleased,
+        to_u: toU,
+        to_burn: toBurn,
+        release_rate: rate
+      },
+      created_at: new Date().toISOString()
+    }
+    
+    transactions.push(newRecord)
+    localStorage.setItem('user_transactions', JSON.stringify(transactions))
+    
+    toast.removeToast(loadingToast)
+    toast.success(`✅ 修复成功！+${toU.toFixed(2)}U`, 3000)
+    
+    // 刷新记录
+    showRepairHint.value = false
+    await loadCheckinRecords()
+    
+  } catch (error: any) {
+    toast.removeToast(loadingToast)
+    toast.error(`修复失败：${error.message}`)
+    console.error('修复失败:', error)
+  }
+}
+
+// ✅ 检测是否需要显示修复提示
+const checkRepairHint = () => {
+  try {
+    const userId = authStore.user?.id
+    if (!userId) return
+    
+    // 检查学习卡
+    const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+    const myCards = cards.filter((c: any) => c.user_id === userId)
+    myCardsCount.value = myCards.length
+    
+    if (myCards.length === 0) return
+    
+    // 检查今天是否有签到记录
+    const today = new Date().toISOString().split('T')[0]
+    const todayRecords = checkinRecords.value.filter((r: any) => r.created_at?.startsWith(today))
+    
+    // 检查学习卡是否今天已签到
+    const todayCheckedInCards = myCards.filter((c: any) => c.last_checkin_date?.startsWith(today))
+    
+    // 如果有学习卡，有些已签到，但没有签到记录，显示修复提示
+    if (myCards.length > 0 && todayCheckedInCards.length > 0 && todayRecords.length === 0) {
+      showRepairHint.value = true
+      console.log('⚠️ 检测到签到异常，建议修复')
+    }
+  } catch (error) {
+    console.error('检测修复提示失败:', error)
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -239,6 +376,11 @@ onMounted(async () => {
       loadCheckinRecords(),
       calculateReleaseRate()
     ])
+    
+    // ✅ 检测是否需要修复
+    setTimeout(() => {
+      checkRepairHint()
+    }, 500)
   } finally {
     loading.value = false
   }

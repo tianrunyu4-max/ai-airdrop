@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 修复签到记录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 15px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    .log {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .log-item {
+      margin-bottom: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .log-success {
+      color: #28a745;
+      background: #d4edda;
+    }
+    .log-error {
+      color: #dc3545;
+      background: #f8d7da;
+    }
+    .log-info {
+      color: #007bff;
+      background: #d1ecf1;
+    }
+    .log-warning {
+      color: #ffc107;
+      background: #fff3cd;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      border-radius: 10px;
+      color: white;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 签到记录修复工具</h1>
+    <p class="subtitle">检测并修复丢失的签到记录</p>
+    
+    <button class="btn btn-primary" onclick="diagnose()">
+      🔍 开始诊断
+    </button>
+    
+    <button class="btn btn-secondary" onclick="createRepairRecord()">
+      ✨ 创建补救记录
+    </button>
+    
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-value" id="totalRecords">0</div>
+        <div class="stat-label">总记录数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="checkinRecords">0</div>
+        <div class="stat-label">签到记录</div>
+      </div>
+    </div>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    function addLog(message, type = 'info') {
+      const log = document.getElementById('log')
+      const item = document.createElement('div')
+      item.className = `log-item log-${type}`
+      item.textContent = message
+      log.appendChild(item)
+      log.scrollTop = log.scrollHeight
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = ''
+    }
+
+    function updateStats(total, checkin) {
+      document.getElementById('stats').style.display = 'grid'
+      document.getElementById('totalRecords').textContent = total
+      document.getElementById('checkinRecords').textContent = checkin
+    }
+
+    function diagnose() {
+      clearLog()
+      addLog('=== 🔍 开始诊断 ===', 'info')
+      
+      try {
+        // 检查localStorage是否可用
+        if (typeof localStorage === 'undefined') {
+          addLog('❌ localStorage不可用', 'error')
+          return
+        }
+        
+        // 获取用户信息
+        const userSession = localStorage.getItem('user_session')
+        if (!userSession) {
+          addLog('❌ 未找到用户信息，请先登录网站', 'error')
+          addLog('💡 打开 https://www.ai-airdrop.top 登录后再试', 'info')
+          return
+        }
+        
+        const user = JSON.parse(userSession)
+        const userId = user.id
+        
+        addLog(`✅ 用户ID: ${userId}`, 'success')
+        addLog(`💰 当前U余额: ${user.u_balance}U`, 'success')
+        
+        // 检查交易记录
+        const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+        addLog(`📊 总交易记录: ${transactions.length}条`, 'info')
+        
+        const myTransactions = transactions.filter(tx => tx.user_id === userId)
+        addLog(`📝 我的交易记录: ${myTransactions.length}条`, 'info')
+        
+        const checkinRecords = myTransactions.filter(tx => tx.type === 'checkin_release')
+        addLog(`📅 签到释放记录: ${checkinRecords.length}条`, 'info')
+        
+        updateStats(myTransactions.length, checkinRecords.length)
+        
+        // 检查学习卡
+        const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+        const myCards = cards.filter(c => c.user_id === userId)
+        addLog(`💳 我的学习卡: ${myCards.length}张`, 'info')
+        
+        // 检查今天的签到
+        const today = new Date().toISOString().split('T')[0]
+        const todayCheckins = checkinRecords.filter(r => r.created_at?.startsWith(today))
+        
+        if (todayCheckins.length === 0) {
+          addLog('⚠️ 今天还没有签到记录', 'warning')
+          addLog('💡 点击"创建补救记录"按钮修复', 'info')
+        } else {
+          addLog(`✅ 今天已有${todayCheckins.length}条签到记录`, 'success')
+        }
+        
+        // 检查学习卡签到状态
+        myCards.forEach((card, idx) => {
+          const lastCheckin = card.last_checkin_date
+          const isToday = lastCheckin?.startsWith(today)
+          if (isToday) {
+            addLog(`✅ 学习卡${idx + 1}: 今天已签到`, 'success')
+          } else {
+            addLog(`⚠️ 学习卡${idx + 1}: ${lastCheckin ? '未签到' : '从未签到'}`, 'warning')
+          }
+        })
+        
+        addLog('=== 诊断完成 ===', 'info')
+        
+      } catch (error) {
+        addLog(`❌ 诊断失败: ${error.message}`, 'error')
+        console.error(error)
+      }
+    }
+
+    function createRepairRecord() {
+      clearLog()
+      addLog('=== ✨ 创建补救记录 ===', 'info')
+      
+      try {
+        // 获取用户信息
+        const userSession = localStorage.getItem('user_session')
+        if (!userSession) {
+          addLog('❌ 未找到用户信息，请先登录网站', 'error')
+          return
+        }
+        
+        const user = JSON.parse(userSession)
+        const userId = user.id
+        
+        // 获取学习卡信息
+        const cards = JSON.parse(localStorage.getItem('user_learning_cards') || '[]')
+        const myCards = cards.filter(c => c.user_id === userId)
+        
+        if (myCards.length === 0) {
+          addLog('❌ 您还没有学习卡，无法创建签到记录', 'error')
+          addLog('💡 请先兑换学习卡', 'info')
+          return
+        }
+        
+        // 获取交易记录
+        const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+        
+        // 检查今天是否已有记录
+        const today = new Date().toISOString().split('T')[0]
+        const todayCheckins = transactions.filter(tx => 
+          tx.user_id === userId && 
+          tx.type === 'checkin_release' && 
+          tx.created_at?.startsWith(today)
+        )
+        
+        if (todayCheckins.length > 0) {
+          addLog('ℹ️ 今天已有签到记录', 'info')
+          addLog(`📅 共${todayCheckins.length}条记录`, 'info')
+          
+          const confirm = window.confirm('今天已有签到记录，是否仍然创建补救记录？')
+          if (!confirm) {
+            addLog('❌ 操作已取消', 'warning')
+            return
+          }
+        }
+        
+        // 计算签到收益
+        const activeCards = myCards.filter(c => {
+          const released = c.released_points || 0
+          const total = c.total_points || 300
+          return released < total
+        })
+        
+        const cardsCount = activeCards.length
+        const releaseRate = 0.05 // 假设5%释放率
+        const totalReleased = cardsCount * 5 * releaseRate // 每张卡5积分
+        const toU = totalReleased * 0.8 // 80%转U
+        const toBurn = totalReleased * 0.2 // 20%销毁
+        
+        // 创建补救记录
+        const newRecord = {
+          id: `tx-${Date.now()}-checkin-补救`,
+          user_id: userId,
+          type: 'checkin_release',
+          amount: parseFloat(toU.toFixed(2)),
+          balance_after: user.u_balance,
+          currency: 'U',
+          description: `签到释放：${totalReleased.toFixed(2)}积分 → ${toU.toFixed(2)}U（释放率${(releaseRate * 100).toFixed(1)}%）+ ${toBurn.toFixed(2)}积分销毁`,
+          metadata: {
+            cards_count: cardsCount,
+            total_released: totalReleased,
+            to_u: toU,
+            to_burn: toBurn,
+            release_rate: releaseRate
+          },
+          created_at: new Date().toISOString()
+        }
+        
+        transactions.push(newRecord)
+        localStorage.setItem('user_transactions', JSON.stringify(transactions))
+        
+        addLog('✅ 补救记录创建成功！', 'success')
+        addLog(`📝 记录ID: ${newRecord.id}`, 'info')
+        addLog(`💰 收益: +${toU.toFixed(2)}U`, 'success')
+        addLog(`💳 签到学习卡: ${cardsCount}张`, 'info')
+        addLog(`📊 释放率: ${(releaseRate * 100).toFixed(1)}%`, 'info')
+        addLog('', 'info')
+        addLog('💡 请刷新收益记录页面查看', 'info')
+        addLog('🔗 https://www.ai-airdrop.top/earnings', 'info')
+        
+        // 更新统计
+        const allMyTransactions = transactions.filter(tx => tx.user_id === userId)
+        const allCheckinRecords = allMyTransactions.filter(tx => tx.type === 'checkin_release')
+        updateStats(allMyTransactions.length, allCheckinRecords.length)
+        
+      } catch (error) {
+        addLog(`❌ 创建失败: ${error.message}`, 'error')
+        console.error(error)
+      }
+    }
+
+    // 页面加载时自动诊断
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        addLog('👋 欢迎使用签到记录修复工具', 'info')
+        addLog('💡 点击"开始诊断"按钮检查您的签到记录', 'info')
+      }, 100)
+    })
+  </script>
+</body>
+</html>
+
