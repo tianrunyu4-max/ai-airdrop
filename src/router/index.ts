@@ -135,6 +135,11 @@ const routes: RouteRecordRaw[] = [
         path: 'restart',
         name: 'admin-restart',
         component: () => import('@/views/admin/RestartManagement.vue')
+      },
+      {
+        path: 'repair',
+        name: 'admin-repair',
+        component: () => import('@/views/admin/DataRepairView.vue')
       }
     ]
   },

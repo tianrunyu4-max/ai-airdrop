@@ -119,7 +119,8 @@ import {
   Bars3Icon,
   GiftIcon,
   ShareIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -182,6 +183,12 @@ const menuItems = [
     label: '学习卡重启', 
     icon: ArrowPathIcon,
     desc: '检测并销毁达标学习卡'
+  },
+  { 
+    path: '/admin/repair', 
+    label: '数据修复', 
+    icon: WrenchScrewdriverIcon,
+    desc: '诊断并修复数据不一致问题'
   },
   { 
     path: '/admin/params', 
