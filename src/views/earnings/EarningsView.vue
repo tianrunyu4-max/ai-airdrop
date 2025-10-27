@@ -245,19 +245,19 @@ const calculateReleaseRate = async () => {
     referralCount.value = count || 0
     
     // ✅ 计算释放率（正确公式）
-    // 基础1% + 加速（直推人数×3%）
-    // 0个直推：1% + 0% = 1%
-    // 1个直推：1% + 3% = 4%
-    // 2个直推：1% + 6% = 7%
-    // 3个直推：1% + 9% = 10%
-    // 4个直推：1% + 12% = 13%
-    // 5个或以上：1% + 14% = 15%（封顶）
-    const BASE_RATE = 0.01              // 基础1%
-    const BOOST_PER_PERSON = 0.03       // 每人+3%
-    const MAX_BOOST = 0.14              // 加速最多14%（加上基础1%正好15%）
-    
-    const boostRate = Math.min(referralCount.value * BOOST_PER_PERSON, MAX_BOOST)
-    releaseRate.value = BASE_RATE + boostRate  // 基础1% + 加速部分
+    // 没有直推 → 保底1%
+    // 有直推 → 直接按 3% × 人数（最高15%）
+    // 0个直推：1%（保底）
+    // 1个直推：3%
+    // 2个直推：6%
+    // 3个直推：9%
+    // 4个直推：12%
+    // 5个或以上：15%（封顶）
+    if (referralCount.value === 0) {
+      releaseRate.value = 0.01  // 没有直推，保底1%
+    } else {
+      releaseRate.value = Math.min(referralCount.value * 0.03, 0.15)  // 有直推，3% × 人数，最高15%
+    }
     
     console.log(`✅ 释放率计算: ${referralCount.value}人 → ${(releaseRate.value * 100).toFixed(1)}%`)
   } catch (error) {
