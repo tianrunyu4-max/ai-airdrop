@@ -101,144 +101,28 @@
       </div>
     </div>
 
-    <!-- ✅ 重启系统按钮 -->
-    <div v-if="user && user.is_agent && myMachines.length > 0" class="px-4 mt-4">
-      <div class="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-4 shadow-xl">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <div class="text-white/90 text-xs mb-1 font-semibold">🔄 系统重启</div>
-            <div class="text-white text-sm mb-1">
-              自动检测达标学习卡
-            </div>
-            <div class="text-white/80 text-xs">
-              5天+释放率3%-15% = 自动销毁
-            </div>
+    <!-- ✅ 重启统计卡片（简化版）-->
+    <div v-if="user && user.is_agent && restartStats" class="px-4 mt-4">
+      <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 shadow-xl">
+        <div class="text-white/90 text-xs mb-2 font-semibold">🔄 系统重启统计</div>
+        
+        <div class="grid grid-cols-2 gap-3 mb-2">
+          <div class="bg-white/20 rounded-lg p-3 text-center">
+            <div class="text-white text-2xl font-bold">{{ restartStats.this_week || 0 }}</div>
+            <div class="text-white/80 text-xs">本周重启</div>
           </div>
-          <div v-if="needsRestartHint" class="bg-red-500 rounded-full w-3 h-3 animate-pulse"></div>
+          <div class="bg-white/20 rounded-lg p-3 text-center">
+            <div class="text-white text-2xl font-bold">{{ restartStats.total_restarts || 0 }}</div>
+            <div class="text-white/80 text-xs">累计重启</div>
+          </div>
         </div>
-        <button 
-          @click="openRestartModal"
-          :disabled="loading"
-          class="w-full bg-white text-purple-600 py-3 rounded-xl font-bold text-sm hover:bg-white/90 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          🔍 检测并重启
-        </button>
-      </div>
-    </div>
-
-    <!-- ✅ 重启系统弹窗 -->
-    <div v-if="showRestartModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click="showRestartModal = false">
-      <div class="bg-white rounded-2xl max-w-md w-full my-8" @click.stop>
-        <!-- 标题栏 -->
-        <div class="sticky top-0 bg-gradient-to-r from-purple-500 to-indigo-600 p-4 flex items-center justify-between">
-          <h3 class="text-white font-bold text-lg">🔄 系统重启检测</h3>
-          <button @click="showRestartModal = false" class="text-white hover:bg-white/20 rounded-full p-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        
+        <div class="text-white/70 text-xs text-center">
+          {{ restartStats.last_restart ? '最近重启：' + formatLastRestart(restartStats.last_restart) : '尚未重启' }}
         </div>
-
-        <div class="p-5">
-          <!-- 扫描中 -->
-          <div v-if="restartScanning" class="text-center py-8">
-            <div class="loading loading-spinner loading-lg text-primary mb-4"></div>
-            <p class="text-gray-600">正在扫描学习卡...</p>
-          </div>
-
-          <!-- 扫描结果 -->
-          <div v-else-if="restartResult">
-            <!-- 统计卡片 -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center">
-                <div class="text-red-600 text-2xl font-bold">{{ restartResult.totalDestroyed }}</div>
-                <div class="text-red-600 text-xs">需要销毁</div>
-              </div>
-              <div class="bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center">
-                <div class="text-green-600 text-2xl font-bold">{{ restartResult.totalKept }}</div>
-                <div class="text-green-600 text-xs">继续运行</div>
-              </div>
-            </div>
-
-            <!-- 达标列表 -->
-            <div v-if="restartResult.destroyed.length > 0" class="mb-4">
-              <div class="text-sm font-bold text-gray-700 mb-2">🔥 达标学习卡（将被销毁）</div>
-              <div class="space-y-2 max-h-48 overflow-y-auto">
-                <div v-for="card in restartResult.destroyed" :key="card.id" class="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-bold text-gray-800">学习卡 #{{ card.id.slice(-4) }}</span>
-                    <span class="text-xs text-red-600 font-bold">✓ 达标</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                    <div>⏰ 运行：{{ card.daysActive }}天</div>
-                    <div>📈 释放率：{{ (card.currentRate * 100).toFixed(1) }}%</div>
-                  </div>
-                  <div class="text-xs text-gray-600 mt-1">💰 收益：{{ card.totalEarned.toFixed(2) }}U</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 未达标列表 -->
-            <div v-if="restartResult.kept.length > 0" class="mb-4">
-              <div class="text-sm font-bold text-gray-700 mb-2">⏰ 未达标学习卡（继续运行）</div>
-              <div class="space-y-2 max-h-48 overflow-y-auto">
-                <div v-for="card in restartResult.kept" :key="card.id" class="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-bold text-gray-800">学习卡 #{{ card.id.slice(-4) }}</span>
-                    <span class="text-xs text-green-600 font-bold">⏳ 继续</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                    <div>⏰ 运行：{{ card.daysActive }}天</div>
-                    <div>📈 释放率：{{ (card.currentRate * 100).toFixed(1) }}%</div>
-                  </div>
-                  <div class="text-xs text-gray-500 mt-1">
-                    {{ card.daysActive < 5 ? `还需${5 - card.daysActive}天` : '释放率未达标' }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 操作按钮 -->
-            <div v-if="restartResult.totalDestroyed > 0" class="space-y-2">
-              <button 
-                @click="confirmRestart"
-                :disabled="restartConfirming"
-                class="w-full bg-gradient-to-r from-red-400 to-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50"
-              >
-                {{ restartConfirming ? '销毁中...' : `🔥 确认销毁 ${restartResult.totalDestroyed} 张` }}
-              </button>
-              <button 
-                @click="showRestartModal = false"
-                class="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all"
-              >
-                取消
-              </button>
-            </div>
-            <div v-else>
-              <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4 text-center mb-3">
-                <div class="text-green-600 font-bold mb-1">✅ 太棒了！</div>
-                <div class="text-sm text-gray-600">所有学习卡都在正常运行中</div>
-              </div>
-              <button 
-                @click="showRestartModal = false"
-                class="w-full bg-gradient-to-r from-purple-400 to-indigo-500 text-white py-3 rounded-xl font-bold hover:shadow-xl transition-all"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-
-          <!-- 初始状态 -->
-          <div v-else class="text-center py-8">
-            <div class="text-4xl mb-4">🔍</div>
-            <p class="text-gray-600 mb-4">准备检测学习卡状态</p>
-            <button 
-              @click="scanCards"
-              class="bg-gradient-to-r from-purple-400 to-indigo-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-xl transition-all"
-            >
-              开始扫描
-            </button>
-          </div>
+        
+        <div class="mt-3 text-white/60 text-xs text-center">
+          💡 系统自动检测达标学习卡并销毁
         </div>
       </div>
     </div>
@@ -519,12 +403,8 @@ const releaseRate = ref(0.02) // 默认2%
 const showExchangeModal = ref(false) // 兑换弹窗
 const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=U余额，points=积分
 
-// ✅ 重启系统相关
-const showRestartModal = ref(false)
-const restartScanning = ref(false)
-const restartConfirming = ref(false)
-const restartResult = ref<any>(null)
-const needsRestartHint = ref(false)
+// ✅ 重启统计（简化版）
+const restartStats = ref<any>(null)
 
 // 活跃学习卡数量（未完成的学习卡）
 const activeCardCount = computed(() => {
@@ -849,78 +729,48 @@ const checkCheckinStatus = () => {
   )
 }
 
-// ✅ 重启系统：打开弹窗
-const openRestartModal = () => {
-  showRestartModal.value = true
-  restartResult.value = null
-}
-
-// ✅ 重启系统：扫描学习卡
-const scanCards = async () => {
-  restartScanning.value = true
+// ✅ 加载重启统计（从localStorage临时读取，后续从数据库）
+const loadRestartStats = async () => {
+  if (!user.value?.id) return
   
   try {
-    const { CardRestartService } = await import('@/services/CardRestartService')
-    const result = await CardRestartService.scanUserCards(user.value!.id)
+    // 临时从localStorage读取统计
+    const stats = localStorage.getItem(`restart_stats_${user.value.id}`)
     
-    if (result.success && result.data) {
-      restartResult.value = result.data
-      needsRestartHint.value = result.data.totalDestroyed > 0
+    if (stats) {
+      restartStats.value = JSON.parse(stats)
     } else {
-      toast.error(result.error || '扫描失败')
+      // 初始化统计
+      restartStats.value = {
+        user_id: user.value.id,
+        total_restarts: 0,
+        this_week: 0,
+        this_month: 0,
+        last_restart: null
+      }
     }
-  } catch (error: any) {
-    console.error('扫描失败:', error)
-    toast.error('扫描失败')
-  } finally {
-    restartScanning.value = false
-  }
-}
-
-// ✅ 重启系统：确认销毁
-const confirmRestart = async () => {
-  const confirmMsg = `确认销毁 ${restartResult.value.totalDestroyed} 张达标学习卡吗？\n\n销毁后无法恢复！`
-  if (!confirm(confirmMsg)) {
-    return
-  }
-  
-  restartConfirming.value = true
-  const loadingToast = toast.info('🔥 销毁中...', 0)
-  
-  try {
-    const { CardRestartService } = await import('@/services/CardRestartService')
-    const result = await CardRestartService.restartSystem(user.value!.id)
-    
-    toast.removeToast(loadingToast)
-    
-    if (result.success) {
-      toast.success(result.message || '✅ 重启完成！', 3000)
-      showRestartModal.value = false
-      needsRestartHint.value = false
-      
-      // 刷新学习卡列表
-      await loadMyMachines()
-    } else {
-      toast.error(result.error || '重启失败')
-    }
-  } catch (error: any) {
-    toast.removeToast(loadingToast)
-    console.error('重启失败:', error)
-    toast.error('重启失败')
-  } finally {
-    restartConfirming.value = false
-  }
-}
-
-// ✅ 检测是否需要重启提示
-const checkNeedsRestart = async () => {
-  if (!user.value?.id || myMachines.value.length === 0) return
-  
-  try {
-    const { CardRestartService } = await import('@/services/CardRestartService')
-    needsRestartHint.value = await CardRestartService.needsRestart(user.value.id)
   } catch (error) {
-    console.error('检测重启提示失败:', error)
+    console.error('加载重启统计失败:', error)
+  }
+}
+
+// ✅ 格式化最近重启时间
+const formatLastRestart = (dateString: string) => {
+  if (!dateString) return '尚未重启'
+  
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return '今天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  } else if (diffDays === 1) {
+    return '昨天'
+  } else if (diffDays < 7) {
+    return `${diffDays}天前`
+  } else {
+    return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
   }
 }
 
@@ -929,10 +779,10 @@ onMounted(async () => {
   await calculateReleaseRate()
   checkCheckinStatus()
   
-  // ✅ 检测是否需要重启
-  setTimeout(() => {
-    checkNeedsRestart()
-  }, 1000)
+  // ✅ 加载重启统计
+  if (user.value?.is_agent) {
+    await loadRestartStats()
+  }
 })
 </script>
 
