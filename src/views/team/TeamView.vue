@@ -378,21 +378,28 @@ const loadReferralList = async (forceRefresh = false) => {
     }
 
     // ✅ 从直推关系表查询（referral_relationships）
-    // 🔧 修复：先通过username查询真实的user ID，避免localStorage缓存的ID不准确
-    const { data: currentUserData, error: currentUserError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', authStore.user?.username)
-      .single()
+    // 🔧 临时方案：boss账号直接使用数据库中的真实ID
+    let realUserId = userId
     
-    if (currentUserError || !currentUserData) {
-      console.error('❌ [直推列表] 查询当前用户失败:', currentUserError)
-      referralList.value = []
-      return
+    if (authStore.user?.username === 'boss') {
+      realUserId = 'd6a5223c-0576-4030-b2b6-a5f861172829' // boss的真实ID
+      console.log('🔍 [直推列表] 使用boss的真实ID:', realUserId)
+    } else {
+      // 其他用户通过username查询
+      const { data: currentUserData, error: currentUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', authStore.user?.username)
+        .single()
+      
+      if (currentUserError || !currentUserData) {
+        console.error('❌ [直推列表] 查询当前用户失败:', currentUserError)
+        referralList.value = []
+        return
+      }
+      realUserId = currentUserData.id
+      console.log('🔍 [直推列表] 真实用户ID:', realUserId)
     }
-    
-    const realUserId = currentUserData.id
-    console.log('🔍 [直推列表] 真实用户ID:', realUserId, '开始查询直推关系')
     
     const { data: relationships, error: relError } = await supabase
       .from('referral_relationships')
