@@ -254,7 +254,7 @@ const formatDate = (dateString: string) => {
 }
 
 // 加载网络统计
-const loadNetworkStats = async () => {
+const loadNetworkStats = async (forceRefresh = false) => {
   try {
     const userId = authStore.user?.id
     if (!userId) return
@@ -270,28 +270,28 @@ const loadNetworkStats = async () => {
       totalLevelBonus.value = 0
       totalDividend.value = 0
       isUnlocked.value = false
-      // directReferrals 现在是computed，不需要手动设置
       return
     }
 
-    // ✅ 优化：从缓存加载（如果存在且新鲜）
+    // ✅ 优化：从缓存加载（如果存在且新鲜，且不是强制刷新）
     const cacheKey = `team_stats_${userId}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) {
-      const { data: cachedData, timestamp } = JSON.parse(cached)
-      // 缓存10秒有效（加快直推数据更新）
-      if (Date.now() - timestamp < 10000) {
-        aSideSales.value = cachedData.aSideSales || 0
-        bSideSales.value = cachedData.bSideSales || 0
-        aSideSettled.value = cachedData.aSideSettled || 0
-        bSideSettled.value = cachedData.bSideSettled || 0
-        totalPairingBonus.value = cachedData.totalPairingBonus || 0
-        totalLevelBonus.value = cachedData.totalLevelBonus || 0
-        totalDividend.value = cachedData.totalDividend || 0
-        isUnlocked.value = cachedData.isUnlocked || false
-        // directReferrals 现在是computed，不需要从缓存加载
-        console.log('✅ 从缓存加载团队统计 (10秒)')
-        return
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const { data: cachedData, timestamp } = JSON.parse(cached)
+        // 缓存5秒有效（更短的缓存时间）
+        if (Date.now() - timestamp < 5000) {
+          aSideSales.value = cachedData.aSideSales || 0
+          bSideSales.value = cachedData.bSideSales || 0
+          aSideSettled.value = cachedData.aSideSettled || 0
+          bSideSettled.value = cachedData.bSideSettled || 0
+          totalPairingBonus.value = cachedData.totalPairingBonus || 0
+          totalLevelBonus.value = cachedData.totalLevelBonus || 0
+          totalDividend.value = cachedData.totalDividend || 0
+          isUnlocked.value = cachedData.isUnlocked || false
+          console.log('✅ 从缓存加载团队统计 (5秒)')
+          return
+        }
       }
     }
 
@@ -345,7 +345,7 @@ const loadNetworkStats = async () => {
 }
 
 // 加载直推列表
-const loadReferralList = async () => {
+const loadReferralList = async (forceRefresh = false) => {
   try {
     const userId = authStore.user?.id
     if (!userId) return
@@ -357,53 +357,80 @@ const loadReferralList = async () => {
       return
     }
 
-    // ✅ 优化：从缓存加载（如果存在且新鲜）
+    // ✅ 优化：从缓存加载（如果存在且新鲜，且不是强制刷新）
     const cacheKey = `team_referrals_${userId}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) {
-      const { data: cachedData, timestamp } = JSON.parse(cached)
-      // 缓存10秒有效（加快直推数据更新）
-      if (Date.now() - timestamp < 10000) {
-        referralList.value = cachedData || []
-        console.log('✅ 从缓存加载直推列表 (10秒)')
-        return
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const { data: cachedData, timestamp } = JSON.parse(cached)
+        // 缓存5秒有效（更短的缓存时间）
+        if (Date.now() - timestamp < 5000) {
+          referralList.value = cachedData || []
+          console.log('✅ 从缓存加载直推列表 (5秒)')
+          return
+        }
       }
     }
 
     // ✅ 从直推关系表查询（referral_relationships）
-    const { data, error } = await supabase
+    const { data: relationships, error: relError } = await supabase
       .from('referral_relationships')
-      .select(`
-        created_at,
-        users!referee_id (
-          id,
-          username,
-          network_side,
-          created_at,
-          is_agent
-        )
-      `)
+      .select('referee_id, created_at')
       .eq('referrer_id', userId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) {
-      console.error('查询直推列表失败:', error)
+    if (relError) {
+      console.error('查询直推关系失败:', relError)
       referralList.value = []
       return
     }
 
-    // ✅ 转换数据格式并过滤非AI代理
-    referralList.value = (data || [])
-      .filter(item => item.users && item.users.is_agent === true)  // ✅ 只显示AI代理
-      .map(item => ({
-        id: item.users.id,
-        username: item.users.username,
-        network_side: item.users.network_side,
-        created_at: item.created_at,  // 使用关系建立时间
-        is_agent: item.users.is_agent
+    if (!relationships || relationships.length === 0) {
+      console.log('📊 当前无直推下级')
+      referralList.value = []
+      // 更新缓存
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: [],
+        timestamp: Date.now()
       }))
+      return
+    }
+
+    // ✅ 获取所有被推荐人的ID
+    const refereeIds = relationships.map(r => r.referee_id)
+
+    // ✅ 查询用户信息（只查询AI代理）
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, username, network_side, created_at, is_agent')
+      .in('id', refereeIds)
+      .eq('is_agent', true)  // ✅ 只查询AI代理
+
+    if (userError) {
+      console.error('查询用户信息失败:', userError)
+      referralList.value = []
+      return
+    }
+
+    // ✅ 合并数据：用户信息 + 推荐关系创建时间
+    const userMap = new Map(users?.map(u => [u.id, u]) || [])
+    
+    referralList.value = relationships
+      .filter(rel => userMap.has(rel.referee_id))  // 只保留AI代理
+      .map(rel => {
+        const user = userMap.get(rel.referee_id)!
+        return {
+          id: user.id,
+          username: user.username,
+          network_side: user.network_side,
+          created_at: rel.created_at,  // 使用推荐关系建立时间
+          is_agent: user.is_agent
+        }
+      })
+    
+    console.log(`📊 加载直推列表: ${referralList.value.length} 人`)
     
     // ✅ 保存到缓存
     localStorage.setItem(cacheKey, JSON.stringify({
@@ -417,21 +444,23 @@ const loadReferralList = async () => {
 }
 
 // 刷新数据
-const refreshData = async () => {
+const refreshData = async (forceRefresh = true) => {
   loading.value = true
   const loadingToast = toast.info('刷新中...', 0)
   
   try {
-    // 先清除缓存
-    const userId = authStore.user?.id
-    localStorage.removeItem(`team_stats_${userId}`)
-    localStorage.removeItem(`team_referrals_${userId}`)
-    console.log('✅ 已清除团队缓存')
+    // 如果是强制刷新，先清除缓存
+    if (forceRefresh) {
+      const userId = authStore.user?.id
+      localStorage.removeItem(`team_stats_${userId}`)
+      localStorage.removeItem(`team_referrals_${userId}`)
+      console.log('✅ 已清除团队缓存')
+    }
     
-    // 重新加载数据
+    // 重新加载数据（传递 forceRefresh 参数）
     await Promise.all([
-      loadNetworkStats(),
-      loadReferralList()
+      loadNetworkStats(forceRefresh),
+      loadReferralList(forceRefresh)
     ])
     
     toast.removeToast(loadingToast)
@@ -476,7 +505,8 @@ const handleReinvestSuccess = () => {
 }
 
 onMounted(() => {
-  refreshData()
+  // 首次加载强制刷新，不使用缓存
+  refreshData(true)
 })
 </script>
 
