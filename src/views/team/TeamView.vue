@@ -459,10 +459,14 @@ const loadReferralList = async (forceRefresh = false) => {
 }
 
 // 刷新数据
-const refreshData = async (forceRefresh = true) => {
-  debugInfo.value += `\n=== Refresh start (force: ${forceRefresh}) ===\n`
+const refreshData = async (forceRefresh = true, silent = false) => {
   loading.value = true
-  const loadingToast = toast.info('刷新中...', 0)
+  let loadingToast: any = null
+  
+  // ⚡ 只在手动刷新时显示toast，首次加载静默
+  if (!silent && forceRefresh) {
+    loadingToast = toast.info('刷新中...', 0)
+  }
   
   try {
     // 如果是强制刷新，先清除缓存
@@ -470,25 +474,29 @@ const refreshData = async (forceRefresh = true) => {
       const userId = authStore.user?.id
       localStorage.removeItem(`team_stats_${userId}`)
       localStorage.removeItem(`team_referrals_${userId}`)
-      debugInfo.value += '已清除团队缓存\n'
     }
     
-    // 重新加载数据（传递 forceRefresh 参数）
+    // ⚡ 并行加载数据
     await Promise.all([
       loadNetworkStats(forceRefresh),
       loadReferralList(forceRefresh)
     ])
     
-    toast.removeToast(loadingToast)
-    toast.success('✅ 刷新成功！', 2000)
+    if (loadingToast) {
+      toast.removeToast(loadingToast)
+      toast.success('✅ 刷新成功！', 1500)
+    }
     
-    // 检查是否需要复投
-    await checkReinvestment()
+    // ⚡ 异步检查复投（不阻塞主流程）
+    checkReinvestment().catch(err => console.error('检查复投失败:', err))
   } catch (error) {
-    debugInfo.value += `刷新失败: ${JSON.stringify(error)}\n`
     console.error('刷新失败:', error)
-    toast.removeToast(loadingToast)
-    toast.error('刷新失败，请重试')
+    if (loadingToast) {
+      toast.removeToast(loadingToast)
+    }
+    if (!silent) {
+      toast.error('刷新失败，请重试')
+    }
   } finally {
     loading.value = false
   }
@@ -522,8 +530,8 @@ const handleReinvestSuccess = () => {
 }
 
 onMounted(() => {
-  // ⚡ 首次加载使用缓存（加快速度）
-  refreshData(false)
+  // ⚡ 首次加载：使用缓存 + 静默模式（不显示toast）
+  refreshData(false, true)
 })
 </script>
 
