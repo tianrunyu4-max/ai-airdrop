@@ -97,11 +97,12 @@ export class AgentService {
         `升级AI代理(30U)`
       )
 
-      // 8. 设置为代理（不设置inviter_id）
+      // 8. ✅ 设置为代理（同时设置inviter_id）
       const { error: updateError } = await supabase
         .from('users')
         .update({
           is_agent: true,
+          inviter_id: inviter.id,  // ✅ 设置邀请人ID（用于Binary系统排线）
           agent_paid_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

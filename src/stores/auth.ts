@@ -123,11 +123,11 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('密码错误')
       }
       
-      // ✅ 先跳转，后台异步保存数据（提升体验速度）
+      // ✅ 保存用户数据（使用数据库中的真实数据，不依赖缓存）
       user.value = users
       localStorage.setItem('current_user', username)
-      localStorage.setItem('user_session', JSON.stringify(users))
-      localStorage.setItem('last_login_time', Date.now().toString()) // ✅ 记录登录时间
+      localStorage.setItem('user_session', JSON.stringify(users)) // 保存完整的数据库数据
+      localStorage.setItem('last_login_time', Date.now().toString())
       
       console.log('✅ 登录成功，即将跳转')
       
