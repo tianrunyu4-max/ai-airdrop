@@ -101,8 +101,8 @@
       </div>
     </div>
 
-    <!-- ✅ 重启统计卡片（简化版）-->
-    <div v-if="user && user.is_agent && restartStats" class="px-4 mt-4">
+    <!-- ✅ 重启统计卡片（立即显示）-->
+    <div v-if="user && user.is_agent" class="px-4 mt-4">
       <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 shadow-xl">
         <div class="text-white/90 text-xs mb-2 font-semibold">🔄 系统重启统计</div>
         
@@ -403,8 +403,13 @@ const releaseRate = ref(0.02) // 默认2%
 const showExchangeModal = ref(false) // 兑换弹窗
 const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=U余额，points=积分
 
-// ✅ 重启统计（简化版）
-const restartStats = ref<any>(null)
+// ✅ 重启统计（初始值，立即显示）
+const restartStats = ref<any>({
+  total_restarts: 0,
+  this_week: 0,
+  this_month: 0,
+  last_restart: null
+})
 
 // 活跃学习卡数量（未完成的学习卡）
 const activeCardCount = computed(() => {
@@ -650,7 +655,7 @@ const loadMyMachines = async () => {
     
     // 过滤出当前用户的学习卡
     const userCards = allCards
-      .filter((card: any) => card.user_id === user.value.id)
+      .filter((card: any) => card.user_id === user.value?.id)
       .sort((a: any, b: any) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
@@ -792,14 +797,22 @@ const formatLastRestart = (dateString: string) => {
 }
 
 onMounted(async () => {
-  await loadMyMachines()
-  await calculateReleaseRate()
-  checkCheckinStatus()
+  // ⚡ 并行加载所有数据（同时显示）
+  const tasks = [
+    loadMyMachines(),
+    calculateReleaseRate()
+  ]
   
-  // ✅ 加载重启统计
+  // ✅ 重启统计也并行加载（不等待，立即显示初始值）
   if (user.value?.is_agent) {
-    await loadRestartStats()
+    tasks.push(loadRestartStats())
   }
+  
+  // 等待所有异步任务完成
+  await Promise.all(tasks)
+  
+  // 检查签到状态（同步操作）
+  checkCheckinStatus()
 })
 </script>
 
