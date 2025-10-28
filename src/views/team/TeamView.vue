@@ -17,6 +17,10 @@
 
     <!-- 主要内容区域 -->
     <div class="px-4 -mt-4">
+      <div v-if="debugInfo" class="mb-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3 whitespace-pre-wrap break-all">
+        {{ debugInfo }}
+      </div>
+
       <!-- ⚡ 横排双卡片：A/B区对碰 -->
       <div class="grid grid-cols-2 gap-3 mb-4">
         <!-- A区卡片 -->
@@ -208,6 +212,7 @@ const isUnlocked = ref(false)
 
 // 直推列表
 const referralList = ref<any[]>([])
+const debugInfo = ref('')
 
 // 计算直推人数 - 直接使用users表的direct_referral_count字段
 const directReferrals = computed(() => authStore.user?.direct_referral_count || referralList.value.length)
@@ -348,7 +353,7 @@ const loadNetworkStats = async (forceRefresh = false) => {
 const loadReferralList = async (forceRefresh = false) => {
   try {
     const userId = authStore.user?.id
-    console.log('🔍 [直推列表] 开始加载，用户ID:', userId, '是否代理:', authStore.user?.is_agent)
+    debugInfo.value += `开始加载直推列表，缓存用户ID: ${userId} 是否代理: ${authStore.user?.is_agent}\n`
     
     if (!userId) {
       console.error('❌ [直推列表] 用户ID不存在')
@@ -357,7 +362,7 @@ const loadReferralList = async (forceRefresh = false) => {
 
     // ✅ 检查用户是否是AI代理
     if (!authStore.user?.is_agent) {
-      console.log('⚠️ [直推列表] 非AI代理用户，不加载直推列表')
+      debugInfo.value += '当前用户不是AI代理，停止加载直推\n'
       referralList.value = []
       return
     }
@@ -383,7 +388,7 @@ const loadReferralList = async (forceRefresh = false) => {
     
     if (authStore.user?.username === 'boss') {
       realUserId = 'd6a5223c-0576-4030-b2b6-a5f861172829' // boss的真实ID
-      console.log('🔍 [直推列表] 使用boss的真实ID:', realUserId)
+      debugInfo.value += `使用boss真实ID: ${realUserId}\n`
     } else {
       // 其他用户通过username查询
       const { data: currentUserData, error: currentUserError } = await supabase
@@ -393,12 +398,12 @@ const loadReferralList = async (forceRefresh = false) => {
         .single()
       
       if (currentUserError || !currentUserData) {
-        console.error('❌ [直推列表] 查询当前用户失败:', currentUserError)
+        debugInfo.value += `查询当前用户失败: ${JSON.stringify(currentUserError)}\n`
         referralList.value = []
         return
       }
       realUserId = currentUserData.id
-      console.log('🔍 [直推列表] 真实用户ID:', realUserId)
+      debugInfo.value += `当前用户真实ID: ${realUserId}\n`
     }
     
     const { data: relationships, error: relError } = await supabase
@@ -409,20 +414,16 @@ const loadReferralList = async (forceRefresh = false) => {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    console.log('🔍 [直推列表] 数据库查询结果:', {
-      relationships: relationships,
-      count: relationships?.length || 0,
-      error: relError
-    })
+    debugInfo.value += `直推关系查询结果: count=${relationships?.length || 0}, error=${JSON.stringify(relError)}\n`
 
     if (relError) {
-      console.error('❌ [直推列表] 查询直推关系失败:', relError)
+      debugInfo.value += `查询直推关系失败: ${JSON.stringify(relError)}\n`
       referralList.value = []
       return
     }
 
     if (!relationships || relationships.length === 0) {
-      console.log('📊 [直推列表] 当前无直推下级')
+      debugInfo.value += '查询结果为空\n'
       referralList.value = []
       // 更新缓存
       localStorage.setItem(cacheKey, JSON.stringify({
@@ -455,23 +456,49 @@ const loadReferralList = async (forceRefresh = false) => {
       return
     }
 
+    // 🔍 详细调试：检查每个被推荐人
+    console.log('🔍 [调试] relationships:', relationships)
+    console.log('🔍 [调试] users返回的数据:', users)
+
     // ✅ 合并数据：用户信息 + 推荐关系创建时间
     const userMap = new Map(users?.map(u => [u.id, u]) || [])
+    console.log('🔍 [调试] userMap大小:', userMap.size)
+    
+    // 🔍 检查过滤前的数据
+    const beforeFilter = relationships.map(rel => ({
+      referee_id: rel.referee_id,
+      has_user: userMap.has(rel.referee_id),
+      user: userMap.get(rel.referee_id)
+    }))
+    console.log('🔍 [调试] 过滤前的匹配情况:', beforeFilter)
     
     referralList.value = relationships
-      .filter(rel => userMap.has(rel.referee_id))  // 只保留AI代理
+      .filter(rel => {
+        const has = userMap.has(rel.referee_id)
+        if (!has) {
+          console.warn('⚠️ [调试] referee_id在userMap中找不到:', rel.referee_id)
+        }
+        return has
+      })
       .map(rel => {
         const user = userMap.get(rel.referee_id)!
         return {
           id: user.id,
           username: user.username,
           network_side: user.network_side,
-          created_at: rel.created_at,  // 使用推荐关系建立时间
+          created_at: rel.created_at,
           is_agent: user.is_agent
         }
       })
     
     console.log(`✅ [直推列表] 加载完成: ${referralList.value.length} 人`, referralList.value)
+    
+    // 🔍 如果列表为空但relationships有数据，说明过滤出了问题
+    if (referralList.value.length === 0 && relationships.length > 0) {
+      console.error('❌ [严重] relationships有数据但最终列表为空！')
+      console.error('relationships:', relationships)
+      console.error('users:', users)
+    }
     
     // ✅ 保存到缓存
     localStorage.setItem(cacheKey, JSON.stringify({
@@ -486,6 +513,7 @@ const loadReferralList = async (forceRefresh = false) => {
 
 // 刷新数据
 const refreshData = async (forceRefresh = true) => {
+  debugInfo.value += `\n=== Refresh start (force: ${forceRefresh}) ===\n`
   loading.value = true
   const loadingToast = toast.info('刷新中...', 0)
   
@@ -495,7 +523,7 @@ const refreshData = async (forceRefresh = true) => {
       const userId = authStore.user?.id
       localStorage.removeItem(`team_stats_${userId}`)
       localStorage.removeItem(`team_referrals_${userId}`)
-      console.log('✅ 已清除团队缓存')
+      debugInfo.value += '已清除团队缓存\n'
     }
     
     // 重新加载数据（传递 forceRefresh 参数）
@@ -510,6 +538,7 @@ const refreshData = async (forceRefresh = true) => {
     // 检查是否需要复投
     await checkReinvestment()
   } catch (error) {
+    debugInfo.value += `刷新失败: ${JSON.stringify(error)}\n`
     console.error('刷新失败:', error)
     toast.removeToast(loadingToast)
     toast.error('刷新失败，请重试')
