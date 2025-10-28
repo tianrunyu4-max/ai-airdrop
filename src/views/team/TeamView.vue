@@ -284,8 +284,8 @@ const loadNetworkStats = async (forceRefresh = false) => {
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         const { data: cachedData, timestamp } = JSON.parse(cached)
-        // 缓存5秒有效（更短的缓存时间）
-        if (Date.now() - timestamp < 5000) {
+        // ⚡ 缓存30秒有效（加快加载速度）
+        if (Date.now() - timestamp < 30000) {
           aSideSales.value = cachedData.aSideSales || 0
           bSideSales.value = cachedData.bSideSales || 0
           aSideSettled.value = cachedData.aSideSettled || 0
@@ -294,7 +294,7 @@ const loadNetworkStats = async (forceRefresh = false) => {
           totalLevelBonus.value = cachedData.totalLevelBonus || 0
           totalDividend.value = cachedData.totalDividend || 0
           isUnlocked.value = cachedData.isUnlocked || false
-          console.log('✅ 从缓存加载团队统计 (5秒)')
+          // console.log('✅ 从缓存加载团队统计 (30秒)')
           return
         }
       }
@@ -373,38 +373,17 @@ const loadReferralList = async (forceRefresh = false) => {
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         const { data: cachedData, timestamp } = JSON.parse(cached)
-        // 缓存5秒有效（更短的缓存时间）
-        if (Date.now() - timestamp < 5000) {
+        // ⚡ 缓存30秒有效（加快加载速度）
+        if (Date.now() - timestamp < 30000) {
           referralList.value = cachedData || []
-          console.log('✅ 从缓存加载直推列表 (5秒)')
+          // console.log('✅ 从缓存加载直推列表 (30秒)')
           return
         }
       }
     }
 
     // ✅ 从直推关系表查询（referral_relationships）
-    // 🔧 临时方案：boss账号直接使用数据库中的真实ID
-    let realUserId = userId
-    
-    if (authStore.user?.username === 'boss') {
-      realUserId = 'd6a5223c-0576-4030-b2b6-a5f861172829' // boss的真实ID
-      debugInfo.value += `使用boss真实ID: ${realUserId}\n`
-    } else {
-      // 其他用户通过username查询
-      const { data: currentUserData, error: currentUserError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', authStore.user?.username)
-        .single()
-      
-      if (currentUserError || !currentUserData) {
-        debugInfo.value += `查询当前用户失败: ${JSON.stringify(currentUserError)}\n`
-        referralList.value = []
-        return
-      }
-      realUserId = currentUserData.id
-      debugInfo.value += `当前用户真实ID: ${realUserId}\n`
-    }
+    const realUserId = userId
     
     const { data: relationships, error: relError } = await supabase
       .from('referral_relationships')
@@ -414,18 +393,13 @@ const loadReferralList = async (forceRefresh = false) => {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    debugInfo.value += `直推关系查询结果: count=${relationships?.length || 0}, error=${JSON.stringify(relError)}\n`
-
     if (relError) {
-      debugInfo.value += `查询直推关系失败: ${JSON.stringify(relError)}\n`
       referralList.value = []
       return
     }
 
     if (!relationships || relationships.length === 0) {
-      debugInfo.value += '查询结果为空\n'
       referralList.value = []
-      // 更新缓存
       localStorage.setItem(cacheKey, JSON.stringify({
         data: [],
         timestamp: Date.now()
@@ -435,51 +409,24 @@ const loadReferralList = async (forceRefresh = false) => {
 
     // ✅ 获取所有被推荐人的ID
     const refereeIds = relationships.map(r => r.referee_id)
-    console.log('🔍 [直推列表] 被推荐人IDs:', refereeIds)
 
     // ✅ 查询用户信息（只查询AI代理）
     const { data: users, error: userError } = await supabase
       .from('users')
       .select('id, username, network_side, created_at, is_agent')
       .in('id', refereeIds)
-      .eq('is_agent', true)  // ✅ 只查询AI代理
-
-    console.log('🔍 [直推列表] 用户查询结果:', {
-      users: users,
-      count: users?.length || 0,
-      error: userError
-    })
+      .eq('is_agent', true)
 
     if (userError) {
-      console.error('❌ [直推列表] 查询用户信息失败:', userError)
       referralList.value = []
       return
     }
 
-    // 🔍 详细调试：检查每个被推荐人
-    console.log('🔍 [调试] relationships:', relationships)
-    console.log('🔍 [调试] users返回的数据:', users)
-
     // ✅ 合并数据：用户信息 + 推荐关系创建时间
     const userMap = new Map(users?.map(u => [u.id, u]) || [])
-    console.log('🔍 [调试] userMap大小:', userMap.size)
-    
-    // 🔍 检查过滤前的数据
-    const beforeFilter = relationships.map(rel => ({
-      referee_id: rel.referee_id,
-      has_user: userMap.has(rel.referee_id),
-      user: userMap.get(rel.referee_id)
-    }))
-    console.log('🔍 [调试] 过滤前的匹配情况:', beforeFilter)
     
     referralList.value = relationships
-      .filter(rel => {
-        const has = userMap.has(rel.referee_id)
-        if (!has) {
-          console.warn('⚠️ [调试] referee_id在userMap中找不到:', rel.referee_id)
-        }
-        return has
-      })
+      .filter(rel => userMap.has(rel.referee_id))
       .map(rel => {
         const user = userMap.get(rel.referee_id)!
         return {
@@ -575,8 +522,8 @@ const handleReinvestSuccess = () => {
 }
 
 onMounted(() => {
-  // 首次加载强制刷新，不使用缓存
-  refreshData(true)
+  // ⚡ 首次加载使用缓存（加快速度）
+  refreshData(false)
 })
 </script>
 
