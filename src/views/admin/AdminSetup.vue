@@ -6,6 +6,14 @@
         <div class="text-6xl mb-4">👑</div>
         <h1 class="text-3xl font-bold text-gray-800 mb-2">管理员设置</h1>
         <p class="text-gray-600">创建系统管理员账号</p>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4 text-sm text-left">
+          <div class="font-bold text-yellow-800 mb-1">💡 推荐设置：</div>
+          <div class="text-yellow-700">
+            • 用户名：boss<br>
+            • 密码：bossab123<br>
+            • 管理员密钥：admin2025
+          </div>
+        </div>
       </div>
 
       <!-- 表单 -->
