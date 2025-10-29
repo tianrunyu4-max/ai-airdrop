@@ -320,7 +320,7 @@
               </span>
             </div>
             <div class="text-right">
-              <div class="text-yellow-600 font-bold text-xl">{{ (((machine.base_rate || 0) + (machine.boost_rate || 0)) * 100).toFixed(1) }}%</div>
+              <div class="text-yellow-600 font-bold text-xl">{{ (releaseRate * 100).toFixed(1) }}%</div>
               <div class="text-xs text-gray-500">每日释放率</div>
             </div>
           </div>
@@ -348,11 +348,11 @@
           <div class="grid grid-cols-3 gap-1 text-xs mb-3">
             <div class="bg-yellow-50 rounded-lg p-1.5 text-center border border-yellow-100">
               <div class="text-gray-600 text-xs">日释放</div>
-              <div class="text-yellow-700 font-bold text-sm">{{ ((machine.base_rate || 0) * 100).toFixed(1) }}%</div>
+              <div class="text-yellow-700 font-bold text-sm">{{ (releaseRate * 100).toFixed(1) }}%</div>
             </div>
             <div class="bg-purple-50 rounded-lg p-1.5 text-center border border-purple-100">
               <div class="text-gray-600 text-xs">等级</div>
-              <div class="text-purple-600 font-bold text-sm">{{ getCompoundMultiplier(machine) }}倍</div>
+              <div class="text-purple-600 font-bold text-sm">3倍</div>
             </div>
             <div class="bg-blue-50 rounded-lg p-1.5 text-center border border-blue-100">
               <div class="text-gray-600 text-xs">重启</div>
@@ -546,13 +546,6 @@ const exchangeCard = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// 获取学习等级倍数
-const getCompoundMultiplier = (machine: MiningMachine) => {
-  const multipliers = [2, 4, 8, 16, 32, 64, 128, 256]
-  const level = machine.compound_level || 0
-  return multipliers[level] || 2
 }
 
 // 获取卡片状态文本
