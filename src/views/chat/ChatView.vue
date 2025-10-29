@@ -230,6 +230,16 @@
       </div>
     </div>
 
+    <!-- 🎯 浮动升级代理按钮（在+号上方）-->
+    <button
+      v-if="!authStore.user?.is_agent && !isInputExpanded"
+      @click="$router.push('/profile')"
+      class="fixed bottom-36 left-6 btn btn-lg bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-2xl hover:scale-110 transition-all z-50 gap-2"
+    >
+      <span class="text-2xl">👑</span>
+      <span class="font-bold whitespace-nowrap">成为AI代理</span>
+    </button>
+
     <!-- 🎯 新设计：隐藏式输入框 -->
     <!-- 默认状态：浮动+按钮（左下角） -->
     <button
