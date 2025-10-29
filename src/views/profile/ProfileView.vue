@@ -45,58 +45,21 @@
       </div>
     </div>
 
-    <!-- 数据统计卡片 -->
+    <!-- ✅ 核心数据卡片：账户余额 + 今日收益 -->
     <div class="px-4 -mt-6 relative z-20">
-      <div class="bg-white rounded-2xl shadow-2xl border-2 border-yellow-200 p-4">
-        <div class="grid grid-cols-3 divide-x divide-gray-200">
-          <div class="text-center px-2">
-            <div class="text-3xl font-bold text-yellow-600">{{ user?.direct_referral_count || 0 }}</div>
-            <div class="text-xs text-gray-600 mt-1">直推人数</div>
+      <div class="bg-white rounded-2xl shadow-2xl border-2 border-yellow-200 p-6">
+        <div class="grid grid-cols-2 gap-4">
+          <!-- 账户余额 -->
+          <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
+            <div class="text-xs text-gray-600 mb-2">账户余额</div>
+            <div class="text-3xl font-bold text-yellow-600">{{ (user?.u_balance || 0).toFixed(2) }}</div>
+            <div class="text-xs text-gray-500 mt-1">U</div>
           </div>
-          <div class="text-center px-2">
-            <div class="text-3xl font-bold text-green-600">{{ networkCount }}</div>
-            <div class="text-xs text-gray-600 mt-1">团队人数</div>
-          </div>
-          <div class="text-center px-2">
-            <div class="text-3xl font-bold text-blue-600">{{ (user?.total_earnings || 0).toFixed(2) }}</div>
-            <div class="text-xs text-gray-600 mt-1">总收益(U)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 余额卡片 -->
-    <div class="p-4">
-      <div class="bg-gradient-to-br from-white to-yellow-50 rounded-2xl p-6 shadow-lg border-2 border-yellow-200">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <div class="text-gray-600 text-sm">账户余额</div>
-            <div class="text-4xl font-bold text-yellow-600 mt-1">
-              {{ (user?.u_balance || 0).toFixed(2) }} U
-            </div>
-          </div>
-          <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
-            <span class="text-3xl">💰</span>
-          </div>
-        </div>
-        
-        <!-- 积分余额显示 -->
-        <div class="mt-4">
-          <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4 border-2 border-yellow-300">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-xs text-gray-600 mb-1">互转积分</div>
-                <div class="text-3xl font-bold text-orange-600">
-                  {{ (user?.transfer_points || 0).toFixed(2) }}
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                  💡 可在AI学习页面赠送给团队新伙伴
-                </div>
-              </div>
-              <div class="w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                <span class="text-2xl">🎁</span>
-              </div>
-            </div>
+          <!-- 今日收益 -->
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 text-center">
+            <div class="text-xs text-gray-600 mb-2">今日收益</div>
+            <div class="text-3xl font-bold text-green-600">{{ todayEarnings.toFixed(2) }}</div>
+            <div class="text-xs text-gray-500 mt-1">U</div>
           </div>
         </div>
       </div>
