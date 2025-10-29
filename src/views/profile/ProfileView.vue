@@ -281,17 +281,6 @@
       </div>
     </div>
 
-    <!-- 退出登录 -->
-    <div class="p-4 mt-4">
-      <button 
-        @click="handleLogout"
-        class="w-full bg-white hover:bg-red-50 text-red-600 rounded-xl p-4 flex items-center justify-center gap-2 border-2 border-red-200 font-bold transition-all"
-      >
-        <span>🚪</span>
-        <span>退出登录</span>
-      </button>
-    </div>
-
     <!-- 联系信息Modal -->
     <dialog class="modal" :class="{ 'modal-open': showContactModal }">
       <div class="modal-box">
@@ -958,15 +947,6 @@ const deleteAddress = (index: number) => {
   if (confirm('确定要删除这个地址吗？')) {
     withdrawalAddresses.value.splice(index, 1)
     toast.success('地址已删除')
-  }
-}
-
-// 退出登录
-const handleLogout = async () => {
-  if (confirm('确定要退出登录吗？')) {
-    await authStore.logout()
-    router.push('/login')
-    toast.success('已退出登录')
   }
 }
 

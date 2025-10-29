@@ -8,15 +8,11 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/login',
-    name: 'login',
-    component: () => import('@/views/auth/LoginView.vue'),
-    meta: { requiresGuest: true }
+    redirect: '/chat'
   },
   {
     path: '/register',
-    name: 'register',
-    component: () => import('@/views/auth/RegisterView.vue'),
-    meta: { requiresGuest: true }
+    redirect: '/chat'
   },
   {
     path: '/chat',
@@ -170,8 +166,8 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
 
   if (requiresAuth && !isAuthenticated) {
-    // 需要登录但未登录 → 跳转到登录页
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    // ✅ 免注册登录：用户会在 initialize() 中自动创建账号，所以这里直接放行
+    next()
   } else if (requiresGuest && isAuthenticated) {
     // 已登录用户访问登录/注册页 → 跳转到首页
     next({ name: 'chat' })
