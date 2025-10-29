@@ -223,6 +223,76 @@ export class AdminService {
     console.log('Admin reject withdrawal:', withdrawalId, userId, amount, note)
     // 实际拒绝逻辑由WithdrawalService处理
   }
+
+  /**
+   * ✅ 调整用户余额（管理员功能）
+   * @param userId 用户ID
+   * @param type 调整类型：'u' = U余额，'points' = 积分余额
+   * @param amount 调整金额（正数=增加，负数=减少）
+   * @param note 备注说明
+   */
+  static async adjustUserBalance(
+    userId: string,
+    type: 'u' | 'points',
+    amount: number,
+    note: string
+  ) {
+    try {
+      // 1. 获取用户当前余额
+      const { data: user, error: getUserError } = await supabase
+        .from('users')
+        .select('username, u_balance, points_balance, mining_points, transfer_points')
+        .eq('id', userId)
+        .single()
+
+      if (getUserError || !user) {
+        throw new Error('用户不存在')
+      }
+
+      // 2. 计算新余额
+      let updateData: any = {}
+      let newBalance = 0
+
+      if (type === 'u') {
+        newBalance = Number((user.u_balance + amount).toFixed(2))
+        if (newBalance < 0) {
+          throw new Error('余额不足，无法减少')
+        }
+        updateData.u_balance = newBalance
+      } else if (type === 'points') {
+        // 积分余额 = mining_points + transfer_points
+        const currentPointsBalance = user.points_balance || 0
+        newBalance = Number((currentPointsBalance + amount).toFixed(2))
+        if (newBalance < 0) {
+          throw new Error('积分不足，无法减少')
+        }
+        // 更新 transfer_points（管理员调整的积分记入互转积分）
+        updateData.transfer_points = Number(((user.transfer_points || 0) + amount).toFixed(2))
+        updateData.points_balance = newBalance
+      }
+
+      // 3. 更新用户余额
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // 4. 记录操作日志
+      console.log(`✅ 管理员调整余额：用户=${user.username}, 类型=${type}, 金额=${amount}, 备注=${note}`)
+
+      return {
+        success: true,
+        message: `成功${amount > 0 ? '增加' : '减少'}${Math.abs(amount)}${type === 'u' ? 'U' : '积分'}`
+      }
+    } catch (error: any) {
+      console.error('调整余额失败:', error)
+      throw new Error(error.message || '调整余额失败')
+    }
+  }
 }
 
 
