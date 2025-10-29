@@ -13,6 +13,78 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isAuthenticated = computed(() => !!user.value)
 
+  // ✅ 生成随机用户名（3个字母 + 5位数字）
+  function generateGuestUsername(): string {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const randomLetters = Array.from({ length: 3 }, () => 
+      letters[Math.floor(Math.random() * letters.length)]
+    ).join('')
+    const randomNumbers = Math.floor(10000 + Math.random() * 90000) // 10000-99999
+    return `${randomLetters}${randomNumbers}`
+  }
+
+  // ✅ 自动创建游客账号（免注册登录）
+  async function createGuestAccount() {
+    try {
+      loading.value = true
+      
+      // 生成随机用户名
+      const guestUsername = generateGuestUsername()
+      const randomPassword = Math.random().toString(36).substring(2, 15) // 随机密码
+      
+      // 加密密码
+      const hashedPassword = await bcrypt.hash(randomPassword, 10)
+      
+      // 生成邀请码
+      const timestamp = Date.now().toString(36).toUpperCase()
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+      const userInviteCode = (timestamp + random).substring(0, 8)
+      
+      // 创建游客账号
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          username: guestUsername,
+          password_hash: hashedPassword,
+          invite_code: userInviteCode,
+          inviter_id: null,
+          referral_position: 1,
+          u_balance: 0,
+          points_balance: 150,
+          mining_points: 150,
+          transfer_points: 0,
+          is_agent: false,
+          agent_paid_at: null,
+          is_admin: false,
+          language: 'zh'
+        } as any)
+        .select()
+        .single()
+      
+      if (insertError || !newUser) {
+        // 用户名重复时重试
+        console.log('⚠️ 用户名重复，重试创建游客账号')
+        return createGuestAccount()
+      }
+      
+      console.log(`✅ 游客账号创建成功：${guestUsername}`)
+      
+      // 设置用户数据和缓存
+      user.value = newUser
+      localStorage.setItem('current_user', guestUsername)
+      localStorage.setItem('user_session', JSON.stringify(newUser))
+      localStorage.setItem('last_login_time', Date.now().toString())
+      localStorage.setItem('is_guest', 'true') // 标记为游客账号
+      
+      return true
+    } catch (error) {
+      console.error('创建游客账号失败:', error)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Actions
   async function initialize() {
     try {
@@ -65,8 +137,12 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.removeItem('last_login_time')
         }
       } else {
-        initialized.value = true
+        // ✅ 没有会话，自动创建游客账号
+        console.log('🎉 检测到新用户，自动创建游客账号...')
+        await createGuestAccount()
       }
+      
+      initialized.value = true
     } catch (error) {
       // 初始化失败不影响应用启动
       initialized.value = true
@@ -116,7 +192,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       // 🔐 使用 bcrypt 验证加密密码（尝试多个可能的字段名）
-      const passwordField = users.password_hash || users.password || users['加密密码'] || users['密码哈希']
+      const passwordField = (users as any).password_hash || (users as any).password || (users as any)['加密密码'] || (users as any)['密码哈希']
       const isPasswordValid = await bcrypt.compare(password, passwordField)
       
       if (!isPasswordValid) {
@@ -196,7 +272,7 @@ export const useAuthStore = defineStore('auth', () => {
           agent_paid_at: null,
           is_admin: false, // ✅ 默认非管理员
           language: 'zh'
-        })
+        } as any)
         .select()
         .single()
       
@@ -279,7 +355,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
-    loadUser
+    loadUser,
+    createGuestAccount
   }
 })
 
