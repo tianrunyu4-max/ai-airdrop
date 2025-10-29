@@ -441,8 +441,9 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 3. 计算释放率（基础2%，暂时不考虑直推加速）
-      const releaseRate = AILearningConfig.MACHINE.BASE_RELEASE_RATE // 2%
+      // 3. ✅ 计算释放率（根据直推人数动态计算：1人=3%，3人=9%，5人=15%）
+      const releaseRate = await this.calculateReleaseRate(userId)
+      console.log(`✅ 当前释放率：${(releaseRate * 100).toFixed(1)}%`)
 
       // 4. 批量签到并释放
       let totalReleased = 0
