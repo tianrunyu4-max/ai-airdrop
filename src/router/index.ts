@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
     path: '/chat',
     name: 'chat',
     component: () => import('@/views/chat/ChatView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false } // ✅ 游客可以访问聊天（只读），发言时自动创建账号
   },
   {
     path: '/points',
@@ -166,8 +166,8 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
 
   if (requiresAuth && !isAuthenticated) {
-    // ✅ 免注册登录：用户会在 initialize() 中自动创建账号，所以这里直接放行
-    next()
+    // ✅ 发言即注册：跳转到聊天页面，提示用户发言即可创建账号
+    next({ name: 'chat', query: { tip: 'speak_to_create' } })
   } else if (requiresGuest && isAuthenticated) {
     // 已登录用户访问登录/注册页 → 跳转到首页
     next({ name: 'chat' })

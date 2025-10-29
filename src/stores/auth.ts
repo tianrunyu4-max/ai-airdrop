@@ -137,9 +137,8 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.removeItem('last_login_time')
         }
       } else {
-        // ✅ 没有会话，自动创建游客账号
-        console.log('🎉 检测到新用户，自动创建游客账号...')
-        await createGuestAccount()
+        // ✅ 没有会话，保持游客状态（发言时才创建账号）
+        console.log('👀 游客模式：浏览无需账号，发言时自动创建')
       }
       
       initialized.value = true

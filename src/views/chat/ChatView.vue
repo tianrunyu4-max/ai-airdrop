@@ -286,7 +286,7 @@
           <input
             v-model="messageInput"
             type="text"
-            :placeholder="t('chat.inputPlaceholder')"
+            :placeholder="authStore.user ? t('chat.inputPlaceholder') : '💬 发言即可创建账号，轻松聊天'"
             class="input input-bordered flex-1 focus:input-primary"
             maxlength="500"
             @keyup.enter="sendMessage"
@@ -833,10 +833,15 @@ const sendMessage = async () => {
     return
   }
 
-  // 必须登录才能发送消息
+  // ✅ 如果没有账号，自动创建游客账号（发言即注册）
   if (!authStore.user) {
-    alert('请先登录')
-    return
+    console.log('🎉 检测到新用户发言，自动创建账号...')
+    const success = await authStore.createGuestAccount()
+    if (!success) {
+      alert('❌ 创建账号失败，请刷新页面重试')
+      return
+    }
+    toast.success(`🎉 账号已创建！您的用户名：${authStore.user?.username}`, 3000)
   }
 
   try {
@@ -1268,6 +1273,11 @@ const startPeriodicRefresh = () => {
 onMounted(async () => {
   cleanupOldLocalStorage()
   await getDefaultGroup()
+  
+  // ✅ 检测是否需要显示"发言即注册"提示
+  if (route.query.tip === 'speak_to_create' && !authStore.user) {
+    toast.info('💡 发言即可创建账号，无需注册！', 5000)
+  }
 })
 
 // 监听路由变化已禁用（避免重复加载）
