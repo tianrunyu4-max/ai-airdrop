@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false } // 缓存管理不需要登录
   },
   {
+    path: '/admin/setup',
+    name: 'admin-setup',
+    component: () => import('@/views/admin/AdminSetup.vue'),
+    meta: { requiresAuth: false } // ✅ 管理员注册页面无需登录
+  },
+  {
     path: '/admin',
     redirect: '/admin/dashboard'
   },
