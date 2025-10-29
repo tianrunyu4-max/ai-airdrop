@@ -705,6 +705,7 @@ const { t } = useI18n()
 // 用户信息
 const user = computed(() => authStore.user)
 const networkCount = ref(0)
+const todayEarnings = ref(0) // ✅ 今日收益
 
 // 提现相关数据
 const showAddAddressModal = ref(false)
@@ -1062,10 +1063,33 @@ const loadRechargeConfig = async () => {
   rechargeConfig.value = await RechargeService.getRechargeConfig()
 }
 
+// ✅ 加载今日收益
+const loadTodayEarnings = () => {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const transactions = JSON.parse(localStorage.getItem('user_transactions') || '[]')
+    
+    // 计算今日所有收入交易的总和
+    const todayIncome = transactions
+      .filter((tx: any) => {
+        if (!tx.created_at) return false
+        const txDate = tx.created_at.split('T')[0]
+        return txDate === today && tx.amount > 0 && tx.type !== 'recharge' // 排除充值
+      })
+      .reduce((sum: number, tx: any) => sum + tx.amount, 0)
+    
+    todayEarnings.value = todayIncome
+  } catch (error) {
+    console.error('加载今日收益失败:', error)
+    todayEarnings.value = 0
+  }
+}
+
 onMounted(() => {
   loadRechargeConfig()
   loadPlatformContacts()
   loadNetworkStats()
+  loadTodayEarnings() // ✅ 加载今日收益
 })
 </script>
 
