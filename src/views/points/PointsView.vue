@@ -644,23 +644,19 @@ const refreshPage = async () => {
   }
 }
 
-// 加载我的学习机（localStorage版本）
+// ✅ 加载我的学习机（从数据库读取）
 const loadMyMachines = async () => {
-  if (!user.value) return
+  if (!user.value?.id) return
 
   try {
-    // 从localStorage读取学习卡
-    const storageKey = 'user_learning_cards'
-    const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    // 从数据库读取学习卡
+    const result = await MiningService.getUserMachines(user.value.id, false)
     
-    // 过滤出当前用户的学习卡
-    const userCards = allCards
-      .filter((card: any) => card.user_id === user.value?.id)
-      .sort((a: any, b: any) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
-    
-    myMachines.value = userCards
+    if (result.success && result.data) {
+      myMachines.value = result.data
+    } else {
+      myMachines.value = []
+    }
   } catch (err) {
     console.error('加载学习机异常:', err)
     myMachines.value = []
