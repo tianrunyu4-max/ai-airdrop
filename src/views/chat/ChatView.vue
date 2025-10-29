@@ -326,6 +326,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { supabase, isDevMode } from '@/lib/supabase'
 import type { Message, ChatGroup } from '@/types'
 import { format } from 'date-fns'
@@ -335,6 +336,7 @@ import { generateConsistentAvatar } from '@/utils/avatarGenerator'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const toast = useToast()
 const route = useRoute()
 
 const messages = ref<Message[]>([])
