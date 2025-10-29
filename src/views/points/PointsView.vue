@@ -108,8 +108,8 @@
         
         <div class="grid grid-cols-2 gap-3 mb-2">
           <div class="bg-white/20 rounded-lg p-3 text-center">
-            <div class="text-white text-2xl font-bold">{{ restartStats.this_week || 0 }}</div>
-            <div class="text-white/80 text-xs">本周重启</div>
+            <div class="text-white text-2xl font-bold">{{ restartStats.this_month || 0 }}</div>
+            <div class="text-white/80 text-xs">本月重启</div>
           </div>
           <div class="bg-white/20 rounded-lg p-3 text-center">
             <div class="text-white text-2xl font-bold">{{ restartStats.total_restarts || 0 }}</div>
