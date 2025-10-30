@@ -133,17 +133,16 @@
     <!-- 兑换学习卡弹窗 -->
     <div v-if="showExchangeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click="showExchangeModal = false">
       <div class="bg-white rounded-2xl max-w-md w-full my-8" @click.stop>
-        <!-- 标题栏 -->
-        <div class="sticky top-0 bg-gradient-to-r from-yellow-500 to-orange-500 p-4 flex items-center justify-between">
-          <h3 class="text-white font-bold text-lg">💳 兑换学习卡</h3>
-          <button @click="showExchangeModal = false" class="text-white hover:bg-white/20 rounded-full p-2">
+        <div class="p-5 relative">
+          <!-- 返回箭头 -->
+          <button @click="showExchangeModal = false" class="absolute top-4 left-4 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full p-2 transition-all">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-        </div>
-
-        <div class="p-5">
+          
+          <!-- 标题 -->
+          <h3 class="text-center text-xl font-bold text-gray-800 mb-4 pt-2">💳 兑换学习卡</h3>
           <!-- ✅ 当前余额显示 -->
           <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border-2 border-blue-200">
             <div class="text-center text-xs text-gray-600 mb-2 font-bold">💼 当前余额</div>
