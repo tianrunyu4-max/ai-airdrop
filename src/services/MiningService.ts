@@ -403,11 +403,13 @@ export class MiningService extends BaseService {
   }>> {
     this.validateRequired({ userId }, ['userId'])
 
+    // 🔒 防并发保护：声明签到锁key（在try外声明，确保catch也能访问）
+    const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // 🔒 防并发保护：检查签到锁
-      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+      // 🔒 检查签到锁
       const lockTime = parseInt(localStorage.getItem(CHECKIN_LOCK_KEY) || '0')
       const now = Date.now()
       
@@ -428,7 +430,6 @@ export class MiningService extends BaseService {
 
       if (userCards.length === 0) {
         // 🔓 释放锁
-        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
         localStorage.removeItem(CHECKIN_LOCK_KEY)
         
         return {
@@ -444,7 +445,6 @@ export class MiningService extends BaseService {
 
       if (activeCards.length === 0) {
         // 🔓 释放锁
-        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
         localStorage.removeItem(CHECKIN_LOCK_KEY)
         
         return {
@@ -459,7 +459,6 @@ export class MiningService extends BaseService {
       )
       if (alreadyCheckedIn) {
         // 🔓 释放锁
-        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
         localStorage.removeItem(CHECKIN_LOCK_KEY)
         
         return {
@@ -650,7 +649,6 @@ export class MiningService extends BaseService {
       }
 
       // 🔓 释放锁（成功时）
-      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
       localStorage.removeItem(CHECKIN_LOCK_KEY)
 
       return {
@@ -664,7 +662,6 @@ export class MiningService extends BaseService {
       }
     } catch (error) {
       // 🔓 释放锁（失败时）
-      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
       localStorage.removeItem(CHECKIN_LOCK_KEY)
       
       return this.handleError(error)
