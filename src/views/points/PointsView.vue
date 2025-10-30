@@ -70,7 +70,7 @@
               ? 'bg-white/30 text-white/60 cursor-not-allowed'
               : 'bg-white text-green-600 hover:bg-white/90 shadow-lg'"
           >
-            {{ loading ? '签到中...' : isCheckedInToday ? '✅ 今日已签' : '🚀 启动释放' }}
+            {{ loading ? '签到中...' : isCheckedInToday ? '✅ 今日已签' : '📅 今日签到' }}
           </button>
           <div v-if="!isCheckedInToday && activeCardCount > 0" class="text-white/90 text-xs mt-2 text-center">
             ⚠️ 不签到不释放
