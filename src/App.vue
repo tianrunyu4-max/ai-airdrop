@@ -31,7 +31,7 @@
           <div class="flex items-center gap-2 flex-1">
             <span class="text-xl">👑</span>
             <div class="text-xs">
-              <span class="font-bold">升级AI代理 仅需30U</span>
+              <span class="font-bold">升级AI代理 仅需100</span>
             </div>
           </div>
           <div class="flex items-center gap-1">
@@ -81,7 +81,7 @@
           ✕
         </button>
         <div class="text-xs font-bold text-purple-600 mb-1">🚀 升级AI代理</div>
-        <div class="text-xs text-gray-600">解锁全部功能仅需30U</div>
+        <div class="text-xs text-gray-600">解锁全部功能仅需100</div>
         <div class="flex gap-1 mt-2">
           <span class="badge badge-xs badge-warning">对碰奖</span>
           <span class="badge badge-xs badge-success">见单奖</span>

@@ -19,7 +19,7 @@
         <!-- 余额显示 -->
         <div class="text-white mb-4">
           <div class="text-sm opacity-90 mb-1">💰 我的资产</div>
-          <div class="text-3xl font-bold">{{ (user.u_balance || 0).toFixed(2) }} U</div>
+          <div class="text-3xl font-bold">{{ (user.u_balance || 0).toFixed(2) }}</div>
         </div>
         
         <!-- 学习卡和积分 - 左对齐、更大面积 -->
@@ -148,7 +148,7 @@
             <div class="text-center text-xs text-gray-600 mb-2 font-bold">💼 当前余额</div>
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-white rounded-lg p-2 text-center">
-                <div class="text-xs text-gray-500">U余额</div>
+                <div class="text-xs text-gray-500">余额</div>
                 <div class="text-lg font-bold text-yellow-600">{{ (user?.u_balance || 0).toFixed(2) }}U</div>
               </div>
               <div class="bg-white rounded-lg p-2 text-center">
@@ -208,7 +208,7 @@
             <div class="text-sm font-bold text-gray-700 mb-2 text-center">📊 每日收益分配</div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div class="bg-white rounded-lg p-2 text-center">
-                <div class="text-green-600 font-bold">80% → U</div>
+                <div class="text-green-600 font-bold">80% →</div>
               </div>
               <div class="bg-white rounded-lg p-2 text-center">
                 <div class="text-blue-600 font-bold">20% → 学分</div>
@@ -417,7 +417,7 @@ const myMachines = ref<MiningMachine[]>([])
 const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
 const showExchangeModal = ref(false) // 兑换弹窗
-const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=U余额，points=积分
+const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=余额，points=积分
 
 // ✅ 分页相关
 const currentPage = ref(1)
@@ -445,7 +445,7 @@ const activeCardCount = computed(() => {
   }).length
 })
 
-// ✅ 是否可以兑换（支持U余额或积分）
+// ✅ 是否可以兑换（支持余额或积分）
 const canExchange = computed(() => {
   if (!user.value?.is_agent) return false
   
@@ -545,7 +545,7 @@ const exchangeCard = async () => {
     let result
     
     if (paymentMethod.value === 'u') {
-      // U余额支付
+      // 余额支付
       result = await MiningService.purchaseMachine(
         user.value.id,
         purchaseCount.value
@@ -633,7 +633,7 @@ const goToEarnings = () => {
 // ✅ 打开兑换弹窗（重置状态）
 const openExchangeModal = () => {
   purchaseCount.value = 1 // 重置数量
-  paymentMethod.value = 'u' // 默认U余额支付
+  paymentMethod.value = 'u' // 默认余额支付
   showExchangeModal.value = true
 }
 

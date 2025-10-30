@@ -18,9 +18,9 @@
     <div class="px-4 -mt-4">
       <div class="bg-white rounded-2xl p-6 shadow-xl border-2 border-yellow-200">
         <div class="grid grid-cols-2 gap-4">
-          <!-- U余额 -->
+          <!-- 余额 -->
           <div class="text-center">
-            <div class="text-gray-600 text-xs mb-1">U余额</div>
+            <div class="text-gray-600 text-xs mb-1">余额</div>
             <div class="text-yellow-600 text-2xl font-bold">{{ (user?.u_balance || 0).toFixed(2) }}</div>
             <div class="text-blue-600 text-xs mt-1">USDT</div>
           </div>
@@ -74,7 +74,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              U余额转账
+              余额转账
             </button>
             <button
               @click="transferType = 'transfer_points'"
@@ -149,7 +149,7 @@
           <div class="text-sm text-gray-300 space-y-2">
             <div class="flex justify-between">
               <span>转账类型：</span>
-              <span class="text-white font-bold">{{ transferType === 'u' ? 'U余额' : '互转' }}</span>
+              <span class="text-white font-bold">{{ transferType === 'u' ? '余额' : '互转' }}</span>
             </div>
             <div class="flex justify-between">
               <span>接收方：</span>
@@ -257,9 +257,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import { TransactionService, UserService } from '@/services'  // ← 使用重构后的Service
+import { TransactionService,serService } from '@/services'  // ← 使用重构后的Service
 import { isDevMode } from '@/lib/supabase'
-import type { Transaction, User } from '@/types'
+import type { Transaction,ser } from '@/types'
 import { format } from 'date-fns'
 
 const authStore = useAuthStore()
@@ -319,7 +319,7 @@ const validateReceiver = async () => {
 
   try {
     // 使用UserService查找用户
-    const result = await UserService.findByUsername(receiverUsername.value)
+    const result = awaitserService.findByUsername(receiverUsername.value)
     
     if (result.success && result.data) {
       receiverUser.value = result.data
@@ -351,7 +351,7 @@ const submitTransfer = async () => {
   }
 
   // ✅ 更清晰的转账确认提示
-  const transferTypeName = transferType.value === 'u' ? 'U余额转账' : '积分转账'
+  const transferTypeName = transferType.value === 'u' ? '余额转账' : '积分转账'
   const confirmMsg = `确认${transferTypeName}？\n\n接收方：${receiverUsername.value}\n转账金额：${transferAmount.value} ${transferType.value === 'u' ? 'U' : '积分'}${transferRemark.value ? `\n备注：${transferRemark.value}` : ''}`
   
   if (!confirm(confirmMsg)) {
@@ -365,7 +365,7 @@ const submitTransfer = async () => {
     let result
     
     if (transferType.value === 'u') {
-      // U转账
+      //转账
       result = await TransactionService.transferU({
         fromUserId: user.value.id,
         toUserId: receiverUser.value.id,
@@ -409,7 +409,7 @@ const submitTransfer = async () => {
       
       // ✅ 更清晰的成功提示
       const successMsg = transferType.value === 'u' 
-        ? `转账成功！已向 ${receiverUsername.value} 转出 ${transferAmount.value} U`
+        ? `转账成功！已向 ${receiverUsername.value} 转出 ${transferAmount.value}`
         : `转账成功！已向 ${receiverUsername.value} 转出 ${transferAmount.value} 积分`
       toast.success(`✨ ${successMsg}`, 4000)
 

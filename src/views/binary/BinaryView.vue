@@ -21,7 +21,7 @@
         <!-- 加入费用 -->
         <div class="bg-yellow-50 rounded-xl p-6 mb-6 border-2 border-yellow-300">
           <div class="text-gray-600 text-sm mb-2">加入费用</div>
-          <div class="text-yellow-600 font-bold text-4xl">30 U</div>
+          <div class="text-yellow-600 font-bold text-4xl">30</div>
         </div>
 
         <!-- 核心优势 -->
@@ -48,7 +48,7 @@
           @click="joinBinary"
           class="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-bold text-lg hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 transition-all shadow-xl"
         >
-          🚀 立即加入（30U）
+          🚀 立即加入（100）
         </button>
       </div>
     </div>
@@ -60,7 +60,7 @@
         <div class="bg-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-200">
           <div class="text-center mb-4">
             <div class="text-gray-500 text-sm mb-1">累计收益</div>
-            <div class="text-4xl font-bold text-yellow-600">{{ binaryInfo.total_earnings?.toFixed(2) || '0.00' }} U</div>
+            <div class="text-4xl font-bold text-yellow-600">{{ binaryInfo.total_earnings?.toFixed(2) || '0.00' }}</div>
           </div>
 
           <div class="grid grid-cols-2 gap-3 mb-4">
@@ -77,12 +77,12 @@
           <!-- 复投提示 -->
           <div v-if="!binaryInfo.is_active" class="bg-red-50 rounded-xl p-4 mb-4 border-2 border-red-300">
             <div class="text-center text-red-600 font-bold mb-2">⚠️ 需要复投</div>
-            <div class="text-sm text-gray-700 mb-3">累计收益已达240U（8倍），请复投30U继续获得奖励</div>
+            <div class="text-sm text-gray-700 mb-3">累计收益已达240（8倍），请复投100继续获得奖励</div>
             <button 
               @click="handleReinvest"
               class="w-full bg-gradient-to-r from-red-400 to-red-500 text-white py-3 rounded-lg font-bold hover:from-red-500 hover:to-red-600 transition-all"
             >
-              立即复投（30U）
+              立即复投（100）
             </button>
           </div>
 
@@ -163,7 +163,7 @@
           </div>
           <div class="flex items-center justify-between text-sm">
             <div class="text-gray-600">预估对碰奖</div>
-            <div class="text-yellow-600 font-bold">{{ binaryInfo.estimated_pairing_bonus?.toFixed(2) || '0.00' }} U</div>
+            <div class="text-yellow-600 font-bold">{{ binaryInfo.estimated_pairing_bonus?.toFixed(2) || '0.00' }}</div>
           </div>
         </div>
       </div>
@@ -212,7 +212,7 @@
 
           <div class="bg-green-50 rounded-lg p-3 border border-green-200">
             <div class="font-bold text-green-700 mb-1">🔄 复投机制</div>
-            <div>总收益达240U（8倍）提示复投30U，复购单自动补弱区</div>
+            <div>总收益达240（8倍）提示复投100，复购单自动补弱区</div>
           </div>
           
           <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
@@ -261,7 +261,7 @@ const showInfoModal = ref(false)
 
 // 加入双轨制
 const joinBinary = async () => {
-  if (!confirm('确认加入双轨制系统吗？\n\n费用：30U\n系统将自动为您分配最佳位置')) {
+  if (!confirm('确认加入双轨制系统吗？\n\n费用：100\n系统将自动为您分配最佳位置')) {
     return
   }
 
@@ -286,7 +286,7 @@ const joinBinary = async () => {
 
 // 复投
 const handleReinvest = async () => {
-  if (!confirm('确认复投吗？\n\n费用：30U\n复投后继续累积对碰奖和见单奖')) {
+  if (!confirm('确认复投吗？\n\n费用：100\n复投后继续累积对碰奖和见单奖')) {
     return
   }
 

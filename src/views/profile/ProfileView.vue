@@ -100,11 +100,11 @@
             <h3 class="text-xl font-bold text-gray-800 mb-2">加入Binary对碰系统</h3>
             <div class="text-sm text-gray-600 space-y-1 mb-4">
               <div>✅ A+B双区公排自动化排线</div>
-              <div>✅ 对碰奖励（6U/对，2:1 / 1:2，100%到账）</div>
-              <div>✅ 见单奖（5层直推链，各得1U/组，重复拿）</div>
+              <div>✅ 对碰奖励（10/对，2:1 / 1:2，100%到账）</div>
+              <div>✅ 见单奖（5层直推链，各得5/组，重复拿）</div>
               <div>✅ 直推≥2人解锁见单奖</div>
               <div>✅ 解锁积分互转+AI学习机</div>
-              <div class="text-purple-600 font-medium mt-2">仅需支付 30U 永久有效！</div>
+              <div class="text-purple-600 font-medium mt-2">仅需支付 100 永久有效！</div>
             </div>
             <button 
               @click="becomeAgent"
@@ -112,7 +112,7 @@
               class="btn bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-md hover:shadow-xl transition-all disabled:opacity-50 w-full"
             >
               <span v-if="becomingAgent" class="loading loading-spinner loading-sm"></span>
-              <span v-else>{{ (user?.u_balance || 0) < 30 ? 'U余额不足（需要30U）' : '🚀 立即加入Binary系统' }}</span>
+              <span v-else>{{ (user?.u_balance || 0) < 30 ? '余额不足（需要100）' : '🚀 立即加入Binary系统' }}</span>
             </button>
           </div>
         </div>
@@ -319,11 +319,11 @@
         <div class="alert alert-info mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <div>
-            <p class="font-bold">支付费用：30U</p>
+            <p class="font-bold">支付费用：100</p>
             <div class="text-sm mt-2 space-y-1">
               <p>✅ A+B双区公排自动化排线</p>
-              <p>✅ 对碰奖励（6U/对，2:1 / 1:2，100%到账）</p>
-              <p>✅ 见单奖（5层直推链，各得1U/组，重复拿）</p>
+              <p>✅ 对碰奖励（10/对，2:1 / 1:2，100%到账）</p>
+              <p>✅ 见单奖（5层直推链，各得5/组，重复拿）</p>
               <p>✅ 直推≥2人解锁见单奖</p>
               <p>✅ 解锁积分互转+AI学习机</p>
             </div>
@@ -364,7 +364,7 @@
           >
             <span v-if="becomingAgent" class="loading loading-spinner loading-sm"></span>
             <span v-else>
-              {{ (user?.u_balance || 0) < 30 ? 'U余额不足（需要30U）' : '🚀 确认加入（30U）' }}
+              {{ (user?.u_balance || 0) < 30 ? '余额不足（需要100）' : '🚀 确认加入（100）' }}
             </span>
           </button>
         </div>
@@ -412,7 +412,7 @@
     <div v-if="showRechargeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-800">💰 USDT充值</h3>
+          <h3 class="text-lg font-bold text-gray-800">💰SDT充值</h3>
           <button @click="showRechargeModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
         </div>
 
@@ -459,7 +459,7 @@
               v-model.number="rechargeData.amount" 
               type="number" 
               class="input input-bordered w-full"
-              :placeholder="`最低充值 ${rechargeConfig?.min_amount || 10} USDT`"
+              :placeholder="`最低充值 ${rechargeConfig?.min_amount || 10}SDT`"
             />
           </div>
 
@@ -524,18 +524,17 @@
               v-model.number="withdrawData.amount" 
               type="number" 
               class="input input-bordered w-full"
-              placeholder="最低提现 50 USDT"
+              placeholder="最低提现 50SDT"
             />
             <div class="text-xs text-gray-500 mt-1">
-              可用余额: {{ (user?.u_balance || 0).toFixed(2) }} U
-            </div>
+              可用余额: {{ (user?.u_balance || 0).toFixed(2) }}            </div>
           </div>
 
           <!-- 提示 -->
           <div class="alert alert-warning">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             <div class="text-sm">
-              <p>• 最低提现: 50 USDT</p>
+              <p>• 最低提现: 50SDT</p>
               <p>• 手续费: 5%</p>
               <p>• 预计24小时内到账</p>
             </div>
@@ -645,8 +644,8 @@
                 <div class="font-semibold mb-1">重要提示：</div>
                 <ul class="space-y-1">
                   <li>• 请确保地址正确，错误地址将导致资金丢失</li>
-                  <li>• 提现最低金额：50U</li>
-                  <li>• 提现手续费：2U</li>
+                  <li>• 提现最低金额：50</li>
+                  <li>• 提现手续费：2</li>
                 </ul>
               </div>
             </div>
@@ -963,7 +962,7 @@ const copyAddress = async (address: string) => {
 // 提交充值
 const submitRecharge = async () => {
   if (!rechargeData.value.amount || rechargeData.value.amount < (rechargeConfig.value?.min_amount || 10)) {
-    alert(`请输入正确的充值金额（最低 ${rechargeConfig.value?.min_amount || 10} USDT）`)
+    alert(`请输入正确的充值金额（最低 ${rechargeConfig.value?.min_amount || 10}SDT）`)
     return
   }
 
@@ -999,7 +998,7 @@ const submitWithdraw = async () => {
   }
   
   if (!withdrawData.value.amount || withdrawData.value.amount < 50) {
-    alert('请输入正确的提现金额（最低 50 USDT）')
+    alert('请输入正确的提现金额（最低 50SDT）')
     return
   }
 
