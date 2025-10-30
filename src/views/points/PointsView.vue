@@ -136,10 +136,8 @@
         <!-- 标题栏 -->
         <div class="sticky top-0 bg-gradient-to-r from-yellow-500 to-orange-500 p-4 flex items-center justify-between">
           <h3 class="text-white font-bold text-lg">💳 兑换学习卡</h3>
-          <button @click="showExchangeModal = false" class="text-white hover:bg-white/20 rounded-full p-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button @click="showExchangeModal = false" class="text-white hover:bg-white/20 rounded-lg px-3 py-1.5 text-sm font-bold">
+            返回
           </button>
         </div>
 
