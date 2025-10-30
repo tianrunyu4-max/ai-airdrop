@@ -22,7 +22,7 @@
           <div class="text-center">
             <div class="text-gray-600 text-xs mb-1">余额</div>
             <div class="text-yellow-600 text-2xl font-bold">{{ (user?.u_balance || 0).toFixed(2) }}</div>
-            <div class="text-blue-600 text-xs mt-1">USDT</div>
+            <div class="text-blue-600 text-xs mt-1"></div>
           </div>
           
           <!-- 互转 -->
@@ -115,7 +115,7 @@
         <!-- 转账金额 -->
         <div class="form-control mb-4">
           <label class="label">
-            <span class="label-text text-gray-700 font-medium">转账金额</span>
+            <span class="label-text text-gray-700 font-medium">转账金额（最低20起）</span>
             <span class="label-text-alt text-gray-400">
               可用: {{ (availableBalance || 0).toFixed(2) }}
             </span>
@@ -123,10 +123,10 @@
           <input 
             v-model.number="transferAmount" 
             type="number" 
-            min="1"
+            min="20"
             step="1"
             class="input input-bordered bg-yellow-50 border-yellow-300 text-gray-800 focus:border-yellow-500" 
-            placeholder="请输入转账金额"
+            placeholder="请输入转账金额（最低20）"
           />
         </div>
 
@@ -298,7 +298,7 @@ const isValidTransfer = computed(() => {
   return (
     receiverUser.value !== null &&
     !receiverError.value &&
-    transferAmount.value >= 1 &&
+    transferAmount.value >= 20 &&
     transferAmount.value <= availableBalance.value
   )
 })
@@ -336,12 +336,20 @@ const validateReceiver = async () => {
 
 // 提交转账（使用重构后的TransactionService）
 const submitTransfer = async () => {
-  if (!user.value || !isValidTransfer.value || !receiverUser.value) return
+  if (!user.value || !receiverUser.value) return
+
+  // ✅ 验证最低互转金额
+  if (transferAmount.value < 20) {
+    toast.error('最低互转金额为20')
+    return
+  }
+
+  if (!isValidTransfer.value) return
 
   // ✅ 互转积分需要双方都是AI代理
   if (transferType.value === 'transfer_points') {
     if (!user.value.is_agent) {
-      toast.error('只有AI代理才能互转积分，请先升级为AI代理（30U）')
+      toast.error('只有AI代理才能互转积分，请先升级为AI代理（100）')
       return
     }
     if (!receiverUser.value.is_agent) {

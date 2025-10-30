@@ -53,20 +53,18 @@
           <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
             <div class="text-xs text-gray-600 mb-2">账户余额</div>
             <div class="text-3xl font-bold text-yellow-600">{{ (user?.u_balance || 0).toFixed(2) }}</div>
-            <div class="text-xs text-gray-500 mt-1">U</div>
           </div>
           <!-- 今日收益 -->
           <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 text-center">
             <div class="text-xs text-gray-600 mb-2">今日收益</div>
             <div class="text-3xl font-bold text-green-600">{{ todayEarnings.toFixed(2) }}</div>
-            <div class="text-xs text-gray-500 mt-1">U</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 充值/提现按钮 -->
-    <div class="px-4 pb-4">
+    <!-- 充值/提现按钮 - 暂时隐藏 -->
+    <div v-if="false" class="px-4 pb-4">
       <div class="grid grid-cols-2 gap-3">
         <button 
           @click="showRechargeModal = true"
@@ -454,7 +452,7 @@
 
           <!-- 充值金额 -->
           <div>
-            <label class="label"><span class="label-text font-semibold">充值金额 (USDT)</span></label>
+            <label class="label"><span class="label-text font-semibold">充值金额 ()</span></label>
             <input 
               v-model.number="rechargeData.amount" 
               type="number" 
@@ -519,7 +517,7 @@
 
           <!-- 提现金额 -->
           <div>
-            <label class="label"><span class="label-text font-semibold">提现金额 (USDT)</span></label>
+            <label class="label"><span class="label-text font-semibold">提现金额 ()</span></label>
             <input 
               v-model.number="withdrawData.amount" 
               type="number" 
@@ -712,7 +710,7 @@ const newAddress = ref({
 const rechargeConfig = ref<any>(null)
 const rechargeData = ref({
   amount: 0,
-  currency: 'USDT',
+  currency: '',
   network: 'TRC20',
   txid: ''
 })
@@ -976,7 +974,7 @@ const submitRecharge = async () => {
       // 重置表单
       rechargeData.value = {
         amount: 0,
-        currency: 'USDT',
+        currency: '',
         network: 'TRC20',
         txid: ''
       }
