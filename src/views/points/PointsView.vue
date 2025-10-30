@@ -16,23 +16,26 @@
     <!-- 我的资产卡片 -->
     <div v-if="user" class="px-4 -mt-4">
       <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl shadow-2xl p-5">
-        <div class="flex items-center justify-between">
-          <div class="text-white">
-            <div class="text-sm opacity-90 mb-1">💰 我的资产</div>
-            <div class="text-3xl font-bold">{{ (user.u_balance || 0).toFixed(2) }} U</div>
+        <!-- 余额显示 -->
+        <div class="text-white mb-4">
+          <div class="text-sm opacity-90 mb-1">💰 我的资产</div>
+          <div class="text-3xl font-bold">{{ (user.u_balance || 0).toFixed(2) }} U</div>
+        </div>
+        
+        <!-- 学习卡和积分 - 左对齐、更大面积 -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="bg-white/20 rounded-xl p-4 backdrop-blur-sm">
+            <div class="text-white/80 text-sm mb-2">学习卡</div>
+            <div class="text-white font-bold text-2xl">{{ myMachines.length }}<span class="text-lg ml-1">张</span></div>
           </div>
-          <div class="flex gap-3">
-            <div class="bg-white/20 rounded-xl p-3 text-center backdrop-blur-sm">
-              <div class="text-white/80 text-xs mb-1">学习卡</div>
-              <div class="text-white font-bold text-lg">{{ myMachines.length }}张</div>
-            </div>
-            <div class="bg-white/20 rounded-xl p-3 text-center backdrop-blur-sm">
-              <div class="text-white/80 text-xs mb-1">积分</div>
-              <div class="text-white font-bold text-lg">{{ (user.transfer_points || 0).toFixed(0) }}</div>
-            </div>
+          <div class="bg-white/20 rounded-xl p-4 backdrop-blur-sm">
+            <div class="text-white/80 text-sm mb-2">积分</div>
+            <div class="text-white font-bold text-2xl">{{ (user.transfer_points || 0).toFixed(0) }}</div>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-2 mt-4">
+        
+        <!-- 操作按钮 -->
+        <div class="grid grid-cols-3 gap-2">
           <button @click="goToEarnings" class="bg-white/20 backdrop-blur-sm text-white py-2 rounded-lg text-sm font-bold hover:bg-white/30 transition-all">
             收益记录
           </button>
