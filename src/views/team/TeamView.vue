@@ -88,8 +88,8 @@
           <div class="text-white text-sm font-semibold">💰 预计对碰奖</div>
           <div class="text-white/80 text-xs">每日凌晨12点结算</div>
         </div>
-        <div class="text-white text-4xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }} U</div>
-        <div class="text-white/90 text-xs">{{ pendingPairs }}组待结算 × 6U = {{ estimatedPairingBonus.toFixed(2) }}U</div>
+        <div class="text-white text-4xl font-bold mb-1">{{ estimatedPairingBonus.toFixed(2) }}</div>
+        <div class="text-white/90 text-xs">{{ pendingPairs }}组待结算 × 10 = {{ estimatedPairingBonus.toFixed(2) }}</div>
         <div :class="isUnlocked ? 'bg-green-500/30 text-white' : 'bg-orange-500/30 text-white'" class="mt-3 py-2 px-3 rounded-lg text-xs font-semibold">
           {{ isUnlocked ? '✅ 已解锁对碰奖' : '⚠️ 未解锁（需直推≥2人）' }}
         </div>
@@ -122,7 +122,7 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-xs text-gray-600">总收益</span>
-              <span class="text-orange-600 font-bold text-lg">{{ totalEarnings.toFixed(2) }} U</span>
+              <span class="text-orange-600 font-bold text-lg">{{ totalEarnings.toFixed(2) }}</span>
             </div>
           </div>
         </div>

@@ -15,7 +15,7 @@
       <!-- 签到释放统计 -->
       <div class="bg-white/90 backdrop-blur-lg rounded-2xl p-4 shadow-xl">
         <div class="text-gray-600 text-sm mb-1">签到释放总收益</div>
-        <div class="text-4xl font-bold text-green-600 mb-3">{{ checkinEarnings.toFixed(2) }} U</div>
+        <div class="text-4xl font-bold text-green-600 mb-3">{{ checkinEarnings.toFixed(2) }}</div>
         
         <!-- 直推释放率 -->
         <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border border-blue-200">
@@ -98,7 +98,7 @@
               </div>
             </div>
             <div class="text-right">
-              <div class="text-xl font-bold text-green-600">+{{ record.amount.toFixed(2) }} U</div>
+              <div class="text-xl font-bold text-green-600">+{{ record.amount.toFixed(2) }}</div>
               <div class="text-xs text-gray-400">{{ record.metadata?.cards_count || 1 }}张学习卡</div>
             </div>
           </div>
