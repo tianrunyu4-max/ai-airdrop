@@ -473,9 +473,18 @@ const handleCheckin = async () => {
   }
 }
 
-// ✅ V4.0兑换学习卡（支持8U或100积分）
+// 🔒 防重复兑换锁
+const isExchanging = ref(false)
+
+// ✅ V4.0兑换学习卡（支持8U或100积分）- 防重复点击加固
 const exchangeCard = async () => {
   if (!user.value?.id) return
+  
+  // 🔒 防止重复点击
+  if (isExchanging.value) {
+    toast.warning('正在兑换中，请勿重复点击', 2000)
+    return
+  }
   
   // 检查代理身份
   if (!user.value.is_agent) {
@@ -506,6 +515,8 @@ const exchangeCard = async () => {
     return
   }
   
+  // 🔒 加锁
+  isExchanging.value = true
   loading.value = true
   const loadingToast = toast.info('兑换中...', 0)
   
@@ -545,6 +556,10 @@ const exchangeCard = async () => {
     toast.error(error.message || '兑换失败')
   } finally {
     loading.value = false
+    // 🔓 延迟释放锁（防止快速重复点击）
+    setTimeout(() => {
+      isExchanging.value = false
+    }, 1000)
   }
 }
 

@@ -394,7 +394,7 @@ export class MiningService extends BaseService {
   }
 
   /**
-   * 每日签到（V4.0新增：必须签到才释放）- localStorage版本
+   * 每日签到（V4.0新增：必须签到才释放）- localStorage版本 + 防并发保护
    */
   static async checkin(userId: string): Promise<ApiResponse<{ 
     checkedInCount: number
@@ -406,12 +406,31 @@ export class MiningService extends BaseService {
     try {
       const today = new Date().toISOString().split('T')[0]
 
+      // 🔒 防并发保护：检查签到锁
+      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+      const lockTime = parseInt(localStorage.getItem(CHECKIN_LOCK_KEY) || '0')
+      const now = Date.now()
+      
+      if (lockTime && (now - lockTime) < 3000) {
+        return {
+          success: false,
+          error: '签到处理中，请稍候...'
+        }
+      }
+      
+      // 🔒 加锁（3秒有效期）
+      localStorage.setItem(CHECKIN_LOCK_KEY, now.toString())
+
       // 1. 从localStorage获取用户所有学习卡
       const storageKey = 'user_learning_cards'
       const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
       const userCards = allCards.filter((card: any) => card.user_id === userId)
 
       if (userCards.length === 0) {
+        // 🔓 释放锁
+        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+        localStorage.removeItem(CHECKIN_LOCK_KEY)
+        
         return {
           success: false,
           error: '您还没有学习卡，请先兑换学习卡'
@@ -424,6 +443,10 @@ export class MiningService extends BaseService {
       )
 
       if (activeCards.length === 0) {
+        // 🔓 释放锁
+        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+        localStorage.removeItem(CHECKIN_LOCK_KEY)
+        
         return {
           success: false,
           error: '您没有可签到的学习卡'
@@ -435,6 +458,10 @@ export class MiningService extends BaseService {
         card.last_checkin_date === today
       )
       if (alreadyCheckedIn) {
+        // 🔓 释放锁
+        const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+        localStorage.removeItem(CHECKIN_LOCK_KEY)
+        
         return {
           success: false,
           error: '今天已签到，明天再来吧！'
@@ -622,6 +649,10 @@ export class MiningService extends BaseService {
         console.warn('⚠️ 警告：签到成功但交易记录未创建，收益记录页面可能不显示本次签到')
       }
 
+      // 🔓 释放锁（成功时）
+      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+      localStorage.removeItem(CHECKIN_LOCK_KEY)
+
       return {
         success: true,
         data: {
@@ -632,6 +663,10 @@ export class MiningService extends BaseService {
         message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分自动清0）`
       }
     } catch (error) {
+      // 🔓 释放锁（失败时）
+      const CHECKIN_LOCK_KEY = `checkin_lock_${userId}`
+      localStorage.removeItem(CHECKIN_LOCK_KEY)
+      
       return this.handleError(error)
     }
   }
