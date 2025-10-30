@@ -6,14 +6,14 @@ import type { ApiResponse } from '@/types'
 /**
  * 代理服务
  * 负责处理AI代理相关业务逻辑
- * 注意：成为代理 = 加入Binary对碰系统（30U）
+ * 注意：成为代理 = 加入Binary对碰系统（100）
  */
 export class AgentService {
-  // 成为代理的费用（30U）= 加入Binary系统费用
-  private static readonly AGENT_FEE = 30
+  // 成为代理的费用（100）= 加入Binary系统费用
+  private static readonly AGENT_FEE = 100
 
   /**
-   * 成为AI代理 = 加入Binary对碰系统（支付30U）
+   * 成为AI代理 = 加入Binary对碰系统（支付100）
    * 
    * ✅ 核心逻辑：
    * 1. 注册时不需要邀请码（游客身份）
@@ -89,12 +89,12 @@ export class AgentService {
         }
       }
 
-      // 7. 扣除30U
+      // 7. 扣除100
       await WalletManager.deduct(
         userId,
         this.AGENT_FEE,
         'agent_purchase',
-        `升级AI代理(30U)`
+        `升级AI代理(100)`
       )
 
       // 8. ✅ 设置为代理（同时设置inviter_id）

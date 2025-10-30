@@ -81,7 +81,7 @@
         <div class="bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl p-4 shadow-xl">
           <div class="text-white/90 text-xs mb-2 font-semibold">💳 兑换学习卡</div>
           <div class="text-white text-2xl font-bold mb-2">
-            8U/张
+            20/张
           </div>
           <div class="text-white/80 text-xs mb-3">
             {{ myMachines.length }}/30张 · 3倍出局
@@ -170,8 +170,8 @@
                 class="p-4 rounded-xl font-bold text-sm transition-all hover:shadow-md"
               >
                 <div class="text-2xl mb-1">💰</div>
-                <div>U余额</div>
-                <div class="text-xs opacity-80 mt-1">8U/张</div>
+                <div>余额</div>
+                <div class="text-xs opacity-80 mt-1">20/张</div>
                 <div v-if="paymentMethod === 'u'" class="text-xs mt-1">✓ 已选择</div>
               </button>
               <button
@@ -194,7 +194,7 @@
             <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200 text-center">
               <div class="text-gray-600 text-xs mb-1">兑换成本</div>
               <div class="text-yellow-600 font-bold text-2xl">
-                {{ paymentMethod === 'u' ? '8U' : '100积分' }}
+                {{ paymentMethod === 'u' ? '20' : '100积分' }}
               </div>
             </div>
             <div class="bg-orange-50 rounded-xl p-3 border border-orange-200 text-center">
@@ -246,7 +246,7 @@
             </div>
             <div class="text-center text-sm text-gray-600 mt-2">
               总成本：<span class="font-bold" :class="paymentMethod === 'u' ? 'text-yellow-600' : 'text-purple-600'">
-                {{ paymentMethod === 'u' ? (purchaseCount * 8).toFixed(0) + 'U' : (purchaseCount * 100).toFixed(0) + '积分' }}
+                {{ paymentMethod === 'u' ? (purchaseCount * 20).toFixed(0) : (purchaseCount * 100).toFixed(0) + '积分' }}
               </span>
             </div>
           </div>
@@ -263,14 +263,14 @@
             <span v-if="loading">兑换中...</span>
             <span v-else-if="!user?.is_agent">❌ 需代理身份</span>
             <span v-else-if="canExchange">💎 确认兑换 {{ purchaseCount }} 张</span>
-            <span v-else-if="paymentMethod === 'u'">❌ U余额不足（需{{ (purchaseCount * 8).toFixed(0) }}U）</span>
+            <span v-else-if="paymentMethod === 'u'">❌ 余额不足（需{{ (purchaseCount * 20).toFixed(0) }}）</span>
             <span v-else>❌ 积分不足（需{{ (purchaseCount * 100).toFixed(0) }}积分）</span>
           </button>
           
           <!-- ✅ 余额提示 -->
           <div v-if="!canExchange && user?.is_agent" class="mt-3 text-center">
             <div v-if="paymentMethod === 'u'" class="text-xs text-red-600 font-medium">
-              💡 您的U余额：{{ (user?.u_balance || 0).toFixed(2) }}U，需要：{{ (purchaseCount * 8).toFixed(0) }}U
+              💡 您的余额：{{ (user?.u_balance || 0).toFixed(2) }}，需要：{{ (purchaseCount * 20).toFixed(0) }}
             </div>
             <div v-else class="text-xs text-red-600 font-medium">
               💡 您的积分：{{ (user?.transfer_points || 0).toFixed(0) }}，需要：{{ (purchaseCount * 100).toFixed(0) }}积分
@@ -282,8 +282,8 @@
             <div v-if="!user?.is_agent" class="text-red-600 font-medium">
               ⚠️ 需先加入Binary系统（30U）
             </div>
-            <div v-else-if="(user?.u_balance || 0) < purchaseCount * 8" class="text-red-600 font-medium">
-              余额不足，需要 {{ (purchaseCount * 8).toFixed(2) }}U
+            <div v-else-if="(user?.u_balance || 0) < purchaseCount * 20" class="text-red-600 font-medium">
+              余额不足，需要 {{ (purchaseCount * 20).toFixed(2) }}
             </div>
             <div v-else class="text-gray-600">
               💡 最多30张 · 当前{{ myMachines.length }}张
@@ -453,8 +453,8 @@ const canExchange = computed(() => {
   if (currentCount + purchaseCount.value > 30) return false
   
   if (paymentMethod.value === 'u') {
-    // U余额支付：8U/张
-    const totalCost = purchaseCount.value * 8
+    // 余额支付：20/张
+    const totalCost = purchaseCount.value * 20
     return (user.value.u_balance || 0) >= totalCost
   } else {
     // 积分支付：100积分/张
@@ -517,12 +517,12 @@ const exchangeCard = async () => {
   // 根据支付方式检查余额
   let confirmMsg = ''
   if (paymentMethod.value === 'u') {
-    const totalCost = purchaseCount.value * 8
+    const totalCost = purchaseCount.value * 20
     if ((user.value.u_balance || 0) < totalCost) {
-      toast.error(`U余额不足，需要${totalCost}U`)
+      toast.error(`余额不足，需要${totalCost}`)
       return
     }
-    confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n💰 支付方式：U余额\n💵 总成本：${totalCost}U\n📊 签到送3倍积分学习`
+    confirmMsg = `确定兑换 ${purchaseCount.value} 张AI学习卡吗？\n\n💰 支付方式：余额\n💵 总成本：${totalCost}\n📊 签到送3倍积分学习`
   } else {
     const totalCost = purchaseCount.value * 100
     if ((user.value.transfer_points || 0) < totalCost) {

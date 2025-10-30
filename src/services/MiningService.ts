@@ -4,7 +4,7 @@
  * 
  * 实现AI学习卡核心业务逻辑：
  * 1. 加入代理（30U）自动送100积分（可激活第1张学习卡）
- * 2. U余额兑换学习卡（8U = 100积分）
+ * 2. 余额兑换学习卡（20 = 100积分）
  * 3. 每日签到释放（不签到不释放）
  * 4. 基础释放率1%/天 + 直推加速1%/人，最高10%
  * 5. 3倍出局（30-300天）
@@ -24,7 +24,7 @@ import type { MiningMachine } from '@/types'
 
 export class MiningService extends BaseService {
   /**
-   * 兑换学习卡（V4.0新逻辑：8U余额 = 100积分 = 1张学习卡）- localStorage版本
+   * 兑换学习卡（V4.0新逻辑：20余额 = 100积分 = 1张学习卡）- localStorage版本
    * 注意：需要代理身份（已加入Binary系统）
    */
   static async purchaseMachine(
@@ -76,8 +76,8 @@ export class MiningService extends BaseService {
         }
       }
 
-      // 5. 计算费用（8U × 数量）
-      const totalCost = 8 * quantity
+      // 5. 计算费用（20 × 数量）
+      const totalCost = 20 * quantity
 
       // 6. 检查余额
       const currentBalance = Number(user.u_balance) || 0
@@ -361,9 +361,9 @@ export class MiningService extends BaseService {
       if (updateError) throw updateError
 
       // 🔥 核心逻辑：自动分配积分（V3.0：70%转U，30%互转）
-      // 70%转U（100积分=8U，所以1积分=0.08U）
+      // 70%转U（100积分=20，所以1积分=0.2）
       const toU = actualRelease * 0.70
-      const uAmount = toU * 0.08 // 1积分=0.08U
+      const uAmount = toU * 0.2 // 1积分=0.2
       
       await WalletManager.add(
         machine.user_id,
@@ -508,9 +508,9 @@ export class MiningService extends BaseService {
       })))
 
       // 6. 分配释放的积分到用户账户
-      // 80% 转 U (兑换价：100积分=8U，即1积分=0.08U)
+      // 80% 转余额 (兑换价：100积分=20，即1积分=0.2)
       const toU = totalReleased * 0.80
-      const uAmount = toU * 0.08 // 1积分 = 0.08U (100积分=8U)
+      const uAmount = toU * 0.2 // 1积分 = 0.2 (100积分=20)
       
       // 20% 充学分（学习AI）
       const toBurn = totalReleased * 0.20
@@ -765,8 +765,8 @@ export class MiningService extends BaseService {
       const toU = actualRelease * AILearningConfig.DISTRIBUTION.TO_U_PERCENT
       const toBurn = actualRelease * AILearningConfig.DISTRIBUTION.TO_BURN_PERCENT
 
-      // 85%转U余额
-      const uAmount = toU * 0.08 // 100积分 = 8U，所以积分×0.08=U
+      // 85%转余额
+      const uAmount = toU * 0.2 // 100积分 = 20，所以积分×0.2
       await WalletManager.add(
         machine.user_id,
         uAmount,

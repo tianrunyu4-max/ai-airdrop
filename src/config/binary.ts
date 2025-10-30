@@ -13,13 +13,13 @@
 
 export const BinaryConfig = {
   // ========== 加入费用 ==========
-  JOIN_FEE: 30,                    // 入单费用30U
+  JOIN_FEE: 100,                   // 入单费用100
   
   // ========== 对碰奖励（配对奖励）V5.0 ==========
   PAIRING: {
-    BONUS_PER_PAIR: 6,             // 每单对碰奖励6U
+    BONUS_PER_PAIR: 10,            // 每单对碰奖励10
     MEMBER_RATIO: 0.8,             // 80%封顶到账会员
-    MEMBER_AMOUNT: 4.8,            // 会员实际获得：6U × 80% = 4.8U
+    MEMBER_AMOUNT: 8,              // 会员实际获得：10 × 80% = 8
     RESERVED_RATIO: 0.2,           // 20%预留
     RATIO: '2:1_OR_1:2',           // 对碰比例2:1或1:2（灵活配对）
     REQUIRED_UNITS: {
@@ -35,7 +35,7 @@ export const BinaryConfig = {
   // ========== 见单奖（直推链5代重复拿）V5.1 ==========
   SPOT_BONUS: {
     ENABLED: true,                 // 启用见单奖
-    AMOUNT: 1,                     // 每对1U
+    AMOUNT: 5,                     // 每对5
     DEPTH: 5,                      // 5代直推链
     UNLOCK_CONDITION: 2,           // 直推≥2人才能拿见单奖
     TRIGGER_ON_PAIRING: true,      // 下线对碰时触发
@@ -56,8 +56,8 @@ export const BinaryConfig = {
   
   // ========== 复投机制 V5.0 ==========
   REINVEST: {
-    THRESHOLD: 240,                // ✨ V5.0：总收益达到240U（8倍）提示复投
-    AMOUNT: 30,                    // 复投金额30U
+    THRESHOLD: 240,                // ✨ V5.0：总收益达到240（8倍）提示复投
+    AMOUNT: 100,                   // 复投金额100
     AUTO_AVAILABLE: true,          // 支持自动复投
     FREEZE_TRANSFER_IF_NOT: true,  // 不复投无法互转
     CONTINUE_AFTER: true,          // 复投后继续累积计算

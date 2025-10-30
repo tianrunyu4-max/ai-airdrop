@@ -10,13 +10,13 @@ export const AILearningConfig = {
   MACHINE: {
     NAME: 'AI学习卡',
     COST: 100,                    // 100积分
-    COST_IN_U: 8,                 // 8U可兑换100积分
+    COST_IN_U: 20,                // 20 可兑换100积分
     EXIT_MULTIPLIER: 3,           // 3倍出局
     TOTAL_POINTS: 300,            // 总产出300积分（100×3）
     TOTAL_OUTPUT: 300,            // 总产出300积分（100×3）
     BASE_RELEASE_RATE: 0.01,      // 基础释放率1%/天（0个直推）
     DAILY_OUTPUT: 3,              // 每日产出3积分（300×1%，0个直推时）
-    MAX_STACK: 10,                // 最多10张/人
+    MAX_STACK: 30,                // 最多30张/人
     AUTO_GIFT: true,              // 成为AI代理自动送100积分
     FIRST_FREE: false             // 不再是第一次免费，而是成为代理自动送
   },
