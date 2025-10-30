@@ -101,8 +101,8 @@
       </div>
     </div>
 
-    <!-- ✅ 重启统计卡片（立即显示）-->
-    <div v-if="user && user.is_agent" class="px-4 mt-4">
+    <!-- ✅ 重启统计卡片（只有拥有学习卡的用户才显示）-->
+    <div v-if="user && myMachines.length > 0" class="px-4 mt-4">
       <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 shadow-xl">
         <div class="text-white/90 text-xs mb-2 font-semibold">🔄 系统重启统计</div>
         
