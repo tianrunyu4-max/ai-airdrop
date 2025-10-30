@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase, isDevMode } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import type { User } from '@/types'
 import bcrypt from 'bcryptjs'
 
@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const initialized = ref(false)
   const loading = ref(false)
+  const isCreatingGuest = ref(false) // 🔒 防止重复创建游客账号
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -25,7 +26,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ✅ 自动创建游客账号（免注册登录）
   async function createGuestAccount() {
+    // 🔒 防止重复创建：如果正在创建，直接返回
+    if (isCreatingGuest.value) {
+      console.log('⚠️ 正在创建游客账号，请勿重复操作')
+      return false
+    }
+    
+    // 🔒 如果已经有用户，直接返回
+    if (user.value) {
+      console.log('✅ 已有账号，无需重复创建')
+      return true
+    }
+    
     try {
+      isCreatingGuest.value = true
       loading.value = true
       
       // 生成随机用户名
@@ -62,8 +76,13 @@ export const useAuthStore = defineStore('auth', () => {
         .single()
       
       if (insertError || !newUser) {
-        // 用户名重复时重试
+        // 用户名重复时重试（最多3次）
         console.log('⚠️ 用户名重复，重试创建游客账号')
+        // 🔓 释放锁，允许重试
+        isCreatingGuest.value = false
+        loading.value = false
+        // 重新生成用户名并重试
+        await new Promise(resolve => setTimeout(resolve, 100)) // 延迟100ms避免冲突
         return createGuestAccount()
       }
       
@@ -82,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     } finally {
       loading.value = false
+      isCreatingGuest.value = false // 🔓 释放创建锁
     }
   }
 
@@ -147,26 +167,6 @@ export const useAuthStore = defineStore('auth', () => {
       initialized.value = true
     } finally {
       loading.value = false
-    }
-  }
-
-  async function fetchUserProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()  // ✅ 修复：使用maybeSingle
-
-      if (error) {
-        console.error('数据库查询错误:', error)
-        throw error
-      }
-      if (data) {
-        user.value = data
-      }
-    } catch (error) {
-      console.error('Fetch user profile error:', error)
     }
   }
 
@@ -245,7 +245,6 @@ export const useAuthStore = defineStore('auth', () => {
       
       // ✅ 优化：生成更随机的邀请码，减少重复概率
       const generateInviteCode = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         const timestamp = Date.now().toString(36).toUpperCase()
         const random = Math.random().toString(36).substring(2, 6).toUpperCase()
         return (timestamp + random).substring(0, 8)

@@ -513,6 +513,25 @@ const scrollToBottom = (smooth = false) => {
   }
 }
 
+// ⚡ 实时更新在线人数（查询数据库真实用户数）
+const updateOnlineCount = async () => {
+  try {
+    // 查询数据库中的总用户数
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+    
+    if (!error && count !== null) {
+      // 在线率在50%-70%之间波动
+      const onlineRate = 0.5 + Math.random() * 0.2
+      onlineCount.value = Math.floor(count * onlineRate)
+      console.log(`✅ 实时在线人数：${onlineCount.value} / 总用户：${count}`)
+    }
+  } catch (error) {
+    console.error('更新在线人数失败:', error)
+  }
+}
+
 // 🔥 生产模式：切换群组（优化版）
 const switchGroup = async (group: ChatGroup) => {
   if (currentGroup.value?.id === group.id) return
@@ -854,6 +873,8 @@ const sendMessage = async () => {
       return
     }
     toast.success(`🎉 账号已创建！您的用户名：${authStore.user?.username}`, 3000)
+    // ⚡ 立即更新在线人数
+    updateOnlineCount()
   }
 
   try {
@@ -977,14 +998,11 @@ const startBotSimulation = () => {
     startBotForGroup(currentGroup.value)
   }
 
-  // ⚡ 动态更新在线人数（基于成员数）
-  setInterval(() => {
-    if (currentGroup.value?.member_count) {
-      // 在线率在50%-70%之间波动
-      const onlineRate = 0.5 + Math.random() * 0.2
-      onlineCount.value = Math.floor(currentGroup.value.member_count * onlineRate)
-    }
-  }, 5000)
+  // ⚡ 首次更新在线人数
+  updateOnlineCount()
+  
+  // 每10秒更新一次（降低频率，减少数据库负载）
+  setInterval(updateOnlineCount, 10000)
 }
 
 // 初始化开发模式数据
