@@ -69,10 +69,10 @@ export class MiningService extends BaseService {
       const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
       const userCards = allCards.filter((card: any) => card.user_id === userId)
 
-      if (userCards.length + quantity > 10) {
+      if (userCards.length + quantity > 30) {
         return {
           success: false,
-          error: '已达到最大学习卡数量限制（10张）'
+          error: '已达到最大学习卡数量限制（30张）'
         }
       }
 
@@ -209,10 +209,10 @@ export class MiningService extends BaseService {
       const allCards = JSON.parse(localStorage.getItem(storageKey) || '[]')
       const userCards = allCards.filter((card: any) => card.user_id === userId)
 
-      if (userCards.length + quantity > 10) {
+      if (userCards.length + quantity > 30) {
         return {
           success: false,
-          error: '已达到最大学习卡数量限制（10张）'
+          error: '已达到最大学习卡数量限制（30张）'
         }
       }
 
@@ -644,12 +644,16 @@ export class MiningService extends BaseService {
         }
       }
       
-      if (!transactionCreated) {
-        console.warn('⚠️ 警告：签到成功但交易记录未创建，收益记录页面可能不显示本次签到')
-      }
-
       // 🔓 释放锁（成功时）
       localStorage.removeItem(CHECKIN_LOCK_KEY)
+
+      // ✅ 构建成功消息（如果交易记录创建失败，添加提示）
+      let successMessage = `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分自动清0）`
+      
+      if (!transactionCreated) {
+        console.warn('⚠️ 警告：签到成功但交易记录未创建，收益记录页面可能不显示本次签到')
+        successMessage += `\n\n⚠️ 提示：收益已到账，但记录保存失败。请前往"收益记录"页面点击"自动修复"。`
+      }
 
       return {
         success: true,
@@ -658,7 +662,7 @@ export class MiningService extends BaseService {
           totalReleased,
           releaseRate
         },
-        message: `✅ 签到成功！${checkedInCount}张学习卡开始释放\n释放率：${(releaseRate * 100).toFixed(1)}%\n本次释放：${totalReleased.toFixed(2)}积分（${uAmount.toFixed(2)}U + ${toBurn.toFixed(2)}积分自动清0）`
+        message: successMessage
       }
     } catch (error) {
       // 🔓 释放锁（失败时）

@@ -84,7 +84,7 @@
             8U/张
           </div>
           <div class="text-white/80 text-xs mb-3">
-            {{ myMachines.length }}/10张 · 3倍出局
+            {{ myMachines.length }}/30张 · 3倍出局
           </div>
           <button 
             @click="openExchangeModal"
@@ -94,10 +94,10 @@
               ? 'bg-white/30 text-white/60 cursor-not-allowed'
               : 'bg-white text-orange-600 hover:bg-white/90 shadow-lg'"
           >
-            {{ !user?.is_agent ? '需代理身份' : myMachines.length >= 10 ? '已达上限' : '💎 立即兑换' }}
+            {{ !user?.is_agent ? '需代理身份' : myMachines.length >= 30 ? '已达上限' : '💎 立即兑换' }}
           </button>
-          <div v-if="user?.is_agent && myMachines.length < 10" class="text-white/90 text-xs mt-2 text-center">
-            💡 最多10张
+          <div v-if="user?.is_agent && myMachines.length < 30" class="text-white/90 text-xs mt-2 text-center">
+            💡 最多30张
           </div>
         </div>
 
@@ -238,7 +238,7 @@
                 {{ purchaseCount }}
               </div>
               <button 
-                @click="purchaseCount = Math.min(10 - myMachines.length, purchaseCount + 1)"
+                @click="purchaseCount = Math.min(30 - myMachines.length, purchaseCount + 1)"
                 class="w-10 h-10 bg-yellow-500 rounded-full font-bold text-xl text-white hover:bg-yellow-600 transition-all"
               >
                 +
@@ -286,7 +286,7 @@
               余额不足，需要 {{ (purchaseCount * 8).toFixed(2) }}U
             </div>
             <div v-else class="text-gray-600">
-              💡 最多10张 · 当前{{ myMachines.length }}张
+              💡 最多30张 · 当前{{ myMachines.length }}张
             </div>
           </div>
         </div>
@@ -300,71 +300,86 @@
           <span class="bg-yellow-400 w-1 h-6 rounded-full mr-3"></span>
           我的学习卡
         </span>
-        <span class="text-sm text-gray-600">{{ myMachines.length }}/10</span>
+        <span class="text-sm text-gray-600">{{ myMachines.length }}/30</span>
       </h3>
 
-      <!-- 学习机列表 - 2列网格布局 -->
-      <div v-if="myMachines.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div 
-          v-for="machine in myMachines" 
-          :key="machine.id"
-          class="bg-white rounded-xl shadow-md p-4 border-2"
-          :class="getCardBorderClass(machine)"
-        >
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <h4 class="text-gray-800 font-bold text-base mb-1">AI学习机 #{{ machine.id.slice(-4) }}</h4>
+      <!-- 学习卡列表 - 简化版：横排2个，每页10个，最多3页 -->
+      <div v-if="myMachines.length > 0">
+        <!-- 学习卡网格 - 横排2列 -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div 
+            v-for="machine in paginatedMachines" 
+            :key="machine.id"
+            class="bg-white rounded-xl shadow-md p-3 border-2"
+            :class="getCardBorderClass(machine)"
+          >
+            <!-- 状态和进度 -->
+            <div class="mb-2">
               <span 
-                class="inline-block px-2 py-1 rounded-full text-xs font-bold"
+                class="inline-block px-2 py-1 rounded-full text-xs font-bold mb-1"
                 :class="getStatusClass(machine)"
               >
                 {{ getStatusText(machine) }}
               </span>
+              <div class="text-xs text-gray-600">
+                进度：{{ (((machine.released_points || 0) / (machine.total_points || 1)) * 100).toFixed(0) }}%
+              </div>
             </div>
-            <div class="text-right">
-              <div class="text-yellow-600 font-bold text-xl">{{ (releaseRate * 100).toFixed(1) }}%</div>
-              <div class="text-xs text-gray-500">每日释放率</div>
-            </div>
-          </div>
 
-          <!-- 进度条 -->
-          <div class="mb-3">
-            <div class="flex justify-between text-xs text-gray-600 mb-1">
-              <span>学习进度</span>
-              <span class="font-bold">{{ (((machine.released_points || 0) / (machine.total_points || 1)) * 100).toFixed(1) }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <!-- 进度条 -->
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-2">
               <div 
                 class="h-full rounded-full transition-all"
                 :class="getProgressBarClass(machine)"
                 :style="{ width: `${((machine.released_points || 0) / (machine.total_points || 1) * 100)}%` }"
               ></div>
             </div>
-            <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{{ (machine.released_points || 0).toFixed(0) }}积分</span>
+
+            <!-- 积分数据 -->
+            <div class="flex justify-between text-xs text-gray-600">
+              <span>{{ (machine.released_points || 0).toFixed(0) }}</span>
               <span>{{ (machine.total_points || 0).toFixed(0) }}积分</span>
             </div>
           </div>
+        </div>
 
-          <!-- 数据统计 -->
-          <div class="grid grid-cols-3 gap-1 text-xs mb-3">
-            <div class="bg-yellow-50 rounded-lg p-1.5 text-center border border-yellow-100">
-              <div class="text-gray-600 text-xs">日释放</div>
-              <div class="text-yellow-700 font-bold text-sm">{{ (releaseRate * 100).toFixed(1) }}%</div>
-            </div>
-            <div class="bg-purple-50 rounded-lg p-1.5 text-center border border-purple-100">
-              <div class="text-gray-600 text-xs">等级</div>
-              <div class="text-purple-600 font-bold text-sm">3倍</div>
-            </div>
-            <div class="bg-blue-50 rounded-lg p-1.5 text-center border border-blue-100">
-              <div class="text-gray-600 text-xs">重启</div>
-              <div class="text-gray-700 font-bold text-sm">{{ machine.restart_count || 0 }}次</div>
-            </div>
+        <!-- 分页器 -->
+        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2">
+          <button 
+            @click="currentPage = Math.max(1, currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="px-4 py-2 rounded-lg font-bold text-sm transition-all"
+            :class="currentPage === 1 
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+              : 'bg-yellow-500 text-white hover:bg-yellow-600'"
+          >
+            上一页
+          </button>
+          
+          <div class="flex gap-2">
+            <button 
+              v-for="page in totalPages" 
+              :key="page"
+              @click="currentPage = page"
+              class="w-10 h-10 rounded-lg font-bold text-sm transition-all"
+              :class="currentPage === page 
+                ? 'bg-yellow-500 text-white' 
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'"
+            >
+              {{ page }}
+            </button>
           </div>
-
-          <div class="text-xs text-gray-500 mt-2 text-center">
-            开始时间：{{ formatDate(machine.created_at) }}
-          </div>
+          
+          <button 
+            @click="currentPage = Math.min(totalPages, currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="px-4 py-2 rounded-lg font-bold text-sm transition-all"
+            :class="currentPage === totalPages 
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+              : 'bg-yellow-500 text-white hover:bg-yellow-600'"
+          >
+            下一页
+          </button>
         </div>
       </div>
 
@@ -387,7 +402,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import type { MiningMachine } from '@/types'
-import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { MiningService } from '@/services/MiningService'
 
@@ -404,6 +418,16 @@ const isCheckedInToday = ref(false)
 const releaseRate = ref(0.02) // 默认2%
 const showExchangeModal = ref(false) // 兑换弹窗
 const paymentMethod = ref<'u' | 'points'>('u') // ✅ 支付方式：u=U余额，points=积分
+
+// ✅ 分页相关
+const currentPage = ref(1)
+const pageSize = 10 // 每页10个
+const totalPages = computed(() => Math.min(3, Math.ceil(myMachines.value.length / pageSize))) // 最多3页
+const paginatedMachines = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return myMachines.value.slice(start, end)
+})
 
 // ✅ 重启统计（初始值，立即显示）
 const restartStats = ref<any>({
@@ -426,7 +450,7 @@ const canExchange = computed(() => {
   if (!user.value?.is_agent) return false
   
   const currentCount = myMachines.value.length
-  if (currentCount + purchaseCount.value > 10) return false
+  if (currentCount + purchaseCount.value > 30) return false
   
   if (paymentMethod.value === 'u') {
     // U余额支付：8U/张
@@ -438,11 +462,6 @@ const canExchange = computed(() => {
     return (user.value.transfer_points || 0) >= totalCost
   }
 })
-
-// 格式化日期
-const formatDate = (date: string) => {
-  return format(new Date(date), 'yyyy-MM-dd HH:mm')
-}
 
 // V4.0签到功能
 const handleCheckin = async () => {
