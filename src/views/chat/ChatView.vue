@@ -203,10 +203,10 @@
           </div>
         </template>
         
-        <!-- AI Web3 空投群 -->
+        <!-- 币安 欧易 空投群 -->
         <template v-else-if="currentGroup?.type === 'ai_push'">
           <div class="text-8xl mb-6 animate-bounce">🚀</div>
-          <h3 class="text-3xl font-bold text-primary mb-3">AI Web3 空投</h3>
+          <h3 class="text-3xl font-bold text-primary mb-3">币安 欧易 空投</h3>
           <p class="text-xl text-base-content/70 mb-6">等待AI智能推送优质空投项目</p>
           <div class="flex gap-2">
             <span class="loading loading-dots loading-lg text-primary"></span>

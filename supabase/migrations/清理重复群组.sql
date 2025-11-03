@@ -9,7 +9,7 @@ DELETE FROM chat_groups;
 INSERT INTO chat_groups (type, icon, description, member_count, max_members, is_active, sort_order, bot_enabled)
 VALUES 
   ('default', '💰', 'AI 科技创薪', 10, 50000, true, 1, false),
-  ('ai_push', '🚀', 'AI Web3 空投', 5, 50000, true, 2, true)
+  ('ai_push', '🚀', '币安 欧易 空投', 5, 50000, true, 2, true)
 ON CONFLICT DO NOTHING;
 
 -- 3. 验证结果
