@@ -13,7 +13,7 @@
           <!-- 标题信息 -->
           <div>
             <h1 class="text-xl font-black tracking-wide">
-              {{ currentGroup?.description || 'AI 100 学习交流' }}
+              {{ currentGroup?.description || 'AI % 学习交流' }}
             </h1>
             <div class="flex items-center gap-3 mt-1">
               <p class="text-sm font-semibold text-base-content/70 flex items-center gap-1">
